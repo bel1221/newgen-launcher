@@ -1,0 +1,51 @@
+/* ============================================================================
+   Newgen Launcher - see-through GUI, RUNNER-UP 1: "dark glass"
+   ----------------------------------------------------------------------------
+   For the taste "more see-through": the surfaces are only 60% solid and the
+   lettering on them is light, which stays readable over every clip.
+   The price: the pages read deep blue instead of cream and the panel dark brown
+   instead of tan. Shapes, plaques, the orange frame, the tan bevel, fields,
+   buttons, slot and cards keep their NewGen colours.
+
+   A patch for src/renderer/style.css, used INSTEAD of recommended.css: paste it
+   after the last rule. No markup change, no blur, palette variables only.
+   Keep the video dim of style.css as it is (0.4 / 0.75): light lettering needs it.
+   ============================================================================ */
+
+:root {
+  /* how solid the dark surfaces are. 60% is the measured value; by arithmetic the light lettering holds down to about 50% over a white picture, not lower */
+  --glass: 60%;
+}
+
+/* book cover: was a filled blue box behind both pages; now a border of the same size, so the pages can be see-through */
+.book { background: none; padding: 0; border: solid var(--cover); border-width: 0 calc(2 * var(--px)) calc(3 * var(--px)); }
+
+/* pages: cover blue at --glass instead of solid cream, cream lettering; drops the two inset shadows (solid margin + frame) */
+.page { background: color-mix(in srgb, var(--cover) var(--glass), transparent); color: var(--page); box-shadow: 0 var(--px) 0 var(--page-edge), 0 calc(2 * var(--px)) 0 var(--spine); }
+
+/* thin orange page frame: redrawn as its own box in exactly the same place */
+.page::after { content: ""; position: absolute; inset: calc(3 * var(--px)); border: var(--px) solid var(--frame); pointer-events: none; }
+
+/* panel: outline brown at --glass instead of solid tan, light tan lettering (the GAME LOG heading); outline and tan bevel stay solid */
+.panel { background: color-mix(in srgb, var(--outline) var(--glass), transparent); color: var(--panel-hi); }
+
+/* ACCOUNT label: mauve -> cream */
+label { color: var(--page); }
+
+/* PASSWORD label: orange -> the lighter orange of the page frame */
+label.accent { color: var(--frame); }
+
+/* welcome line: blue -> the plaque's light cream (blue cannot be read on blue glass) */
+.welcome { color: var(--orange-hi); }
+
+/* slot: its fill stays tan-brown, so its lettering stays dark instead of inheriting the panel's light colour */
+.slot { color: var(--outline); }
+
+/* login error: keeps today's red, on a solid cream strip that is only there while the message has text */
+.page .error:not(:empty) { background: var(--page); box-shadow: 0 0 0 calc(2 * var(--px)) var(--page); }
+
+/* launch error: keeps today's red, on a solid tan strip one GUI pixel larger than the line, so it lines up with the outlined pieces (already hidden while empty) */
+.panel .error { background: var(--panel); box-shadow: 0 0 0 var(--px) var(--panel); }
+
+/* footer: it sits straight on the video; cream at full strength with a hard 1px dark outline (0 blur, whole pixels) */
+#footer { color: var(--page); opacity: 1; text-shadow: 1px 0 0 var(--bg), -1px 0 0 var(--bg), 0 1px 0 var(--bg), 0 -1px 0 var(--bg); }

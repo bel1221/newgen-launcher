@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
+  <title>Newgen Launcher</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Background layer: the only thing behind the GUI. renderer.js fills it with the videos
+       from assets/videos/ (see README "Background video"). -->
+  <div id="bg"></div>
+
+  <!-- Login view: one bar near the bottom of the window, a see-through frame. From left to right: the
+       ACCOUNT box, the PASSWORD box (renderer.js switches it off in offline mode) and the LOG IN button.
+       A login error stands on the bar's top edge and moves nothing. The earlier login, the two-page
+       book, is kept in docs/gui-variants/book-frame-login.md. -->
+  <main id="login-view" class="bar">
+    <p id="login-error" class="error" role="alert"></p>
+    <form id="login-form" aria-label="Log in">
+      <label>Account <input id="username" autocomplete="username" maxlength="16" spellcheck="false" required></label>
+      <label>Password <input id="password" type="password" autocomplete="current-password"></label>
+      <button type="submit" id="login-btn">Log in</button>
+    </form>
+  </main>
+
+  <!-- Play view: the home screen. A sidebar down the left edge, the logo with PLAY under it at the
+       upper left, the news cards along the bottom. The status line, the progress bar, the error and
+       the game log button are on screen only while they have something to show (style.css, renderer.js).
+       #status and #log must stay empty here: style.css hides their parts while they are empty. -->
+  <main id="play-view" class="hidden">
+    <aside id="sidebar">
+      <img src="assets/icon.png" alt="">
+      <button id="log-btn" class="icon" type="button" aria-label="Game log" title="Game log" aria-expanded="false" aria-controls="log-panel">
+        <svg viewBox="0 0 7 7" aria-hidden="true"><path d="M0 0h7v1H0zM0 2h5v1H0zM0 4h7v1H0zM0 6h4v1H0z"/></svg>
+      </button>
+    </aside>
+    <section id="hero">
+      <img src="assets/lockup.png" alt="NewGen">
+      <button id="play-btn" class="play">Play</button>
+      <div class="status panel">
+        <p id="status"></p>
+        <progress id="progress" class="hidden" value="0" max="1"></progress>
+      </div>
+      <p id="play-error" class="error" role="alert"></p>
+    </section>
+    <section id="log-panel" class="panel hidden">
+      <h2 class="plaque">Game log</h2>
+      <pre id="log"></pre>
+    </section>
+    <!-- News: placeholders until there is a news source. To make them real, fill each .card (the first
+         one is the wide card) and take the aria-hidden off; the layout is #news in style.css. -->
+    <section id="news" aria-label="News: coming soon">
+      <h2 class="plaque" aria-hidden="true">News</h2>
+      <div class="card panel" aria-hidden="true">Coming soon</div>
+      <div class="card panel" aria-hidden="true">Coming soon</div>
+      <div class="card panel" aria-hidden="true">Coming soon</div>
+      <div class="card panel" aria-hidden="true">Coming soon</div>
+      <div class="card panel" aria-hidden="true">Coming soon</div>
+    </section>
+  </main>
+
+  <!-- Window shell: the top strip drags the window and holds the logo (top left, login screen only:
+       the Play screen has its own) and, in one frame at the top right, the account (Play screen only)
+       and the window buttons (wired in renderer.js -> preload.js -> main.js). The footer text is set
+       in renderer.js. -->
+  <header id="titlebar">
+    <img class="logo" src="assets/lockup.png" alt="NewGen">
+    <div id="tray" class="panel">
+      <p id="player-name" title="Logged in as"></p>
+      <button id="logout-btn" type="button">Log out</button>
+      <button id="win-min" type="button" aria-label="Minimize" title="Minimize"></button>
+      <button id="win-close" type="button" aria-label="Close" title="Close"></button>
+    </div>
+  </header>
+  <!-- Link buttons, in a frame at the right edge. The addresses are set in config.json ("links");
+       renderer.js shows a button only if its link is set. The icons are plain pixel glyphs (speech
+       bubble, globe); the name comes out beside the button on hover or keyboard focus. -->
+  <div id="links" class="panel">
+    <button type="button" class="icon hidden" data-link="discord">
+      <svg viewBox="0 0 9 7" aria-hidden="true"><path d="M1 0h7v1H1zM0 1h9v3H0zM1 4h7v1H1zM2 5h2v1H2zM2 6h1v1H2zM2 2v1h1V2zM4 2v1h1V2zM6 2v1h1V2z"/></svg><span class="plaque">Discord</span>
+    </button>
+    <button type="button" class="icon hidden" data-link="website">
+      <svg viewBox="0 0 7 7" aria-hidden="true"><path d="M2 0h3v1H2zM2 6h3v1H2zM0 2h1v3H0zM6 2h1v3H6zM2 1h1v5H2zM4 1h1v5H4zM0 3h7v1H0zM1 1h1v1H1zM5 1h1v1H5zM1 5h1v1H1zM5 5h1v1H5z"/></svg><span class="plaque">Website</span>
+    </button>
+  </div>
+  <footer id="footer"></footer>
+
+  <script type="module" src="burst.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

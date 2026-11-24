@@ -1,0 +1,35 @@
+{
+  "name": "newgen-launcher",
+  "version": "0.1.0",
+  "description": "Newgen Launcher: custom launcher for the Newgen Minecraft server",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "dependencies": {
+    "minecraft-launcher-core": "^3.18.2",
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.newgen.launcher",
+    "productName": "Newgen Launcher",
+    "files": [
+      "src/**/*",
+      "config.json",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "src/renderer/assets/videos/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "src/renderer/assets/icon.png"
+    }
+  }
+}

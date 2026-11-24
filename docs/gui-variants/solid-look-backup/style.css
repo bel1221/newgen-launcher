@@ -1,0 +1,241 @@
+/* Look = the server's in-game GUIs, built from flat colours and hard pixel edges only.
+   Login = the LOG IN book, Play = the tan panel family (cosmetics / battle pass / VIP).
+   Every colour below was sampled from those screenshots. */
+:root {
+  /* tan panel family */
+  --panel: #f0b978;
+  --panel-hi: #fcd58b;      /* panel and button top/left edge */
+  --panel-lo: #d4975f;      /* panel bottom/right edge */
+  --outline: #5c342e;       /* panel, button and card outline; button text */
+  --card: #9d5c35;          /* brown inset card; button bottom/right edge */
+  --slot: #c9835f;          /* slots, card inner ring, disabled buttons */
+  --slot-dark: #b8724f;
+  --slot-light: #f2d094;
+  --white: #fcfcfc;
+  --red: #ce453e; --red-lo: #9c182f; --red-out: #750b1e; --red-hi: #ed7455;   /* title plaque */
+  --bar-track: #002045; --bar-empty: #041819; --bar-hi: #56dbee; --bar: #2ab6e5; /* progress bar */
+  /* login book */
+  --page: #f2e6dc;
+  --page-edge: #c2a4a9;     /* input field, page edges */
+  --spine: #917284;         /* book spine, ACCOUNT label */
+  --text: #44323e;
+  --frame: #f6b041;         /* thin orange page border */
+  --orange: #e49a06; --orange-lo: #cc7606; --orange-out: #803504; --orange-mid: #b55409; --orange-hi: #fff6cc;
+  --blue: #376194; --blue-hi: #487dbd; --blue-lo: #1f4575; --blue-out: #0f2a4c; --cover: #173263;
+  /* everything else */
+  --bg: #272220;            /* fallback colour of the background layer (logo outline) */
+  --px: 2px;                /* one GUI pixel */
+  --radius: 12px;           /* rounded window corners */
+  --edge: 18px;             /* margin between the window edge and the window buttons / footer */
+}
+
+@font-face { font-family: "Silkscreen"; src: url("assets/fonts/silkscreen-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Pixelify Sans"; src: url("assets/fonts/pixelify-sans-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Minecraft"; src: url("assets/fonts/Minecraft.ttf") format("truetype"); }
+
+* { box-sizing: border-box; border-radius: 0; }
+/* Nothing but #bg and the GUI panels paints a background. */
+html, body { background: transparent; }
+/* ---------- Window shell ----------
+   The Electron window has no OS frame and is see-through (main.js). The body is clipped to a
+   rounded rectangle, so #bg, its videos and the burst canvas all end at the same clean edge. */
+body {
+  margin: 0; height: 100vh; overflow: hidden;
+  clip-path: inset(0 round var(--radius));
+  display: flex; align-items: center; justify-content: center;
+  font: 16px/1.15 "Pixelify Sans", sans-serif; color: var(--text);
+}
+#bg { position: fixed; inset: 0; z-index: -1; background: var(--bg); }
+/* Two stacked videos (renderer.js, startBackground): .front is the clip on screen. */
+#bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#bg video.front { z-index: 1; }
+/* Dim the video so the GUI stays readable: 40% in the middle, darker towards the edges (vignette).
+   The 1px ring keeps the window edge visible on a dark desktop (the window has no OS shadow). */
+#bg::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; border-radius: var(--radius);
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.4) 45%, rgba(0, 0, 0, 0.75));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+/* Top strip: drag the window by it. Anything clickable must be no-drag or it stops clicking. */
+#titlebar {
+  position: fixed; inset: 0 0 auto 0; height: 48px; z-index: 5; -webkit-app-region: drag;
+  display: flex; justify-content: flex-end; align-items: flex-start;
+  gap: calc(5 * var(--px)); padding: var(--edge) var(--edge) 0;
+}
+button, input, summary, pre, a { -webkit-app-region: no-drag; }
+/* Window buttons: the same pixel construction as every other button, kept dark until hovered. */
+#titlebar button {
+  position: relative; width: 28px; height: 22px; padding: 0;
+  --o: var(--outline); --hi: transparent; --lo: transparent;
+  background: var(--bg); color: var(--panel-lo);
+}
+/* The - and x are drawn from GUI pixels (a font glyph would be anti-aliased at this size). */
+#titlebar button::before { content: ""; position: absolute; background: currentColor; }
+#win-min::before { left: 9px; top: 10px; width: 10px; height: var(--px); }
+#win-close::before {
+  left: 9px; top: 6px; width: var(--px); height: var(--px);
+  box-shadow: 8px 0, 2px 2px, 6px 2px, 4px 4px, 2px 6px, 6px 6px, 0 8px, 8px 8px;
+}
+#titlebar button:hover { --hi: var(--panel-hi); --lo: var(--card); background: var(--panel); color: var(--outline); }
+#titlebar #win-close:hover { --o: var(--red-out); --hi: var(--red-hi); --lo: var(--red-lo); background: var(--red); color: var(--white); }
+#footer {
+  position: fixed; left: 0; right: 0; bottom: var(--edge); padding-left: 1px; /* odd-width text, see "Half-pixel nudges" */
+  text-align: center; pointer-events: none;
+  font: 8px/1 "Silkscreen", monospace; letter-spacing: 1px; text-transform: uppercase; color: var(--page-edge); opacity: 0.75;
+}
+/* Link buttons: ordinary buttons (see "Buttons") in the bottom left corner, level with the footer.
+   Their icons sit on the GUI pixel grid and take the button's text colour. */
+#links { position: fixed; left: var(--edge); bottom: var(--edge); display: flex; gap: calc(5 * var(--px)); }
+#links button { display: flex; align-items: center; gap: calc(3 * var(--px)); }
+#links svg { height: calc(7 * var(--px)); fill: currentColor; shape-rendering: crispEdges; }
+
+p { margin: 0; }
+.hidden { display: none !important; }
+.logo { display: block; margin: 0 auto; } /* smooth cartoon art, so scaled normally */
+
+/* Shared pixel construction: a 1px outline with the corner pixel missing (stepped corner),
+   plus a top/left highlight and bottom/right shade. Each piece only sets the colours. */
+.panel, .book, .plaque, .card, button, input {
+  border: 0;
+  box-shadow:
+    inset var(--px) var(--px) 0 var(--hi, transparent),
+    inset calc(-1 * var(--px)) calc(-1 * var(--px)) 0 var(--lo, transparent),
+    calc(-1 * var(--px)) 0 0 var(--o), var(--px) 0 0 var(--o),
+    0 calc(-1 * var(--px)) 0 var(--o), 0 var(--px) 0 var(--o);
+}
+label, button, summary, .plaque, .slot, #status {
+  font-family: "Silkscreen", monospace; font-size: calc(8 * var(--px)); line-height: 1; text-transform: uppercase;
+}
+
+/* Title plaque sitting on the top edge. Red on the tan panel, orange on the book. */
+.plaque {
+  /* centred and raised by whole pixels only: a percentage transform lands between pixels and blurs the edges */
+  position: absolute; z-index: 1; left: 0; right: 0; top: calc(-9 * var(--px)); width: fit-content;
+  margin: 0 auto; padding: calc(4 * var(--px)) calc(22 * var(--px)); white-space: nowrap; font-weight: 400;
+  --o: var(--red-out); --hi: var(--red-hi);
+  background: linear-gradient(var(--red) 50%, var(--red-lo) 50%);
+  color: var(--white); text-shadow: var(--px) var(--px) 0 var(--red-out);
+}
+
+/* ---------- Login: the book ---------- */
+.book {
+  position: relative; display: grid; grid-template-columns: 1fr 1fr; width: 672px;
+  padding: 0 calc(2 * var(--px)) calc(3 * var(--px));
+  --o: var(--blue-out); background: var(--cover);
+}
+/* The whole login book uses the Minecraft font. It is drawn on an 8px grid, so sizes are
+   16px (one font pixel = one GUI pixel) and 32px for the plaque. 24px would land off the grid. */
+.book, .book :is(label, input, button, .plaque) { font-family: "Minecraft", "Pixelify Sans", sans-serif; }
+.book .plaque {
+  top: calc(-12 * var(--px)); padding: calc(3 * var(--px)) calc(10 * var(--px)); font-size: calc(16 * var(--px));
+  --o: var(--orange-out); --hi: var(--orange-hi);
+  background: linear-gradient(var(--orange) 55%, var(--orange-lo) 55%);
+  color: var(--orange-hi); text-shadow: var(--px) var(--px) 0 var(--orange-mid);
+}
+.page {
+  position: relative; min-height: 360px; padding: 44px 26px 26px;
+  display: flex; flex-direction: column; gap: 14px;
+  background: var(--page);
+  /* cream margin, thin orange frame, then the stacked page edges underneath */
+  box-shadow: inset 0 0 0 calc(3 * var(--px)) var(--page), inset 0 0 0 calc(4 * var(--px)) var(--frame),
+    0 var(--px) 0 var(--page-edge), 0 calc(2 * var(--px)) 0 var(--spine);
+}
+.page + .page { border-left: calc(2 * var(--px)) solid var(--spine); }
+/* small ornament: a short second line above the top of the frame */
+.page::before {
+  content: ""; position: absolute; top: var(--px); left: 50%; transform: translateX(-50%);
+  width: calc(40 * var(--px)); height: var(--px); background: var(--frame);
+}
+.book .logo { height: 60px; margin-bottom: 14px; }
+label { display: block; color: var(--spine); }
+label.accent { color: var(--orange-lo); }
+input {
+  display: block; width: 100%; margin-top: calc(3 * var(--px)); padding: 8px 10px;
+  background: var(--page-edge); --o: var(--page-edge);
+  border-bottom: var(--px) solid var(--text);
+  color: var(--text); font-size: 16px; line-height: 20px;
+}
+input:focus { outline: var(--px) solid var(--blue); outline-offset: var(--px); }
+.welcome { color: var(--blue); }
+.page p { font-size: 16px; line-height: 20px; }
+.error { color: var(--red-lo); }
+.page .error { margin-top: auto; }
+
+/* ---------- Buttons ---------- */
+button {
+  padding: calc(4 * var(--px)) calc(8 * var(--px)); cursor: pointer;
+  --o: var(--outline); --hi: var(--panel-hi); --lo: var(--card);
+  background: var(--panel); color: var(--outline);
+}
+button:active:not(:disabled) { --hi: var(--card); --lo: var(--panel-hi); }
+button:disabled { --hi: var(--slot); --lo: var(--slot); background: var(--slot); color: var(--card); cursor: default; }
+button:focus-visible { outline: var(--px) solid var(--white); outline-offset: calc(2 * var(--px)); }
+.book button {
+  margin-top: auto; padding: calc(6 * var(--px));
+  --o: var(--blue-out); --hi: var(--blue-hi); --lo: var(--blue-lo);
+  background: var(--blue); color: var(--white); text-shadow: var(--px) var(--px) 0 var(--blue-out);
+}
+/* Half-pixel nudges: these centred labels are an odd number of pixels wide, so centring would put
+   them half a pixel off and blur the pixel font. 1px of extra padding lands them on a whole pixel.
+   Re-check if the wording of a label changes. */
+.book button { padding-left: calc(6 * var(--px) + 1px); }
+.panel .plaque { padding-right: calc(22 * var(--px) + 1px); }
+.book button:active:not(:disabled) { --hi: var(--blue-lo); --lo: var(--blue-hi); }
+.book button:disabled { --hi: var(--blue-lo); --lo: var(--blue-lo); background: var(--blue-lo); color: var(--page-edge); }
+
+/* ---------- Play: the tan panel ---------- */
+.panel {
+  --px: 3px;
+  position: relative; width: 520px; padding: 30px 24px 24px;
+  display: flex; flex-direction: column; gap: 12px;
+  --o: var(--outline); --hi: var(--panel-hi); --lo: var(--panel-lo);
+  background: var(--panel); color: var(--outline);
+}
+.panel .logo { height: 52px; }
+.row { display: flex; gap: 12px; }
+/* inventory slot: sunken, dark top/left, light bottom/right */
+.slot {
+  /* no outline of its own, so grow by one GUI pixel to line up with the outlined pieces around it */
+  flex: 1; min-width: 0; margin: calc(-1 * var(--px)); padding: calc(4 * var(--px)); overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-size: 16px; line-height: 24px;
+  background: var(--slot);
+  box-shadow: inset var(--px) var(--px) 0 var(--slot-dark), inset calc(-1 * var(--px)) calc(-1 * var(--px)) 0 var(--slot-light);
+}
+.slot strong { font: 20px "Pixelify Sans", sans-serif; text-transform: none; color: var(--white); }
+#logout-btn { font-size: 16px; }
+button.play { position: relative; padding: calc(5 * var(--px)); font-size: calc(16 * var(--px)); }
+/* Keep the button bright while the weapons fly out of it. */
+button.play.bursting { --hi: var(--panel-hi); --lo: var(--card); background: var(--panel); color: var(--outline); animation: punch 0.35s steps(4); }
+button.play.bursting::after {
+  content: ""; position: absolute; inset: calc(-2 * var(--px));
+  border: var(--px) solid var(--panel-hi); animation: shockwave 0.6s steps(6) forwards; pointer-events: none;
+}
+@keyframes punch { 30% { transform: scale(1.08); } }
+@keyframes shockwave { to { transform: scale(1.5, 2.4); opacity: 0; } }
+
+/* brown inset card: outline, terracotta ring, brown fill, white text */
+.card {
+  padding: calc(4 * var(--px)); --o: var(--outline); --hi: var(--slot); --lo: var(--slot);
+  background: var(--card); color: var(--white);
+}
+#status { font-size: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* battle pass bar: dark track, two-tone blue fill */
+progress {
+  display: block; width: 100%; height: calc(4 * var(--px)); margin-top: calc(2 * var(--px));
+  appearance: none; border: var(--px) solid var(--bar-track);
+}
+progress::-webkit-progress-bar { background: var(--bar-empty); }
+progress::-webkit-progress-value { background: linear-gradient(var(--bar-hi) 50%, var(--bar) 50%); }
+.panel .error { line-height: 18px; } /* whole pixels, so the centred panel never sits on a half pixel */
+.panel .error:empty { display: none; }
+/* +/- markers from the pixel font: the default triangle has a fractional width and blurs the label */
+summary { cursor: pointer; font-size: 16px; list-style-type: "+ "; }
+details[open] summary { list-style-type: "- "; }
+pre {
+  height: 84px; overflow: auto; margin: calc(2 * var(--px)) 0 0;
+  font: 13px/1.2 "Pixelify Sans", monospace; white-space: pre-wrap;
+}
+pre::-webkit-scrollbar { width: calc(3 * var(--px)); }
+pre::-webkit-scrollbar-thumb { background: var(--slot); }
+
+#burst-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 10; }

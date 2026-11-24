@@ -1,0 +1,17 @@
+{
+  "serverName": "Newgen Launcher",
+  "folderName": "myserver-launcher",
+  "serverHost": "newgenmc.net",
+  "serverPort": 25565,
+  "minecraftVersion": "1.21.11",
+  "fabricLoaderVersion": "0.20.1",
+  "apiBaseUrl": "",
+  "manifestUrl": "",
+  "tokenFileName": "launcher-auth.json",
+  "javaPath": "",
+  "memory": { "min": "2G", "max": "4G" },
+  "links": {
+    "discord": "https://discord.com/invite/pbFPn8ajsT",
+    "website": "https://www.newgenmc.net/"
+  }
+}

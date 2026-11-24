@@ -1,0 +1,46 @@
+/* ============================================================================
+   Newgen Launcher - see-through GUI, ALTERNATIVE 2: "in-game bevel"
+   ----------------------------------------------------------------------------
+   The closest to the in-game GUIs: the frames keep the in-game double bevel (a
+   light top/left edge and a shaded bottom/right edge inside the dark outline),
+   the title plaques stay solid and sit across the top edge as in the game, the
+   typing fields stay solid dusty pink, and the player name and the status line
+   get thin framed cards. Same dim and same darkening inside the frames as the
+   applied look.
+
+   A patch for src/renderer/style.css: paste it after the last rule. No markup
+   change, no blur. The colours written as numbers are the in-game ones the
+   applied look no longer needs as variables.
+   ============================================================================ */
+
+/* frames: the in-game double bevel instead of one flat line */
+.panel { --hi: var(--panel-hi); --lo: var(--panel-lo); }
+.page, .bar { --hi: var(--frame); --lo: #cc7606; } /* .page: the earlier login book, if it is put back (book-frame-login.md) */
+
+/* title plaques: solid, across the top edge (red on the panel, orange on the book) */
+.plaque {
+  bottom: auto; top: calc(-9 * var(--px)); z-index: 1; padding: calc(4 * var(--px)) calc(12 * var(--px));
+  --o: var(--red-out); --hi: var(--red-hi); --lo: var(--red-lo);
+  background: linear-gradient(var(--red) 50%, var(--red-lo) 50%);
+  color: var(--white); text-shadow: var(--px) var(--px) 0 var(--red-out);
+}
+/* the orange is one step darker than in the game, so the cream lettering reaches 3:1 (large text) */
+.book .plaque {
+  top: calc(-12 * var(--px)); padding: calc(3 * var(--px)) calc(10 * var(--px)); font-size: calc(16 * var(--px));
+  --o: #803504; --hi: var(--orange-hi); --lo: #b55409;
+  background: linear-gradient(#cc7606 55%, #b55409 55%);
+  color: var(--orange-hi); text-shadow: var(--px) var(--px) 0 #803504;
+}
+/* room under the plaques */
+.page { padding-top: 40px; min-height: 252px; }
+.panel { padding-top: 28px; }
+
+/* typing fields: solid dusty pink with dark lettering, as in the game */
+input { background: var(--page-edge); color: #44323e; }
+
+/* player name and status line: thin framed cards (one line, darker see-through inside) */
+#player-name, .status {
+  padding: 0 calc(4 * var(--px)); background: var(--well);
+  box-shadow: calc(-1 * var(--px)) 0 0 var(--line), var(--px) 0 0 var(--line), 0 calc(-1 * var(--px)) 0 var(--line), 0 var(--px) 0 var(--line);
+}
+.status { padding: calc(3 * var(--px)) calc(4 * var(--px)); }

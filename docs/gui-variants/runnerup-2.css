@@ -1,0 +1,57 @@
+/* ============================================================================
+   Newgen Launcher - see-through GUI, RUNNER-UP 2: "frosted glass"
+   ----------------------------------------------------------------------------
+   For the taste "looks most like glass": cream pages and tan panel at 60%, and
+   the video behind them is blurred, so no sharp detail crosses the text.
+
+   !! NOT TESTED FOR PERFORMANCE. The blur (the one backdrop-filter line below)
+   is redone on every video frame. Frame times and dropped frames could not be
+   measured in this experiment: that needs a visible window, and the lab window
+   had to stay hidden. Measure before shipping it, above all on integrated
+   graphics (the lab has a ready mode for it: lab/driver.js, "perf", run with
+   LAB_SHOW=1 on an idle PC). Deleting that one line gives the same glass
+   without blur.
+
+   A patch for src/renderer/style.css, used INSTEAD of recommended.css: paste it
+   after the last rule. No markup change, palette variables only.
+   ============================================================================ */
+
+:root {
+  /* how solid the pages and the panel are */
+  --glass: 60%;
+  /* blur strength of the frost; 8px still shows shapes, 16px turns the video into soft colour */
+  --frost: 16px;
+}
+
+/* book cover: was a filled blue box behind both pages; now a border of the same size, so the pages can be see-through */
+.book { background: none; padding: 0; border: solid var(--cover); border-width: 0 calc(2 * var(--px)) calc(3 * var(--px)); }
+
+/* pages: cream at --glass instead of solid; drops the two inset shadows (solid margin + frame); a hard 1px cream shadow sits under their dark lettering (0 blur) */
+.page { background: color-mix(in srgb, var(--page) var(--glass), transparent); box-shadow: 0 var(--px) 0 var(--page-edge), 0 calc(2 * var(--px)) 0 var(--spine); text-shadow: 1px 1px 0 var(--page); }
+
+/* thin orange page frame: redrawn as its own box in exactly the same place */
+.page::after { content: ""; position: absolute; inset: calc(3 * var(--px)); border: var(--px) solid var(--frame); pointer-events: none; }
+
+/* tan panel: tan at --glass instead of solid; outline and bevel stay solid */
+.panel { background: color-mix(in srgb, var(--panel) var(--glass), transparent); }
+
+/* THE BLUR (untested for speed): frosts the video behind the whole book and the whole panel, one blurred area per screen */
+.book, .panel { backdrop-filter: blur(var(--frost)); }
+
+/* all lettering on the glass: one ink, the darkest palette brown (at 60% the orange and blue accents cannot reach their contrast) */
+.page, label, label.accent, .welcome, summary { color: var(--bg); }
+
+/* GAME LOG heading: the same hard 1px light shadow as the page lettering */
+summary { text-shadow: 1px 1px 0 var(--panel-hi); }
+
+/* login error: keeps today's red, on a solid cream strip that is only there while the message has text */
+.page .error:not(:empty) { background: var(--page); box-shadow: 0 0 0 calc(2 * var(--px)) var(--page); }
+
+/* launch error: keeps today's red, on a solid tan strip one GUI pixel larger than the line, so it lines up with the outlined pieces (already hidden while empty) */
+.panel .error { background: var(--panel); box-shadow: 0 0 0 var(--px) var(--panel); }
+
+/* footer: it sits straight on the video; cream at full strength with a hard 1px dark outline (0 blur, whole pixels) */
+#footer { color: var(--page); opacity: 1; text-shadow: 1px 0 0 var(--bg), -1px 0 0 var(--bg), 0 1px 0 var(--bg), 0 -1px 0 var(--bg); }
+
+/* video dim: 0.4 -> 0.2 in the middle and 0.75 -> 0.55 at the edges (the 1px window ring is untouched) */
+#bg::after { background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.2) 45%, rgba(0, 0, 0, 0.55)); }

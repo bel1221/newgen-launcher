@@ -1,0 +1,83 @@
+/* ============================================================================
+   Newgen Launcher - see-through GUI, RECOMMENDED treatment: "tinted pixel glass"
+   ----------------------------------------------------------------------------
+   What it does: the video shows through the two big surfaces only (the cream
+   book pages and the tan panel). Outlines, bevels, plaques, the page frame,
+   fields, buttons, the slot and the cards stay solid. No blur, and every colour
+   is a palette variable that style.css already defines.
+
+   HOW TO APPLY
+   Markup change: none (index.html, renderer.js and main.js stay as they are).
+   Quickest, and exactly what was tested: paste the rules below after the last
+   rule of src/renderer/style.css.
+   Cleaner, same result: merge each rule into the rule it overrides there:
+     :root          add --glass: 75%;
+     .book          padding: 0 ... -> padding: 0 plus the border below (same size:
+                    the border takes the place of the padding); background ->
+                    none. The shared rule above .book sets border: 0; .book comes
+                    later, so its border wins.
+     .page          background -> the color-mix below; delete the two "inset"
+                    parts of box-shadow, keep the two page-edge parts.
+     .page::after   new rule, right after .page::before (the orange frame).
+     label          color: var(--spine) -> var(--text)
+     label.accent   color: var(--orange-lo) -> var(--orange-out)
+     .welcome       color: var(--blue) -> var(--cover)
+     .page .error   add the :not(:empty) strip rule next to it.
+     .panel         background -> the color-mix below.
+     .panel .error  add background + box-shadow.
+     summary        add color: var(--bg).
+     #footer        color: var(--page-edge); opacity: 0.75 -> color: var(--page);
+                    opacity: 1, plus the text-shadow.
+     #bg::after     in the radial-gradient 0.4 -> 0.2 and 0.75 -> 0.55; the 45%
+                    stop and the box-shadow ring stay.
+   Dim values: 0.2 in the middle, 0.55 at the edges (today 0.4 and 0.75). This is
+   taste, not need: the text on the surfaces measured the same with 0.4 / 0.75.
+   Tuning: --glass is the only number. 90% = safest. Below 70% the body text
+   drops under 4.5:1 on the darkest clip.
+   Afterwards also update: the comment on --spine in :root (no longer the ACCOUNT
+   colour), the comment above #bg::after ("40% in the middle"), and in README.md
+   the label and welcome colours under "Branding" and the dim percentages under
+   "Background video".
+   Needs color-mix(): Chromium 111+ (the project's Electron 33 has Chromium 130).
+   ============================================================================ */
+
+:root {
+  /* how solid the pages and the panel are; 75% is the lowest value at which every text on them passed on the darkest clip (90% = safest, close to today's look) */
+  --glass: 75%;
+}
+
+/* book cover: was a filled blue box behind both pages; now a border of the same size, so nothing dark sits behind the see-through pages */
+.book { background: none; padding: 0; border: solid var(--cover); border-width: 0 calc(2 * var(--px)) calc(3 * var(--px)); }
+
+/* pages: cream at --glass instead of solid; drops the two inset shadows that drew a solid cream margin and the frame (the stacked page edges underneath stay) */
+.page { background: color-mix(in srgb, var(--page) var(--glass), transparent); box-shadow: 0 var(--px) 0 var(--page-edge), 0 calc(2 * var(--px)) 0 var(--spine); }
+
+/* thin orange page frame: redrawn as its own box in exactly the same place, so it no longer needs the solid margin */
+.page::after { content: ""; position: absolute; inset: calc(3 * var(--px)); border: var(--px) solid var(--frame); pointer-events: none; }
+
+/* tan panel: tan at --glass instead of solid; its outline and bevel are box-shadows and stay solid */
+.panel { background: color-mix(in srgb, var(--panel) var(--glass), transparent); }
+
+/* ACCOUNT label: mauve -> the body text colour (mauve drops to 1.9:1 on see-through cream) */
+label { color: var(--text); }
+
+/* PASSWORD label: orange -> the plaque's dark orange (the orange drops to 1.6:1) */
+label.accent { color: var(--orange-out); }
+
+/* welcome line: button blue -> the darker cover blue (the button blue drops to 2.9:1) */
+.welcome { color: var(--cover); }
+
+/* GAME LOG heading: panel brown -> the darkest palette brown (3.5:1 -> 5:1 on see-through tan) */
+summary { color: var(--bg); }
+
+/* login error: keeps today's red, on a solid cream strip that is only there while the message has text */
+.page .error:not(:empty) { background: var(--page); box-shadow: 0 0 0 calc(2 * var(--px)) var(--page); }
+
+/* launch error: keeps today's red, on a solid tan strip one GUI pixel larger than the line, so it lines up with the outlined pieces (already hidden while empty) */
+.panel .error { background: var(--panel); box-shadow: 0 0 0 var(--px) var(--panel); }
+
+/* footer: it sits straight on the video; cream at full strength with a hard 1px dark outline (0 blur, whole pixels) */
+#footer { color: var(--page); opacity: 1; text-shadow: 1px 0 0 var(--bg), -1px 0 0 var(--bg), 0 1px 0 var(--bg), 0 -1px 0 var(--bg); }
+
+/* video dim: 0.4 -> 0.2 in the middle and 0.75 -> 0.55 at the edges, so more of the video reaches the glass (the 1px window ring is untouched) */
+#bg::after { background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.2) 45%, rgba(0, 0, 0, 0.55)); }
