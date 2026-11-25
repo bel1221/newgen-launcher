@@ -60,6 +60,11 @@ public class EmotesMod extends Mod {
 				avatar -> new PlayerAnimationController(avatar, (controller, data, setter) -> PlayState.CONTINUE));
 	}
 
+	/** Volume for the wheel's sound preview: half the emote volume, 0 when emote sound is off. */
+	float previewVolume() {
+		return sound.value ? (float) (volume.get() / 200) : 0;
+	}
+
 	// ---- the wheel's slots ----
 
 	public String slot(int i) {

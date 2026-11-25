@@ -24,6 +24,13 @@ public class EmoteWheelScreen extends Screen {
 	private final EmotesMod mod;
 	private int hovered = -1;
 	private double lastMouseX = Double.NaN, lastMouseY = Double.NaN; // the mouse only takes over the selection when it moves
+	/** Per slot, 0..1: how far it has grown toward the hovered size (1.08), in 120 ms. */
+	private final float[] grow = new float[EmotesMod.SLOTS];
+	private long lastFrame = System.currentTimeMillis(), hoverSince;
+	private int lastHovered = -1;
+	/** The hovered emote's sound, played after 400 ms of hover at half volume; stopped when the hover leaves. */
+	private net.minecraft.client.resources.sounds.SoundInstance preview;
+	private boolean opened;
 
 	public EmoteWheelScreen(EmotesMod mod) {
 		super(Component.literal("Emotes"));
@@ -33,6 +40,10 @@ public class EmoteWheelScreen extends Screen {
 	@Override
 	protected void init() {
 		minecraft.getToastManager().clear();
+		if (!opened) {
+			opened = true;
+			Ui.sound("open");
+		}
 	}
 
 	@Override
@@ -53,17 +64,43 @@ public class EmoteWheelScreen extends Screen {
 			lastMouseY = mouseY;
 		}
 
+		long now = System.currentTimeMillis();
+		float dt = Math.min(100, now - lastFrame) / 120f;
+		lastFrame = now;
+		if (hovered != lastHovered) {
+			lastHovered = hovered;
+			hoverSince = now;
+			stopPreview();
+			if (hovered >= 0 && EmoteLibrary.get(mod.slot(hovered)) != null) Ui.sound("hover");
+		}
+		EmoteLibrary.Emote held = hovered < 0 ? null : EmoteLibrary.get(mod.slot(hovered));
+		if (held != null && held.sound() != null && preview == null && now - hoverSince >= 400 && mod.previewVolume() > 0) {
+			preview = net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+					net.minecraft.sounds.SoundEvent.createVariableRangeEvent(held.sound()), 1f, mod.previewVolume());
+			minecraft.getSoundManager().play(preview);
+		}
+
 		for (int i = 0; i < EmotesMod.SLOTS; i++) {
 			double a = Math.toRadians(i * 45);
 			int x = cx + (int) Math.round(Math.sin(a) * RADIUS) - SLOT / 2, y = cy - (int) Math.round(Math.cos(a) * RADIUS) - SLOT / 2;
 			EmoteLibrary.Emote emote = EmoteLibrary.get(mod.slot(i));
 			boolean on = i == hovered && emote != null;
+			grow[i] = Math.max(0, Math.min(1, grow[i] + (on && !Ui.reduceMotion ? dt : -dt)));
+			// The hovered slot grows to 108 % around its own centre (not with Reduce motion).
+			float scale = 1 + 0.08f * (1 - (1 - grow[i]) * (1 - grow[i]));
+			g.pose().pushMatrix();
+			g.pose().translate(x + SLOT / 2f, y + SLOT / 2f);
+			g.pose().scale(scale, scale);
+			g.pose().translate(-(x + SLOT / 2f), -(y + SLOT / 2f));
 			Ui.round(g, x, y, SLOT, SLOT, SLOT / 2, on ? Ui.SELECTED : Ui.DARK);
 			Ui.ring(g, x, y, SLOT, SLOT, SLOT / 2, on ? 0x80FFFFFF : Ui.LINE);
 			if (emote != null) {
 				int o = (SLOT - ICON) / 2;
-				emote.drawIcon(g, x + o, y + o, ICON);
+				emote.drawIcon(g, x + o, y + o, ICON); // icons are circles of one size (see tools/EmoteImport)
+			} else {
+				Ui.centered(g, "+", x + SLOT / 2, y + (SLOT - 7) / 2, Ui.DIM, Ui.TITLE); // an empty slot, to fill in Edit wheel
 			}
+			g.pose().popMatrix();
 			// The slot's number key, just outside the ring on the same spoke.
 			int nx = cx + (int) Math.round(Math.sin(a) * (RADIUS + SLOT / 2 + 7)), ny = cy - (int) Math.round(Math.cos(a) * (RADIUS + SLOT / 2 + 7));
 			Ui.centered(g, String.valueOf(i + 1), nx, ny - 3, on ? Ui.TEXT : Ui.DIM, Ui.CAPS);
@@ -96,7 +133,18 @@ public class EmoteWheelScreen extends Screen {
 		return true;
 	}
 
+	private void stopPreview() {
+		if (preview != null) minecraft.getSoundManager().stop(preview);
+		preview = null;
+	}
+
+	@Override
+	public void removed() {
+		stopPreview();
+	}
+
 	private void choose() {
+		stopPreview();
 		EmoteLibrary.Emote emote = hovered < 0 ? null : EmoteLibrary.get(mod.slot(hovered));
 		onClose();
 		if (emote != null) mod.play(minecraft, emote);
