@@ -38,6 +38,9 @@ public final class VideoBackground {
 	private static int failures;        // clips in a row that could not play
 	private static boolean disabled;    // no clip can play: always fall back
 	private static volatile long lastDrawn;
+	/** Players whose textures are freed at the start of the next render(): the GUI draws later in the frame than render()
+	 * records it, so freeing a texture in the same render() that drew it made the GPU sample a deleted texture. */
+	private static final java.util.List<Player> retired = new java.util.ArrayList<>();
 
 	private VideoBackground() {
 	}
@@ -45,6 +48,8 @@ public final class VideoBackground {
 	/** Draws the background over the whole screen; false when there is nothing to show (yet), so the caller draws its fallback. */
 	public static boolean render(GuiGraphics g, int width, int height) {
 		if (disabled) return false;
+		for (Player p : retired) p.release();
+		retired.clear();
 		try {
 			lastDrawn = System.currentTimeMillis();
 			if (current == null || current.stopped) {
@@ -197,8 +202,13 @@ public final class VideoBackground {
 			shown = n;
 		}
 
+		/** Stops decoding now; the texture goes at the start of the next render() (see retired). */
 		void close() {
 			stopped = true;
+			retired.add(this);
+		}
+
+		void release() {
 			Minecraft.getInstance().getTextureManager().release(id);
 		}
 	}

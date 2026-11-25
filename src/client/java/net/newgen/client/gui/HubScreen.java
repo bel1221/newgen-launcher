@@ -84,10 +84,19 @@ public class HubScreen extends Screen {
 
 	private void frame(GuiGraphics g, HudMod hud, int color) {
 		g.renderOutline(hud.left - 1, hud.top - 1, hud.width + 2, hud.height + 2, color);
-		// Name tag above the element, or below it when there is no room; always fully on screen.
-		int w = Ui.width(hud.name, Ui.UI) + 8;
-		int x = Math.max(0, Math.min(hud.left - 1, width - w));
-		int y = hud.top >= 13 ? hud.top - 13 : Math.min(hud.top + hud.height + 1, height - 12);
+		// Name tag beside the element (right, else left), level with its top, so stacked elements never share a tag row;
+		// above or below it only when neither side has room. Always fully on screen.
+		int w = Ui.width(hud.name, Ui.UI) + 8, x, y;
+		if (hud.left + hud.width + 3 + w <= width) {
+			x = hud.left + hud.width + 3;
+			y = Math.min(hud.top, height - 12);
+		} else if (hud.left - 3 - w >= 0) {
+			x = hud.left - 3 - w;
+			y = Math.min(hud.top, height - 12);
+		} else {
+			x = Math.max(0, Math.min(hud.left - 1, width - w));
+			y = hud.top >= 13 ? hud.top - 13 : Math.min(hud.top + hud.height + 1, height - 12);
+		}
 		Ui.round(g, x, y, w, 12, Ui.R_SM, Ui.GLASS);
 		Ui.text(g, hud.name, x + 4, y + 2, color | 0xFF000000, Ui.UI);
 	}

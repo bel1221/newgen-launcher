@@ -161,6 +161,12 @@ public class ModsScreen extends Screen {
 		return Ui.width(label, Ui.CAPS) + 16 + (icon ? 15 : 0);
 	}
 
+	/** An option's label in the game's language when the lang files have it (newgen_client.setting.<label>), else as written. */
+	private static String settingLabel(String name) {
+		String key = "newgen_client.setting." + name.toLowerCase().replaceAll("[^a-z0-9]+", "_").replaceAll("^_|_$", "");
+		return net.minecraft.client.resources.language.I18n.exists(key) ? net.minecraft.client.resources.language.I18n.get(key) : name;
+	}
+
 	/** A choice's value in the game's language when the lang files have it (newgen_client.choice.<value>), else as written. */
 	private static String choiceLabel(String value) {
 		String key = "newgen_client.choice." + value.toLowerCase().replace(' ', '_').replace("'", "");
@@ -440,7 +446,7 @@ public class ModsScreen extends Screen {
 				Ui.button(g, controlX, y + 3, w, BUTTON_H, key == listening ? Ui.tr("key.listening") : keyName(key), over, active ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
 			}
 		}
-		Ui.text(g, Ui.fit(setting.name, controlX - 6 - x, Ui.UI, false), x, y + 6, Ui.SOFT, Ui.UI);
+		Ui.text(g, Ui.fit(settingLabel(setting.name), controlX - 6 - x, Ui.UI, false), x, y + 6, Ui.SOFT, Ui.UI);
 	}
 
 	/** A rounded button of the usual height with its label in the label face. */
