@@ -1,6 +1,8 @@
 package net.newgen.client.gui;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
@@ -17,18 +19,23 @@ import org.lwjgl.system.MemoryUtil;
 
 /**
  * The ambient background of the menus outside a world: NewGen gameplay clips (assets/newgen_client/backgrounds,
- * 1280x720, 24 fps, H.264 baseline, CRF 19) played one after another with a 1 s crossfade, cover-fitted to the screen.
+ * 1920x1080, 24 fps, H.264 baseline, CRF 18, each as a top and a bottom half) played one after another with a 1 s
+ * crossfade, cover-fitted to the screen.
  * <p>
- * Each clip is decoded by JCodec on its own low-priority daemon thread (13-17 ms a frame at 720p on an i5-12400F, 32-40 % of one core, measured), paced to
- * 24 fps; the render thread only copies the newest frame into a texture. A decoder stops by itself when no screen
+ * Each half is decoded by JCodec on its own low-priority daemon thread, so a 1080p frame takes two threads about
+ * 25 ms each (about 1 core in all on an i5-12400F, 2 during the 1 s crossfade; measured, no late frames once warm).
+ * The render thread only copies the current frame into a texture. A decoder stops by itself when no screen
  * has drawn the background for 500 ms, so nothing runs in a world or on screens that do not show it.
  * When a clip cannot be read or decoded it is skipped; when none can, render() returns false for good and the
  * caller draws the vanilla panorama.
  */
 public final class VideoBackground {
 	private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("newgen_client");
-	private static final String[] CLIPS = {"clip1.mp4", "clip2.mp4", "clip3.mp4", "clip4.mp4"};
-	private static final int W = 1280, H = 720, FPS = 24, FADE_FRAMES = FPS; // 1 s crossfade
+	/** Each clip is two files, its top and bottom halves (clip1a.mp4, clip1b.mp4), decoded side by side. */
+	private static final String[] CLIPS = {"clip1", "clip2", "clip3", "clip4"};
+	private static final int W = 1920, H = 1080, PARTS = 2, BAND = H / PARTS, FPS = 24, FADE_FRAMES = FPS; // 1 s crossfade
+	/** Decoding may run this many frames ahead of the clock; SLOTS frame buffers make that safe (40 MB a clip). */
+	private static final int LEAD = 3, SLOTS = LEAD + 2;
 	/** A light shade over the footage, so the glass buttons and white text keep their contrast. */
 	private static final int SHADE = 0x38000000;
 	private static final long IDLE_MS = 500;
@@ -52,7 +59,9 @@ public final class VideoBackground {
 		retired.clear();
 		try {
 			lastDrawn = System.currentTimeMillis();
-			if (current == null || current.stopped) {
+			// A clip that stopped before its end (idle, or failed) starts again; one that decoded to the end keeps its last
+			// frame on screen until the next clip has faded in.
+			if (current == null || current.stopped && !current.complete()) {
 				if (current != null) current.close();
 				current = start(clip);
 				if (current == null) return false;
@@ -106,78 +115,102 @@ public final class VideoBackground {
 	}
 
 	private static Player start(int index) {
-		Identifier file = Identifier.fromNamespaceAndPath(NewgenClient.ID, "backgrounds/" + CLIPS[index]);
-		byte[] bytes;
-		try (var in = Minecraft.getInstance().getResourceManager().open(file)) {
-			bytes = in.readAllBytes();
-		} catch (Exception e) {
-			LOGGER.warn("Background clip {} missing", file);
-			Player p = new Player(index, null);
-			p.failed = true;
-			return p;
+		byte[][] parts = new byte[PARTS][];
+		for (int p = 0; p < PARTS; p++) {
+			Identifier file = Identifier.fromNamespaceAndPath(NewgenClient.ID, "backgrounds/" + CLIPS[index] + (char) ('a' + p) + ".mp4");
+			try (var in = Minecraft.getInstance().getResourceManager().open(file)) {
+				parts[p] = in.readAllBytes();
+			} catch (Exception e) {
+				LOGGER.warn("Background clip {} missing", file);
+				Player player = new Player(index, null);
+				player.failed = true;
+				return player;
+			}
 		}
-		return new Player(index, bytes);
+		return new Player(index, parts);
 	}
 
-	/** Draws a player's texture over the screen, scaled to cover it (cropped at the sides or top and bottom). */
+	/** Draws a player's texture over the screen, scaled to cover it (cropped at the sides or top and bottom); one linear scale. */
 	private static void cover(GuiGraphics g, Player p, int width, int height, int color) {
 		float scale = Math.max(width / (float) W, height / (float) H);
 		int w = Math.round(W * scale), h = Math.round(H * scale);
 		g.blit(RenderPipelines.GUI_TEXTURED, p.id, (width - w) / 2, (height - h) / 2, 0, 0, w, h, W, H, W, H, color);
 	}
 
-	/** One clip: a decoder thread and the texture its frames go into. */
+	/**
+	 * One clip: a decoder thread per band (the top and bottom halves are separate videos) and the texture the frames
+	 * go into. The bands meet at a barrier after every frame; the barrier publishes the frame. Decoding may run LEAD
+	 * frames ahead of the clock, which absorbs key frames and GC pauses; the render thread shows the frame the clock
+	 * is at (or the newest one if decoding is behind).
+	 */
 	private static final class Player {
 		final Identifier id;
 		final DynamicTexture texture;
-		/** Three frame buffers in the texture's memory order (ABGR ints = RGBA bytes); the thread fills them in turn. */
-		private final int[][] frames = new int[3][W * H];
+		/** SLOTS frame buffers in the texture's memory order (ABGR ints = RGBA bytes); frame n goes to slot n % SLOTS. */
+		private final int[][] frames = new int[SLOTS][W * H];
+		private final CyclicBarrier barrier;
+		private int writing;                  // frame both bands are writing (only touched by the bands and the barrier action)
 		private volatile int ready = -1;      // number of the newest finished frame
-		private volatile int readyBuffer;
+		private volatile long start;          // when frame 0 was ready; the clock of this clip
 		volatile int total;
 		volatile boolean failed, stopped;
 		int shown = -1;                       // number of the frame in the texture
 
-		Player(int index, byte[] bytes) {
+		Player(int index, byte[][] parts) {
 			id = Identifier.fromNamespaceAndPath(NewgenClient.ID, "background_video_" + index + "_" + System.nanoTime());
 			texture = new LinearTexture();
 			Minecraft.getInstance().getTextureManager().register(id, texture);
-			if (bytes == null) return;
-			Thread thread = new Thread(() -> decode(bytes), "Newgen background video");
-			thread.setDaemon(true);
-			thread.setPriority(Thread.MIN_PRIORITY + 1);
-			thread.start();
+			barrier = new CyclicBarrier(PARTS, this::frameDone);
+			if (parts == null) return;
+			for (int p = 0; p < PARTS; p++) {
+				final int band = p;
+				Thread thread = new Thread(() -> decode(parts[band], band), "Newgen background video " + (char) ('a' + band));
+				thread.setDaemon(true);
+				thread.setPriority(Thread.MIN_PRIORITY + 1);
+				thread.start();
+			}
 		}
 
-		private void decode(byte[] bytes) {
+		/** Runs once per frame when every band has written it: publish it, then wait until the next may be written. */
+		private void frameDone() {
+			int n = writing++;
+			if (n == 0) start = System.nanoTime();
+			ready = n;
+			long wait = start + (n + 1 - LEAD) * 1_000_000_000L / FPS - System.nanoTime();
+			try {
+				if (wait > 0) Thread.sleep(wait / 1_000_000, (int) (wait % 1_000_000));
+			} catch (InterruptedException e) {
+				stopped = true;
+			}
+			if (System.currentTimeMillis() - lastDrawn > IDLE_MS) stopped = true; // no screen shows it any more
+		}
+
+		private void decode(byte[] bytes, int band) {
 			try {
 				FrameGrab grab = FrameGrab.createFrameGrab(ByteBufferSeekableByteChannel.readFromByteBuffer(ByteBuffer.wrap(bytes)));
-				total = grab.getVideoTrack().getMeta().getTotalFrames();
-				long start = System.nanoTime();
+				if (band == 0) total = grab.getVideoTrack().getMeta().getTotalFrames();
 				for (int n = 0; !stopped; n++) {
 					Picture picture = grab.getNativeFrame();
 					if (picture == null) break;
-					int buffer = n % 3;
-					convert(picture, frames[buffer]);
-					long wait = start + n * 1_000_000_000L / FPS - System.nanoTime();
-					if (wait > 0) Thread.sleep(wait / 1_000_000, (int) (wait % 1_000_000));
-					readyBuffer = buffer;
-					ready = n;
-					if (System.currentTimeMillis() - lastDrawn > IDLE_MS) break; // no screen shows it any more
+					convert(picture, frames[n % SLOTS], band * BAND);
+					barrier.await();
 				}
+			} catch (BrokenBarrierException e) {
+				// the other band stopped or failed
 			} catch (Throwable e) {
 				LOGGER.warn("Background clip could not be decoded", e);
 				failed = true;
 			}
 			stopped = true;
+			barrier.reset(); // wakes the other band
 		}
 
-		/** YUV 4:2:0 (BT.709, limited range; JCodec stores samples minus 128) to opaque RGBA. */
-		private static void convert(Picture p, int[] out) {
+		/** One band, YUV 4:2:0 (BT.709, limited range; JCodec stores samples minus 128) to opaque RGBA, rows top..top+BAND. */
+		private static void convert(Picture p, int[] out, int top) {
 			byte[] y = p.getPlaneData(0), u = p.getPlaneData(1), v = p.getPlaneData(2);
 			int yw = p.getPlaneWidth(0), cw = p.getPlaneWidth(1);
-			for (int row = 0; row < H; row++) {
-				int yo = row * yw, co = (row >> 1) * cw, o = row * W;
+			for (int row = 0; row < BAND; row++) {
+				int yo = row * yw, co = (row >> 1) * cw, o = (top + row) * W;
 				for (int col = 0; col < W; col++) {
 					int c = 298 * (y[yo + col] + 128 - 16);
 					int d = u[co + (col >> 1)], e = v[co + (col >> 1)];
@@ -193,18 +226,25 @@ public final class VideoBackground {
 			return x < 0 ? 0 : Math.min(255, x);
 		}
 
-		/** Copies the newest decoded frame into the texture, if there is a new one. Render thread only. */
+		/** Copies the frame the clock is at (or the newest, if decoding is behind) into the texture. Render thread only. */
 		void upload() {
-			int n = ready;
-			if (n < 0 || n == shown) return;
-			MemoryUtil.memIntBuffer(texture.getPixels().getPointer(), W * H).put(frames[readyBuffer]);
+			int newest = ready;
+			if (newest < 0) return;
+			int n = Math.min(newest, (int) ((System.nanoTime() - start) * FPS / 1_000_000_000L));
+			if (n <= shown) return;
+			MemoryUtil.memIntBuffer(texture.getPixels().getPointer(), W * H).put(frames[n % SLOTS]);
 			texture.upload();
 			shown = n;
+		}
+
+		boolean complete() {
+			return total > 0 && ready >= total - 1;
 		}
 
 		/** Stops decoding now; the texture goes at the start of the next render() (see retired). */
 		void close() {
 			stopped = true;
+			barrier.reset();
 			retired.add(this);
 		}
 
@@ -213,7 +253,7 @@ public final class VideoBackground {
 		}
 	}
 
-	/** A dynamic texture sampled smoothly, so frames drawn larger or smaller than 1280x720 stay smooth. */
+	/** A dynamic texture sampled smoothly, so frames drawn larger or smaller than 1920x1080 stay smooth. */
 	private static final class LinearTexture extends DynamicTexture {
 		LinearTexture() {
 			super(() -> "newgen background video", W, H, false);
