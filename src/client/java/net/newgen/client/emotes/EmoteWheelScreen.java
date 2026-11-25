@@ -44,6 +44,8 @@ public class EmoteWheelScreen extends Screen {
 	private final RemotePlayer[] figures = new RemotePlayer[EmotesMod.SLOTS];
 	private final int[] idle = new int[EmotesMod.SLOTS]; // ticks a one-shot emote has rested before it plays again
 	private static final int REST_TICKS = 12, KEY_POSE_TICKS = 10;
+	private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("newgen_client");
+	private static boolean loggedFailure;
 
 	public EmoteWheelScreen(EmotesMod mod) {
 		super(Component.literal("Emotes"));
@@ -113,8 +115,15 @@ public class EmoteWheelScreen extends Screen {
 				if (figures[i] != null) {
 					// The figure stands in the slot, feet near the rim, facing you (it looks at the slot's own centre).
 					int fx = x + 4, fy = y + 3, fw = SLOT - 8, fh = SLOT - 5;
-					InventoryScreen.renderEntityInInventoryFollowsMouse(g, fx, fy, fx + fw, fy + fh, 13, 0.0625f,
-							fx + fw / 2f, fy + fh / 3f, figures[i]);
+					try {
+						InventoryScreen.renderEntityInInventoryFollowsMouse(g, fx, fy, fx + fw, fy + fh, 13, 0.0625f,
+								fx + fw / 2f, fy + fh / 3f, figures[i]);
+					} catch (Throwable e) {
+						// A figure that cannot be drawn (animation or renderer trouble) gives up its slot to the icon.
+						figures[i] = null;
+						if (!loggedFailure) LOGGER.warn("Emote preview figure could not be drawn; showing icons", e);
+						loggedFailure = true;
+					}
 				} else {
 					emote.drawIcon(g, x + o, y + o, ICON); // no world yet: the icon (a circle, see tools/EmoteImport)
 				}
@@ -205,6 +214,9 @@ public class EmoteWheelScreen extends Screen {
 	@Override
 	public void removed() {
 		stopPreview();
+		// The stand-ins hold their Player Animation Library state in their own fields (PAL's Avatar mixin), not in a
+		// global map, so dropping them here frees everything.
+		java.util.Arrays.fill(figures, null);
 	}
 
 	private void choose() {
