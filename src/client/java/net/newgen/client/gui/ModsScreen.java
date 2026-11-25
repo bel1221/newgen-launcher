@@ -475,7 +475,10 @@ public class ModsScreen extends Screen {
 		if (!left && event.button() != 1) return false;
 		// Any click ends key capture and typing; the clicked row may start it again below.
 		listening = null;
-		typing = null;
+		if (typing != null) {
+			typing = null;
+			Mods.save(); // clicking away from a text or colour field keeps what was typed
+		}
 
 		// Header and left column work in both views.
 		if (left && Ui.inside(mx, my, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H)) {
@@ -673,6 +676,7 @@ public class ModsScreen extends Screen {
 		}
 		if (selected == null && key == GLFW.GLFW_KEY_BACKSPACE) {
 			search = dropLast(search);
+			focus = -1;
 			return true;
 		}
 		// In the grid, keys that type a character belong to the search box, even if one is bound to this menu.
@@ -691,6 +695,7 @@ public class ModsScreen extends Screen {
 			type(event.codepointAsString(), false);
 		} else if (selected == null && search.length() < 32) {
 			search += event.codepointAsString();
+			focus = -1;
 			gridScroll = 0;
 		}
 		return true;
@@ -702,6 +707,10 @@ public class ModsScreen extends Screen {
 
 	@Override
 	public void onClose() {
+		// A slider dragged while the screen closes never sees its release: keep its value.
+		dragging = null;
+		typing = null;
+		Mods.save();
 		minecraft.setScreen(parent);
 	}
 

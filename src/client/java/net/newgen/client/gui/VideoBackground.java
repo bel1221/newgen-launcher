@@ -187,10 +187,12 @@ public final class VideoBackground {
 			try {
 				for (int p = 0; p < PARTS; p++) {
 					Identifier file = Identifier.fromNamespaceAndPath(NewgenClient.ID, "backgrounds/" + CLIPS[index] + (char) ('a' + p) + ".mp4");
+					if (stopped) return; // closed while loading: read and allocate nothing more
 					try (var in = Minecraft.getInstance().getResourceManager().open(file)) {
 						parts[p] = in.readAllBytes();
 					}
 				}
+				if (stopped) return;
 				frames = new int[SLOTS][W * H];
 			} catch (Throwable e) {
 				LOGGER.warn("Background clip {} could not be read", CLIPS[index], e);
@@ -198,6 +200,7 @@ public final class VideoBackground {
 				stopped = true;
 				return;
 			}
+			if (stopped) return;
 			for (int p = 0; p < PARTS; p++) {
 				final int band = p;
 				Thread thread = new Thread(() -> decode(parts[band], band), "Newgen background video " + (char) ('a' + band));

@@ -46,9 +46,16 @@ public final class EmoteLibrary {
 	}
 
 	/** Every emote by id, sorted by id. */
-	public static Map<String, Emote> all() {
+	public static synchronized Map<String, Emote> all() {
 		if (all == null) all = load(Minecraft.getInstance().getResourceManager());
 		return all;
+	}
+
+	/** Loads the emotes on a background thread once the game's resources are ready, so no menu waits for them. */
+	public static void preload() {
+		Thread t = new Thread(EmoteLibrary::all, "Newgen emote loader");
+		t.setDaemon(true);
+		t.start();
 	}
 
 	public static Emote get(String id) {

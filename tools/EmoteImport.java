@@ -38,12 +38,14 @@ public class EmoteImport {
 		String ffmpeg = args[1];
 		for (String dir : List.of("emotes", "textures/emotes", "sounds/emotes")) Files.createDirectories(ASSETS.resolve(dir));
 		TreeMap<String, String> sounds = new TreeMap<>();
+		java.util.Set<String> ids = new java.util.HashSet<>();
 		List<Path> files = new ArrayList<>();
 		try (var list = Files.list(in)) {
 			list.filter(p -> p.toString().endsWith(".emotecraft")).sorted().forEach(files::add);
 		}
 		for (Path file : files) {
 			String id = slug(file.getFileName().toString().replace(".emotecraft", ""));
+			if (id.isEmpty() || !ids.add(id)) throw new IOException(file.getFileName() + " gives the id \"" + id + "\", which is empty or already taken; rename the file");
 			ByteBuffer b = ByteBuffer.wrap(Files.readAllBytes(file));
 			int version = b.getInt();
 			byte purpose = b.get();
@@ -78,12 +80,15 @@ public class EmoteImport {
 					case 0x03 -> {
 						if (ver == 3) {
 							Path opus = Files.createTempFile(id, ".opus");
-							Files.write(opus, oggOpus(sub));
-							Path ogg = ASSETS.resolve("sounds/emotes/" + id + ".ogg");
-							Process p = new ProcessBuilder(ffmpeg, "-v", "error", "-y", "-i", opus.toString(), "-ac", "1", "-ar", "44100",
-									"-af", "loudnorm=I=-18:TP=-2", "-c:a", "libvorbis", "-q:a", "4", ogg.toString()).inheritIO().start();
-							if (p.waitFor() != 0) throw new IOException("ffmpeg failed for " + id);
-							Files.delete(opus);
+							try {
+								Files.write(opus, oggOpus(sub));
+								Path ogg = ASSETS.resolve("sounds/emotes/" + id + ".ogg");
+								Process p = new ProcessBuilder(ffmpeg, "-v", "error", "-y", "-i", opus.toString(), "-ac", "1", "-ar", "44100",
+										"-af", "loudnorm=I=-18:TP=-2", "-c:a", "libvorbis", "-q:a", "4", ogg.toString()).inheritIO().start();
+								if (p.waitFor() != 0) throw new IOException("ffmpeg failed for " + id);
+							} finally {
+								Files.deleteIfExists(opus);
+							}
 							sounds.put("emote." + id, "newgen_client:emotes/" + id);
 							sound = true;
 						} else {
