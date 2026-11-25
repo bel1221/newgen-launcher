@@ -64,17 +64,24 @@ public class EmoteWheelScreen extends Screen {
 				int o = (SLOT - ICON) / 2;
 				emote.drawIcon(g, x + o, y + o, ICON);
 			}
+			// The slot's number key, just outside the ring on the same spoke.
+			int nx = cx + (int) Math.round(Math.sin(a) * (RADIUS + SLOT / 2 + 7)), ny = cy - (int) Math.round(Math.cos(a) * (RADIUS + SLOT / 2 + 7));
+			Ui.centered(g, String.valueOf(i + 1), nx, ny - 3, on ? Ui.TEXT : Ui.DIM, Ui.CAPS);
 		}
 
 		Ui.round(g, cx - CENTER / 2, cy - CENTER / 2, CENTER, CENTER, CENTER / 2, Ui.DARK);
 		Ui.ring(g, cx - CENTER / 2, cy - CENTER / 2, CENTER, CENTER, CENTER / 2, Ui.LINE);
 		EmoteLibrary.Emote lit = hovered < 0 ? null : EmoteLibrary.get(mod.slot(hovered));
-		int textY = cy + RADIUS + SLOT / 2 + 8;
+		int textY = cy + RADIUS + SLOT / 2 + 18;
 		if (lit != null) {
 			Ui.centered(g, Ui.fit(lit.name(), width - 16, Ui.TITLE, false), cx, textY, Ui.TEXT, Ui.TITLE);
 			if (!lit.author().isEmpty()) Ui.centered(g, I18n.get("newgen_client.emotes.by", lit.author()), cx, textY + 13, Ui.DIM, Ui.UI);
 		} else {
-			Ui.centered(g, Ui.fit(Ui.tr("emotes.hint"), width - 16, Ui.UI, false), cx, textY, Ui.SOFT, Ui.UI);
+			// On a glass strip, like the hub's hint, so it reads over any scenery.
+			String hint = Ui.fit(Ui.tr("emotes.hint"), width - 16, Ui.UI, false);
+			int w = Ui.width(hint, Ui.UI) + 12;
+			Ui.round(g, cx - w / 2, textY - 3, w, 13, Ui.R_SM, Ui.GLASS);
+			Ui.centered(g, hint, cx, textY, Ui.SOFT, Ui.UI);
 		}
 	}
 
