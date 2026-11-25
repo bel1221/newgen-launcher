@@ -17,7 +17,7 @@ public class InventoryMod extends Mod {
 	private long savedAt;
 
 	public InventoryMod() {
-		super("inventory_mod", "Inventory Mod", "Do not re-centre the cursor between inventory screens");
+		super("inventory_mod", "Keep Cursor", "Do not re-centre the cursor between inventory screens");
 		ScreenEvents.AFTER_INIT.register((mc, screen, w, h) -> {
 			if (!(screen instanceof AbstractContainerScreen<?>)) return;
 			if (chestsOnly.value && (screen instanceof InventoryScreen || screen instanceof CreativeModeInventoryScreen)) return;

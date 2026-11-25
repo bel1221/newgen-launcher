@@ -166,6 +166,19 @@ public class ModsScreen extends Screen {
 		return Ui.width(label, Ui.CAPS) + 16 + (icon ? 15 : 0);
 	}
 
+	/** A mod's name and description in the game's language (newgen_client.mod.<id>.name / .description), else as written. */
+	private static String modName(Mod mod) {
+		return translated("newgen_client.mod." + mod.id + ".name", mod.name);
+	}
+
+	private static String modDescription(Mod mod) {
+		return translated("newgen_client.mod." + mod.id + ".description", mod.description);
+	}
+
+	private static String translated(String key, String fallback) {
+		return net.minecraft.client.resources.language.I18n.exists(key) ? net.minecraft.client.resources.language.I18n.get(key) : fallback;
+	}
+
 	/** An option's label in the game's language when the lang files have it (newgen_client.setting.<label>), else as written. */
 	private static String settingLabel(String name) {
 		String key = "newgen_client.setting." + name.toLowerCase().replaceAll("[^a-z0-9]+", "_").replaceAll("^_|_$", "");
@@ -222,7 +235,7 @@ public class ModsScreen extends Screen {
 		String query = search.toLowerCase();
 		for (Mod mod : Mods.ALL) {
 			if (!inTab(mod, tab) || state == 1 && !mod.enabled || state == 2 && mod.enabled) continue;
-			if ((mod.name + " " + mod.description).toLowerCase().contains(query)) list.add(mod);
+			if ((mod.name + " " + mod.description + " " + modName(mod) + " " + modDescription(mod)).toLowerCase().contains(query)) list.add(mod);
 		}
 		return list;
 	}
@@ -345,9 +358,9 @@ public class ModsScreen extends Screen {
 			int bx = contentX(), by = barY();
 			Ui.button(g, bx, by, BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mouseX, mouseY, bx, by, BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 			int nameX = bx + BUTTON_H + 8, toggleX = right() - PILL_W;
-			Ui.text(g, Ui.fit(selected.name, toggleX - 8 - nameX, Ui.TITLE, false), nameX, by + 3, Ui.TEXT, Ui.TITLE);
+			Ui.text(g, Ui.fit(modName(selected), toggleX - 8 - nameX, Ui.TITLE, false), nameX, by + 3, Ui.TEXT, Ui.TITLE);
 			Ui.toggle(g, toggleX, by + 2, selected.enabled, Ui.inside(mouseX, mouseY, toggleX - 4, by, PILL_W + 4, BUTTON_H));
-			Ui.text(g, Ui.fit(selected.description, right() - bx, Ui.UI, false), bx, by + BUTTON_H + 5, Ui.DIM, Ui.UI);
+			Ui.text(g, Ui.fit(modDescription(selected), right() - bx, Ui.UI, false), bx, by + BUTTON_H + 5, Ui.DIM, Ui.UI);
 
 			List<Cell> cells = cells();
 			content = rowsHeight;
@@ -387,7 +400,7 @@ public class ModsScreen extends Screen {
 		Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.CARD);
 		if (Ui.inside(mouseX, mouseY, x, y, w, TOP_H)) Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.HOVER);
 		Ui.glyph(g, tabIcon(mod), x + (w - 14) / 2, y + 7, 14, mod.enabled ? Ui.TEXT : Ui.DIM);
-		Ui.centered(g, Ui.fit(mod.name, w - 10, Ui.CAPS, false), x + w / 2, y + 26, mod.enabled ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
+		Ui.centered(g, Ui.fit(modName(mod), w - 10, Ui.CAPS, false), x + w / 2, y + 26, mod.enabled ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
 
 		g.fill(x, opt, x + w, status, STRIP_BG);
 		g.fill(x, opt, x + w, opt + 1, FAINT);

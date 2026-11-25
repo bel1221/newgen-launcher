@@ -16,7 +16,7 @@ public class HitColorMod extends Mod {
 	private int applied = VANILLA;
 
 	private HitColorMod() {
-		super("hit_color", "Hit Color", "Colour of mobs and players when they are hit");
+		super("hit_color", "Hit Colour", "Colour of mobs and players when they are hit");
 	}
 
 	/** Repaints the red rows of the vanilla hurt overlay texture when the wanted colour changes. */
