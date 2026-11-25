@@ -73,7 +73,7 @@ public class NewgenTitleScreen extends Screen {
 
 	@Override
 	public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
-		renderPanorama(g, delta);
+		if (!VideoBackground.render(g, width, height)) renderPanorama(g, delta);
 	}
 
 	@Override

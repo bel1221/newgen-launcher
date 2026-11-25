@@ -49,7 +49,7 @@ public class HubScreen extends Screen {
 	@Override
 	public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
 		// In a world: the live game with only a light shade, no blur. Without one: the panorama.
-		if (minecraft.level == null) renderPanorama(g, delta);
+		if (minecraft.level == null && !VideoBackground.render(g, width, height)) renderPanorama(g, delta);
 		else g.fill(0, 0, width, height, 0x30000000);
 	}
 

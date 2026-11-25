@@ -244,7 +244,7 @@ public class ModsScreen extends Screen {
 	@Override
 	public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
 		// The game's own blur (strength follows Options > Accessibility > Menu Background Blur), no dark overlay.
-		if (minecraft.level == null) renderPanorama(g, delta);
+		if (minecraft.level == null && !VideoBackground.render(g, width, height)) renderPanorama(g, delta);
 		renderBlurredBackground(g);
 	}
 
