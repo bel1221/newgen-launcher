@@ -24,7 +24,8 @@ public class HubScreen extends Screen {
 
 	private HudMod dragging;
 	private double grabX, grabY; // where inside the element the mouse grabbed it
-	private int logoW, top;
+	private int logoW, top, hintY;
+	private static final int HINT_H = 13;
 
 	public HubScreen() {
 		super(Component.literal("Newgen Client"));
@@ -39,7 +40,9 @@ public class HubScreen extends Screen {
 		logoW = Math.max(0, Math.min(Math.min(150, width - 40), (height - 90) * 4));
 		int logoH = logoW >= 40 ? Ui.logoHeight(logoW) + 10 : 0;
 		// The cluster ends 20 above the middle, clear of the crosshair and the Attack Indicator under it.
-		top = Math.max(4, height / 2 - 20 - logoH - ROW_H);
+		// The cluster (logo, row, hint under it) ends 18 above the middle, clear of the crosshair and the Attack Indicator.
+		top = Math.max(4, height / 2 - 18 - HINT_H - logoH - ROW_H);
+		hintY = top + logoH + ROW_H + 5;
 		int y = top + logoH, x = (width - MODS_W) / 2;
 		addRenderableWidget(new Ui.Btn(x - GAP - ROW_H, y, ROW_H, ROW_H, "", Ui.I_GEAR, Ui.DARK, Ui.CAPS,
 				() -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))).narration(I18n.get("menu.options")));
@@ -67,18 +70,18 @@ public class HubScreen extends Screen {
 		HudMod hot = dragging != null ? dragging : at(mouseX, mouseY);
 		for (HudMod hud : huds()) {
 			hud.render(g, minecraft);
-			if (hud != hot) frame(g, hud, Ui.LINE);
+			if (hud != hot) g.renderOutline(hud.left - 1, hud.top - 1, hud.width + 2, hud.height + 2, Ui.LINE); // outline only
 		}
-		if (hot != null) frame(g, hot, Ui.ACCENT); // last, so its name is never hidden by a neighbour
+		if (hot != null) frame(g, hot, Ui.ACCENT); // the name only on the element under the mouse, drawn last
 
 		// A new stratum: the hub's own logo, buttons and hint always draw above the HUD previews and their name tags.
 		g.nextStratum();
 		Ui.logo(g, width / 2, top, logoW);
 		super.render(g, mouseX, mouseY, delta);
-		// The hint sits above the hotbar, hearts and armour (about 50 units), on a glass strip.
+		// The hint sits on a glass strip under the buttons, away from the HUD (which keeps to the edges and the hotbar).
 		if (minecraft.level != null) {
 			String hint = Ui.fit(Ui.tr("hub.hint"), width - 16, Ui.UI, false);
-			int w = Ui.width(hint, Ui.UI) + 12, y = height - 66;
+			int w = Ui.width(hint, Ui.UI) + 12, y = hintY; // under the buttons, in the clear middle of the screen
 			Ui.round(g, (width - w) / 2, y, w, 13, Ui.R_SM, Ui.GLASS);
 			Ui.centered(g, hint, width / 2, y + 3, Ui.SOFT, Ui.UI);
 		}
