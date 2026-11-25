@@ -23,6 +23,7 @@ public class EmoteWheelScreen extends Screen {
 	private static final int RADIUS = 62, SLOT = 34, ICON = 24, CENTER = 46;
 	private final EmotesMod mod;
 	private int hovered = -1;
+	private double lastMouseX = Double.NaN, lastMouseY = Double.NaN; // the mouse only takes over the selection when it moves
 
 	public EmoteWheelScreen(EmotesMod mod) {
 		super(Component.literal("Emotes"));
@@ -45,7 +46,12 @@ public class EmoteWheelScreen extends Screen {
 		int cx = width / 2, cy = height / 2;
 		double dx = mouseX - cx, dy = mouseY - cy;
 		// Slot 0 is at the top, then clockwise every 45 degrees; the middle (under 22 units) chooses nothing.
-		hovered = dx * dx + dy * dy < 22 * 22 ? -1 : Math.floorMod((int) Math.round(Math.toDegrees(Math.atan2(dx, -dy)) / 45), EmotesMod.SLOTS);
+		if (mouseX != lastMouseX || mouseY != lastMouseY) {
+			if (!Double.isNaN(lastMouseX))
+				hovered = dx * dx + dy * dy < 22 * 22 ? -1 : Math.floorMod((int) Math.round(Math.toDegrees(Math.atan2(dx, -dy)) / 45), EmotesMod.SLOTS);
+			lastMouseX = mouseX;
+			lastMouseY = mouseY;
+		}
 
 		for (int i = 0; i < EmotesMod.SLOTS; i++) {
 			double a = Math.toRadians(i * 45);
@@ -87,6 +93,28 @@ public class EmoteWheelScreen extends Screen {
 		EmoteLibrary.Emote emote = hovered < 0 ? null : EmoteLibrary.get(mod.slot(hovered));
 		onClose();
 		if (emote != null) mod.play(minecraft, emote);
+	}
+
+	/** Keyboard: 1-8 play that slot at once; arrows move round the wheel (left/up back, right/down on); Enter plays. */
+	@Override
+	public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+		int key = event.key();
+		if (key >= org.lwjgl.glfw.GLFW.GLFW_KEY_1 && key <= org.lwjgl.glfw.GLFW.GLFW_KEY_8) {
+			hovered = key - org.lwjgl.glfw.GLFW.GLFW_KEY_1;
+			choose();
+			return true;
+		}
+		int step = key == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT || key == org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN ? 1
+				: key == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT || key == org.lwjgl.glfw.GLFW.GLFW_KEY_UP ? -1 : 0;
+		if (step != 0) {
+			hovered = Math.floorMod((hovered < 0 ? (step > 0 ? -1 : 0) : hovered) + step, EmotesMod.SLOTS);
+			return true;
+		}
+		if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) {
+			choose();
+			return true;
+		}
+		return super.keyPressed(event);
 	}
 
 	@Override

@@ -27,7 +27,7 @@
 	"newgen_client.emotes.wheel": "Vòng biểu cảm",
 	"newgen_client.emotes.empty": "Trống",
 	"newgen_client.emotes.by": "của %s",
-	"newgen_client.emotes.hint": "Chỉ vào một biểu cảm rồi thả phím",
+	"newgen_client.emotes.hint": "Chỉ vào một biểu cảm rồi thả phím, hoặc nhấn 1-8",
 	"newgen_client.emotes.edit_hint": "Chọn một ô, rồi chọn biểu cảm. Chuột phải vào ô để làm trống.",
 	"newgen_client.emote.asuka_pose": "Tư thế Asuka",
 	"newgen_client.emote.blow_kiss": "Hôn gió",

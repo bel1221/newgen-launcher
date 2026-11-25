@@ -27,7 +27,7 @@
 	"newgen_client.emotes.wheel": "Emote wheel",
 	"newgen_client.emotes.empty": "Empty",
 	"newgen_client.emotes.by": "by %s",
-	"newgen_client.emotes.hint": "Point at an emote and let go",
+	"newgen_client.emotes.hint": "Point at an emote and let go, or press 1-8",
 	"newgen_client.emotes.edit_hint": "Pick a slot, then an emote. Right click a slot to empty it.",
 	"newgen_client.emote.asuka_pose": "Asuka pose",
 	"newgen_client.emote.blow_kiss": "Blow a kiss",
