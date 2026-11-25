@@ -7,7 +7,7 @@ import net.newgen.client.core.HudMod;
 
 public class ServerAddressMod extends HudMod {
 	public ServerAddressMod() {
-		super("server_address", "Server Address", "Address of the server you are on", 0f, 0.16f);
+		super("server_address", "Server Address", "Address of the server you are on", 0f, 0.36f);
 	}
 
 	@Override

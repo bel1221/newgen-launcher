@@ -45,7 +45,7 @@ public class ModsScreen extends Screen {
 	/** The state chips over the grid. */
 	private static final String[] STATES = {"state.all", "state.on", "state.off"};
 
-	private static final int PAD = 8, HEADER = 28, SIDE_W = 92, SIDE_ROW = 16, GAP = 6, ROW_H = 20, HEAD_H = 14;
+	private static final int TOAST_H = 32, PAD = 8, HEADER = 28, SIDE_W = 92, SIDE_ROW = 16, GAP = 6, ROW_H = 20, HEAD_H = 14;
 	/** A card: icon and name (TOP_H), then the Options strip and the Enabled/Disabled strip (STRIP each). */
 	private static final int TOP_H = 38, STRIP = 14, CARD_H = TOP_H + STRIP * 2;
 	private static final int PILL_W = 20, SWATCH = 10, HEX_W = 66, BUTTON_H = 14, COLUMN_GAP = 14;
@@ -62,6 +62,7 @@ public class ModsScreen extends Screen {
 	private int gridScroll, rowScroll; // pixels scrolled in each view
 	private int rowsHeight;           // height of all option rows, set by cells()
 	private Mod selected;             // null = card grid, otherwise the mod whose options are shown
+	private int focus = -1;           // card that has the keyboard focus in the grid (Tab), -1 = none
 	private Setting.Num dragging;     // slider being dragged, if any
 	private int dragX, dragW;         // where that slider is
 	private Setting.Key listening;    // key setting waiting for a key press, if any
@@ -75,10 +76,12 @@ public class ModsScreen extends Screen {
 
 	@Override
 	protected void init() {
-		pw = Math.min(500, width - 12);
-		ph = Math.min(310, height - 12);
+		// 20 units of margin at every scale; the top stays below the 32 high toast column (tutorial hints) so the close
+		// button is never under a toast.
+		pw = Math.min(500, width - 40);
+		ph = Math.min(310, height - TOAST_H - 12);
 		px = (width - pw) / 2;
-		py = (height - ph) / 2;
+		py = Math.max(TOAST_H + 4, (height - ph) / 2);
 		columns = Math.max(1, (contentRight() - contentX() + GAP) / (96 + GAP));
 	}
 
@@ -153,14 +156,20 @@ public class ModsScreen extends Screen {
 		return stateX(STATES.length) + 2;
 	}
 
-	private int tabW(String label) {
-		return Ui.width(label, Ui.CAPS) + 16;
+	/** A header tab sized to its label (and its icon, 10 + 5 wide, when it has one). */
+	private static int tabW(String label, boolean icon) {
+		return Ui.width(label, Ui.CAPS) + 16 + (icon ? 15 : 0);
+	}
+
+	/** The game's own word for its options, so the title screen and this menu spell it the same. */
+	private static String optionsLabel() {
+		return net.minecraft.client.resources.language.I18n.get("menu.options").replace("...", "").trim();
 	}
 
 	/** The header tabs: Mods (this screen) and Options (the game's own options), after the name. */
 	private int tabX(int i) {
 		int x = px + PAD + 18 + Ui.width("NewGen", Ui.TITLE) + 14;
-		return i == 0 ? x : x + tabW(Ui.tr("mods")) + 4;
+		return i == 0 ? x : x + tabW(Ui.tr("mods"), false) + 4;
 	}
 
 	/** Width of the bottom-left button: "Reset to defaults". */
@@ -256,10 +265,10 @@ public class ModsScreen extends Screen {
 		// Header: icon and name, the two tabs, the close button.
 		Ui.icon(g, px + PAD, py + (HEADER - 14) / 2, 14);
 		Ui.text(g, "NewGen", px + PAD + 18, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
-		String mods = Ui.tr("mods"), options = Ui.tr("options");
-		Ui.button(g, tabX(0), headY(), tabW(mods), BUTTON_H, mods, false, ACTIVE, Ui.CAPS);
-		Ui.button(g, tabX(1), headY(), tabW(options), BUTTON_H, options, Ui.I_GEAR,
-				Ui.inside(mouseX, mouseY, tabX(1), headY(), tabW(options), BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+		String mods = Ui.tr("mods"), options = optionsLabel();
+		Ui.button(g, tabX(0), headY(), tabW(mods, false), BUTTON_H, mods, false, ACTIVE, Ui.CAPS);
+		Ui.button(g, tabX(1), headY(), tabW(options, true), BUTTON_H, options, Ui.I_GEAR,
+				Ui.inside(mouseX, mouseY, tabX(1), headY(), tabW(options, true), BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 		Ui.button(g, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H, "", Ui.I_CLOSE,
 				Ui.inside(mouseX, mouseY, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 
@@ -308,6 +317,7 @@ public class ModsScreen extends Screen {
 			for (int i = 0; i < list.size(); i++) {
 				int y = cardY(i);
 				if (y + CARD_H > viewTop() && y < viewBottom()) card(g, list.get(i), cardX(i), y, hot ? mouseX : -1, mouseY);
+				if (i == focus && y + CARD_H > viewTop() && y < viewBottom()) Ui.ring(g, cardX(i) - 1, y - 1, cardW() + 2, CARD_H + 2, Ui.R_MD + 1, Ui.BLUE);
 			}
 			g.disableScissor();
 			if (list.isEmpty()) Ui.centered(g, Ui.tr("mods.none"), (contentX() + right()) / 2, viewTop() + 12, Ui.DIM, Ui.UI);
@@ -361,7 +371,7 @@ public class ModsScreen extends Screen {
 		g.fill(x, opt, x + w, status, STRIP_BG);
 		g.fill(x, opt, x + w, opt + 1, FAINT);
 		if (Ui.inside(mouseX, mouseY, x, opt, w, STRIP)) g.fill(x, opt, x + w, status, Ui.HOVER);
-		String options = Ui.tr("options");
+		String options = optionsLabel();
 		int ow = Ui.width(options, Ui.CAPS) + 12, ox = x + (w - ow) / 2;
 		Ui.text(g, options, ox, opt + 4, Ui.SOFT, Ui.CAPS);
 		Ui.glyph(g, Ui.I_GEAR, ox + ow - 8, opt + 3, 8, Ui.SOFT);
@@ -453,7 +463,7 @@ public class ModsScreen extends Screen {
 			onClose();
 			return true;
 		}
-		if (left && Ui.inside(mx, my, tabX(1), headY(), tabW(Ui.tr("options")), BUTTON_H)) {
+		if (left && Ui.inside(mx, my, tabX(1), headY(), tabW(optionsLabel(), true), BUTTON_H)) {
 			minecraft.setScreen(new OptionsScreen(this, minecraft.options));
 			return true;
 		}
@@ -465,6 +475,7 @@ public class ModsScreen extends Screen {
 		for (int t = 0; t < TABS.length; t++) {
 			if (left && Ui.inside(mx, my, sx + 2, sideRowY(t), SIDE_W - 4, SIDE_ROW)) {
 				tab = t;
+				focus = -1;
 				selected = null;
 				gridScroll = 0;
 				return true;
@@ -476,6 +487,7 @@ public class ModsScreen extends Screen {
 			for (int i = 0; i < STATES.length; i++) {
 				if (Ui.inside(mx, my, stateX(i), barY(), stateW(i), BUTTON_H)) {
 					state = i;
+					focus = -1;
 					gridScroll = 0;
 				}
 			}
@@ -611,6 +623,28 @@ public class ModsScreen extends Screen {
 				type(minecraft.keyboardHandler.getClipboard(), false);
 			}
 			return true; // while typing, no key may close the menu
+		}
+		// Keyboard: Tab / Shift+Tab move between the cards, Enter opens the focused card's options, Shift+Enter turns it on or off.
+		if (selected == null && (key == GLFW.GLFW_KEY_TAB || key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER)) {
+			List<Mod> list = shown();
+			if (list.isEmpty()) return true;
+			if (key == GLFW.GLFW_KEY_TAB) {
+				focus = Math.floorMod(focus < 0 ? (event.hasShiftDown() ? -1 : 0) : focus + (event.hasShiftDown() ? -1 : 1), list.size());
+				// Scroll the focused card into view.
+				int y = (focus / columns) * (CARD_H + GAP), viewH = viewBottom() - viewTop();
+				if (y < gridScroll) gridScroll = y;
+				else if (y + CARD_H > gridScroll + viewH) gridScroll = y + CARD_H - viewH;
+			} else if (focus >= 0 && focus < list.size()) {
+				Mod mod = list.get(focus);
+				if (event.hasShiftDown()) {
+					mod.enabled = !mod.enabled;
+					Mods.save();
+				} else {
+					selected = mod;
+					rowScroll = 0;
+				}
+			}
+			return true;
 		}
 		if (key == GLFW.GLFW_KEY_ESCAPE && selected != null) {
 			selected = null; // Esc in the options view goes back to the grid first

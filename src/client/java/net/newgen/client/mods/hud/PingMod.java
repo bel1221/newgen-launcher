@@ -8,7 +8,7 @@ import net.newgen.client.core.HudMod;
 
 public class PingMod extends HudMod {
 	public PingMod() {
-		super("ping", "Ping", "Your latency to the server (as the server reports it)", 0f, 0.12f);
+		super("ping", "Ping", "Your latency to the server (as the server reports it)", 0f, 0.18f);
 	}
 
 	@Override

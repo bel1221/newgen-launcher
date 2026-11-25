@@ -10,7 +10,7 @@ public class MemoryMod extends HudMod {
 	private final Setting.Bool percentOnly = bool("percent_only", "Percent only", false);
 
 	public MemoryMod() {
-		super("memory", "Memory", "Memory the game uses", 0f, 0.04f);
+		super("memory", "Memory", "Memory the game uses", 0f, 0.27f);
 	}
 
 	@Override

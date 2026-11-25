@@ -36,7 +36,8 @@ public class HubScreen extends Screen {
 		// The logo shrinks with the window and goes away before it would push the row off screen.
 		logoW = Math.max(0, Math.min(Math.min(150, width - 40), (height - 90) * 4));
 		int logoH = logoW >= 40 ? Ui.logoHeight(logoW) + 10 : 0;
-		top = (height - logoH - ROW_H) / 2;
+		// The cluster ends 20 above the middle, clear of the crosshair and the Attack Indicator under it.
+		top = Math.max(4, height / 2 - 20 - logoH - ROW_H);
 		int y = top + logoH, x = (width - MODS_W) / 2;
 		addRenderableWidget(new Ui.Btn(x - GAP - ROW_H, y, ROW_H, ROW_H, "", Ui.I_GEAR, Ui.DARK, Ui.CAPS,
 				() -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))).narration(I18n.get("menu.options")));
@@ -68,9 +69,17 @@ public class HubScreen extends Screen {
 		}
 		if (hot != null) frame(g, hot, Ui.BLUE); // last, so its name is never hidden by a neighbour
 
+		// A new stratum: the hub's own logo, buttons and hint always draw above the HUD previews and their name tags.
+		g.nextStratum();
 		Ui.logo(g, width / 2, top, logoW);
 		super.render(g, mouseX, mouseY, delta);
-		if (minecraft.level != null) Ui.centered(g, Ui.fit(Ui.tr("hub.hint"), width - 8, Ui.UI, false), width / 2, height - 16, Ui.SOFT, Ui.UI);
+		// The hint sits above the hotbar, hearts and armour (about 50 units), on a glass strip.
+		if (minecraft.level != null) {
+			String hint = Ui.fit(Ui.tr("hub.hint"), width - 16, Ui.UI, false);
+			int w = Ui.width(hint, Ui.UI) + 12, y = height - 66;
+			Ui.round(g, (width - w) / 2, y, w, 13, Ui.R_SM, Ui.GLASS);
+			Ui.centered(g, hint, width / 2, y + 3, Ui.SOFT, Ui.UI);
+		}
 	}
 
 	private void frame(GuiGraphics g, HudMod hud, int color) {

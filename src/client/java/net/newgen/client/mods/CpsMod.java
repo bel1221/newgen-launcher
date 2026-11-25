@@ -17,7 +17,7 @@ public class CpsMod extends HudMod {
 	private boolean leftWasDown, rightWasDown;
 
 	public CpsMod() {
-		super("cps", "CPS", "Clicks per second", 0f, 0.08f);
+		super("cps", "CPS", "Clicks per second", 0f, 0.09f);
 	}
 
 	@Override

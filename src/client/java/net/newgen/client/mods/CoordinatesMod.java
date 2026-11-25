@@ -18,7 +18,7 @@ public class CoordinatesMod extends HudMod {
 	private final Setting.Num decimals = num("decimals", "Decimals", 0, 0, 3, 1);
 
 	public CoordinatesMod() {
-		super("coordinates", "Coordinates", "X, Y, Z position, facing direction and biome", 0f, 0.2f);
+		super("coordinates", "Coordinates", "X, Y, Z position, facing direction and biome", 0f, 0.45f);
 	}
 
 	/** "Single line" was a switch before the list mode existed. */
