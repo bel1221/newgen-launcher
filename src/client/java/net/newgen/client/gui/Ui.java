@@ -18,9 +18,14 @@ import net.newgen.client.NewgenClient;
  * "Off" is a neutral grey, never red: off is not an error.
  */
 public final class Ui {
-	public static final int TEXT = 0xFFFFFFFF, SOFT = 0xFFD5D8DE, DIM = 0xFFA4A9B3, LINE = 0x30FFFFFF, HOVER = 0x1CFFFFFF;
-	/** GLASS is a panel over the blurred game, CARD a lighter layer on a panel, DARK a button or typing field. */
-	public static final int GLASS = 0x73000000, CARD = 0x14FFFFFF, DARK = 0x66000000;
+	// v3.1 colour: clear glass over the NewGen footage (dark, low-saturation night scenes: mean RGB 22-78), white type with a
+	// soft shadow, hairline light borders, hover = the glass brightens. One accent, the launcher's blue, only as a small mark
+	// (switch on, slider, focus ring, the active-row bar); never a filled block. The one main action is a white pill.
+	public static final int TEXT = 0xFFFFFFFF, SOFT = 0xFFE4E6EA, DIM = 0xFFB0B5BD, INK = 0xFF15171C;
+	/** LINE a hairline border, HOVER the brightening on hover, SELECTED a chosen tab, chip or row. */
+	public static final int LINE = 0x2EFFFFFF, HOVER = 0x14FFFFFF, SELECTED = 0x24FFFFFF;
+	/** GLASS a panel (32 % black), CARD a lighter layer on it, DARK a button or field (22 % black), PRIMARY the main action. */
+	public static final int GLASS = 0x52000000, CARD = 0x0DFFFFFF, DARK = 0x38000000, PRIMARY = 0xD9FFFFFF;
 	public static final int BLUE = 0xFF2B4BFF;
 	/** The track of a switch that is off. */
 	public static final int OFF = 0x40FFFFFF;
@@ -91,6 +96,13 @@ public final class Ui {
 	public static void text(GuiGraphics g, String s, int x, int y, int color, int face) {
 		g.pose().pushMatrix();
 		g.pose().translate(0, FACE_DY[face]);
+		// Light type gets a soft shadow half a unit down and right, so it reads over bright parts of the footage.
+		if ((color >> 16 & 0xFF) > 0x80) {
+			g.pose().pushMatrix();
+			g.pose().translate(0.5f, 0.5f);
+			g.drawString(Minecraft.getInstance().font, styled(s, face), x, y, (int) ((color >>> 24) * 0.55f) << 24, false);
+			g.pose().popMatrix();
+		}
 		g.drawString(Minecraft.getInstance().font, styled(s, face), x, y, color, false);
 		g.pose().popMatrix();
 	}
@@ -138,7 +150,7 @@ public final class Ui {
 		ring(g, x, y, w, h, R_LG, LINE);
 	}
 
-	/** A rounded button. fill is DARK (glass with an outline) or BLUE (the one main action); the label is drawn as given. */
+	/** A rounded button. fill is DARK (glass with a hairline) or PRIMARY (the one main action, a white pill with dark type). */
 	public static void button(GuiGraphics g, int x, int y, int w, int h, String label, boolean hot, int fill, int face) {
 		button(g, x, y, w, h, label, hot ? 1f : 0f, fill, face);
 	}
@@ -154,21 +166,24 @@ public final class Ui {
 	 */
 	public static void button(GuiGraphics g, int x, int y, int w, int h, String label, int icon, float hot, int fill, int face) {
 		int r = Math.min(R_SM, h / 2);
+		boolean primary = fill == PRIMARY;
+		int ink = primary ? INK : TEXT;
 		round(g, x, y, w, h, r, fill);
-		if (fill >>> 24 != 0xFF) ring(g, x, y, w, h, r, hot > 0 ? lerp(LINE, 0x66FFFFFF, hot) : LINE);
-		if (hot > 0) round(g, x, y, w, h, r, (int) (0x1C * hot) << 24 | 0xFFFFFF);
+		if (!primary) ring(g, x, y, w, h, r, hot > 0 ? lerp(LINE, 0x5CFFFFFF, hot) : LINE);
+		// Hover brightens the glass (the white pill goes fully opaque); colours never swap.
+		if (hot > 0) round(g, x, y, w, h, r, (int) ((primary ? 0x40 : 0x14) * hot) << 24 | 0xFFFFFF);
 		int size = Math.min(10, h - 8);
 		if (icon >= 0 && label.isEmpty()) {
-			glyph(g, icon, x + (w - size) / 2, y + (h - size) / 2, size, TEXT);
+			glyph(g, icon, x + (w - size) / 2, y + (h - size) / 2, size, ink);
 			return;
 		}
 		String text = fit(label, w - 8 - (icon >= 0 ? size + 5 : 0), face, false);
 		int tw = width(text, face), left = x + (w - tw - (icon >= 0 ? size + 5 : 0)) / 2;
 		if (icon >= 0) {
-			glyph(g, icon, left, y + (h - size) / 2, size, TEXT);
+			glyph(g, icon, left, y + (h - size) / 2, size, ink);
 			left += size + 5;
 		}
-		text(g, text, left, y + (h - 7) / 2, TEXT, face);
+		text(g, text, left, y + (h - 7) / 2, ink, face);
 	}
 
 	// ---- icons ----

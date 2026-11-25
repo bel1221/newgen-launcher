@@ -47,7 +47,7 @@ public class EmoteWheelScreen extends Screen {
 			int x = cx + (int) Math.round(Math.sin(a) * RADIUS) - SLOT / 2, y = cy - (int) Math.round(Math.cos(a) * RADIUS) - SLOT / 2;
 			EmoteLibrary.Emote emote = EmoteLibrary.get(mod.slot(i));
 			boolean on = i == hovered && emote != null;
-			Ui.round(g, x, y, SLOT, SLOT, SLOT / 2, on ? Ui.BLUE : Ui.GLASS);
+			Ui.round(g, x, y, SLOT, SLOT, SLOT / 2, on ? Ui.SELECTED : Ui.DARK);
 			Ui.ring(g, x, y, SLOT, SLOT, SLOT / 2, on ? 0x80FFFFFF : Ui.LINE);
 			if (emote != null) {
 				int o = (SLOT - ICON) / 2;
@@ -55,7 +55,8 @@ public class EmoteWheelScreen extends Screen {
 			}
 		}
 
-		Ui.round(g, cx - CENTER / 2, cy - CENTER / 2, CENTER, CENTER, CENTER / 2, Ui.GLASS);
+		Ui.round(g, cx - CENTER / 2, cy - CENTER / 2, CENTER, CENTER, CENTER / 2, Ui.DARK);
+		Ui.ring(g, cx - CENTER / 2, cy - CENTER / 2, CENTER, CENTER, CENTER / 2, Ui.LINE);
 		EmoteLibrary.Emote lit = hovered < 0 ? null : EmoteLibrary.get(mod.slot(hovered));
 		int textY = cy + RADIUS + SLOT / 2 + 8;
 		if (lit != null) {

@@ -49,8 +49,8 @@ public class ModsScreen extends Screen {
 	/** A card: icon and name (TOP_H), then the Options strip and the Enabled/Disabled strip (STRIP each). */
 	private static final int TOP_H = 38, STRIP = 14, CARD_H = TOP_H + STRIP * 2;
 	private static final int PILL_W = 20, SWATCH = 10, HEX_W = 66, BUTTON_H = 14, COLUMN_GAP = 14;
-	/** FAINT is for dividing lines and the scroll track, ACTIVE for the selected tab and category. */
-	private static final int FAINT = 0x18FFFFFF, ACTIVE = 0x26FFFFFF, STRIP_BG = 0x33000000;
+	/** FAINT is for dividing lines and the scroll track, STRIP_BG under a card's Options strip. */
+	private static final int FAINT = 0x18FFFFFF, STRIP_BG = 0x14000000;
 
 	private static int tab;           // static: coming back from the Right Shift screen lands on the same category
 	private static int state;         // 0 all, 1 on, 2 off
@@ -267,7 +267,7 @@ public class ModsScreen extends Screen {
 		Ui.icon(g, px + PAD, py + (HEADER - 14) / 2, 14);
 		Ui.text(g, "NewGen", px + PAD + 18, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
 		String mods = Ui.tr("mods"), options = optionsLabel();
-		Ui.button(g, tabX(0), headY(), tabW(mods, false), BUTTON_H, mods, false, ACTIVE, Ui.CAPS);
+		Ui.button(g, tabX(0), headY(), tabW(mods, false), BUTTON_H, mods, false, Ui.SELECTED, Ui.CAPS);
 		Ui.button(g, tabX(1), headY(), tabW(options, true), BUTTON_H, options, Ui.I_GEAR,
 				Ui.inside(mouseX, mouseY, tabX(1), headY(), tabW(options, true), BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 		Ui.button(g, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H, "", Ui.I_CLOSE,
@@ -279,8 +279,9 @@ public class ModsScreen extends Screen {
 		for (int t = 0; t < TABS.length; t++) {
 			int y = sideRowY(t);
 			boolean on = selected == null && t == tab, over = Ui.inside(mouseX, mouseY, sx + 2, y, SIDE_W - 4, SIDE_ROW);
-			if (on || over) Ui.round(g, sx + 2, y, SIDE_W - 4, SIDE_ROW, Ui.R_SM, on ? ACTIVE : Ui.HOVER);
-			Ui.glyph(g, TAB_ICONS[t], sx + 7, y + 4, 8, on ? Ui.BLUE | 0xFF000000 : Ui.DIM);
+			if (on || over) Ui.round(g, sx + 2, y, SIDE_W - 4, SIDE_ROW, Ui.R_SM, on ? Ui.SELECTED : Ui.HOVER);
+			if (on) Ui.round(g, sx + 2, y + 4, 2, SIDE_ROW - 8, 1, Ui.BLUE); // the accent as a small mark
+			Ui.glyph(g, TAB_ICONS[t], sx + 7, y + 4, 8, on ? Ui.TEXT : Ui.DIM);
 			Ui.text(g, Ui.tr("tab." + TABS[t].toLowerCase()), sx + 20, y + 5, on ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
 			int count = 0;
 			for (Mod mod : Mods.ALL) if (inTab(mod, t)) count++;
@@ -292,7 +293,7 @@ public class ModsScreen extends Screen {
 			int by = py + ph - PAD - 4 - BUTTON_H;
 			String edit = Ui.tr("hud.edit");
 			Ui.button(g, sx + 4, by, SIDE_W - 8, BUTTON_H, edit, Ui.I_LAYOUT,
-					Ui.inside(mouseX, mouseY, sx + 4, by, SIDE_W - 8, BUTTON_H) ? 1f : 0f, Ui.BLUE, Ui.CAPS);
+					Ui.inside(mouseX, mouseY, sx + 4, by, SIDE_W - 8, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 		}
 
 		boolean hot = inView(mouseY);
@@ -301,7 +302,7 @@ public class ModsScreen extends Screen {
 			for (int i = 0; i < STATES.length; i++) {
 				String label = Ui.tr(STATES[i]);
 				Ui.button(g, stateX(i), barY(), stateW(i), BUTTON_H, label, Ui.inside(mouseX, mouseY, stateX(i), barY(), stateW(i), BUTTON_H),
-						i == state ? Ui.BLUE : Ui.DARK, Ui.CAPS);
+						i == state ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
 			}
 			int fx = searchX(), fw = right() - fx;
 			if (fw >= 40) {
@@ -377,10 +378,13 @@ public class ModsScreen extends Screen {
 		Ui.text(g, options, ox, opt + 4, Ui.SOFT, Ui.CAPS);
 		Ui.glyph(g, Ui.I_GEAR, ox + ow - 8, opt + 3, 8, Ui.SOFT);
 
-		// The strip that closes the card: blue when on, neutral when off; its bottom corners are the card's.
-		Ui.roundBottom(g, x, status, w, STRIP, Ui.R_MD, mod.enabled ? Ui.BLUE : 0x1AFFFFFF);
+		// The strip that closes the card: brighter glass with a small blue dot when on, plain when off; no colour block.
+		if (mod.enabled) Ui.roundBottom(g, x, status, w, STRIP, Ui.R_MD, Ui.SELECTED);
 		if (Ui.inside(mouseX, mouseY, x, status, w, STRIP)) Ui.roundBottom(g, x, status, w, STRIP, Ui.R_MD, Ui.HOVER);
-		Ui.centered(g, Ui.tr(mod.enabled ? "enabled" : "disabled"), x + w / 2, status + 4, mod.enabled ? Ui.TEXT : Ui.DIM, Ui.CAPS);
+		String state = Ui.tr(mod.enabled ? "enabled" : "disabled");
+		int sw = Ui.width(state, Ui.CAPS) + (mod.enabled ? 7 : 0), sx = x + (w - sw) / 2;
+		if (mod.enabled) Ui.round(g, sx, status + 5, 4, 4, 2, Ui.BLUE);
+		Ui.text(g, state, sx + (mod.enabled ? 7 : 0), status + 4, mod.enabled ? Ui.TEXT : Ui.DIM, Ui.CAPS);
 		Ui.ring(g, x, y, w, CARD_H, Ui.R_MD, Ui.LINE);
 	}
 
@@ -421,13 +425,13 @@ public class ModsScreen extends Screen {
 			} else if (setting instanceof Setting.Choice choice) {
 				// No box: the value between two blue arrows.
 				if (over) Ui.round(g, controlX, y + 3, w, BUTTON_H, 4, Ui.HOVER);
-				Ui.text(g, "‹", controlX + 5, y + 6, Ui.BLUE, Ui.TITLE);
-				Ui.text(g, "›", cr - 5 - Ui.width("›", Ui.TITLE), y + 6, Ui.BLUE, Ui.TITLE);
+				Ui.text(g, "‹", controlX + 5, y + 6, Ui.SOFT, Ui.TITLE);
+				Ui.text(g, "›", cr - 5 - Ui.width("›", Ui.TITLE), y + 6, Ui.SOFT, Ui.TITLE);
 				Ui.centered(g, Ui.fit(String.valueOf(choice.value), w - 30, Ui.UI, false), controlX + w / 2, y + 6, Ui.SOFT, Ui.UI);
 			} else if (setting instanceof Setting.Action action) {
 				Ui.button(g, controlX, y + 3, w, BUTTON_H, net.minecraft.client.resources.language.I18n.get(action.label), over, Ui.DARK, Ui.CAPS);
 			} else if (setting instanceof Setting.Key key) {
-				Ui.button(g, controlX, y + 3, w, BUTTON_H, key == listening ? Ui.tr("key.listening") : keyName(key), over, active ? Ui.BLUE : Ui.DARK, Ui.CAPS);
+				Ui.button(g, controlX, y + 3, w, BUTTON_H, key == listening ? Ui.tr("key.listening") : keyName(key), over, active ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
 			}
 		}
 		Ui.text(g, Ui.fit(setting.name, controlX - 6 - x, Ui.UI, false), x, y + 6, Ui.SOFT, Ui.UI);
@@ -441,7 +445,7 @@ public class ModsScreen extends Screen {
 	/** A rounded typing field; the outline turns blue while it holds text or is being typed into. */
 	private void field(GuiGraphics g, int x, int y, int w, boolean active) {
 		Ui.round(g, x, y, w, BUTTON_H, Ui.R_SM, Ui.DARK);
-		Ui.ring(g, x, y, w, BUTTON_H, Ui.R_SM, active ? Ui.BLUE : Ui.LINE);
+		Ui.ring(g, x, y, w, BUTTON_H, Ui.R_SM, active ? 0x80FFFFFF : Ui.LINE);
 	}
 
 	// ---- input ----

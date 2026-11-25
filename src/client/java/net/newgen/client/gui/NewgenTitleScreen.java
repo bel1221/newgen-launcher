@@ -26,8 +26,6 @@ import net.minecraft.network.chat.Component;
 public class NewgenTitleScreen extends Screen {
 	private static final String SERVER = "newgenmc.net:25565";
 	private static final int STACK_W = 200, BUTTON_H = 20, GAP = 4, CORNER = 20, EDGE = 6;
-	/** Buttons here lie on the bright panorama, not on a panel, so they are darker than Ui.DARK. */
-	private static final int GLASS = 0x99000000;
 	/** When the title screen was first shown this session; the entrance plays once from here. */
 	private static long enteredAt = -1;
 
@@ -47,21 +45,21 @@ public class NewgenTitleScreen extends Screen {
 		logoY = Math.max(CORNER + EDGE, (height - logoH - stack) / 2);
 		int x = (width - w) / 2, y = logoY + logoH, half = (w - GAP) / 2;
 
-		addRenderableWidget(new Ui.Btn(x, y, w, BUTTON_H, Ui.tr("title.play"), Ui.I_PLAY, Ui.BLUE, Ui.CAPS, () -> ConnectScreen.startConnecting(
+		addRenderableWidget(new Ui.Btn(x, y, w, BUTTON_H, Ui.tr("title.play"), Ui.I_PLAY, Ui.PRIMARY, Ui.CAPS, () -> ConnectScreen.startConnecting(
 				this, minecraft, ServerAddress.parseString(SERVER), new ServerData("NewGen", SERVER, ServerData.Type.OTHER), false, null)));
-		addRenderableWidget(new Ui.Btn(x, y + step, w, BUTTON_H, I18n.get("menu.singleplayer"), Ui.I_USER, GLASS, Ui.CAPS,
+		addRenderableWidget(new Ui.Btn(x, y + step, w, BUTTON_H, I18n.get("menu.singleplayer"), Ui.I_USER, Ui.DARK, Ui.CAPS,
 				() -> minecraft.setScreen(new SelectWorldScreen(this))));
-		addRenderableWidget(new Ui.Btn(x, y + step * 2, w, BUTTON_H, I18n.get("menu.multiplayer"), Ui.I_USERS, GLASS, Ui.CAPS,
+		addRenderableWidget(new Ui.Btn(x, y + step * 2, w, BUTTON_H, I18n.get("menu.multiplayer"), Ui.I_USERS, Ui.DARK, Ui.CAPS,
 				() -> minecraft.setScreen(minecraft.options.skipMultiplayerWarning ? new JoinMultiplayerScreen(this) : new SafetyScreen(this))));
-		addRenderableWidget(new Ui.Btn(x, y + step * 3, half, BUTTON_H, I18n.get("menu.options").replace("...", ""), Ui.I_GEAR, GLASS, Ui.CAPS,
+		addRenderableWidget(new Ui.Btn(x, y + step * 3, half, BUTTON_H, I18n.get("menu.options").replace("...", ""), Ui.I_GEAR, Ui.DARK, Ui.CAPS,
 				() -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))));
-		addRenderableWidget(new Ui.Btn(x + w - half, y + step * 3, half, BUTTON_H, Ui.tr("mods"), Ui.I_GRID, GLASS, Ui.CAPS,
+		addRenderableWidget(new Ui.Btn(x + w - half, y + step * 3, half, BUTTON_H, Ui.tr("mods"), Ui.I_GRID, Ui.DARK, Ui.CAPS,
 				() -> minecraft.setScreen(new ModsScreen(this))));
 
 		// Top right: language, then quit (the window's own corner).
-		addRenderableWidget(new Ui.Btn(width - EDGE - CORNER, EDGE, CORNER, CORNER, "", Ui.I_CLOSE, GLASS, Ui.CAPS, minecraft::stop)
+		addRenderableWidget(new Ui.Btn(width - EDGE - CORNER, EDGE, CORNER, CORNER, "", Ui.I_CLOSE, Ui.DARK, Ui.CAPS, minecraft::stop)
 				.narration(I18n.get("menu.quit")));
-		addRenderableWidget(new Ui.Btn(width - EDGE - CORNER * 2 - GAP, EDGE, CORNER, CORNER, "", Ui.I_GLOBE, GLASS, Ui.CAPS,
+		addRenderableWidget(new Ui.Btn(width - EDGE - CORNER * 2 - GAP, EDGE, CORNER, CORNER, "", Ui.I_GLOBE, Ui.DARK, Ui.CAPS,
 				() -> minecraft.setScreen(new LanguageSelectScreen(this, minecraft.options, minecraft.getLanguageManager())))
 				.narration(I18n.get("options.language")));
 
@@ -88,7 +86,8 @@ public class NewgenTitleScreen extends Screen {
 		// Top left: the player's name on a glass chip (who will join), not a button.
 		String name = minecraft.getUser().getName();
 		int chipW = Ui.width(name, Ui.CAPS) + 10 + 14;
-		Ui.round(g, EDGE, EDGE, chipW, CORNER, Ui.R_SM, GLASS);
+		Ui.round(g, EDGE, EDGE, chipW, CORNER, Ui.R_SM, Ui.DARK);
+		Ui.ring(g, EDGE, EDGE, chipW, CORNER, Ui.R_SM, Ui.LINE);
 		Ui.glyph(g, Ui.I_USER, EDGE + 7, EDGE + 5, 10, Ui.SOFT);
 		Ui.text(g, name, EDGE + 21, EDGE + 7, Ui.TEXT, Ui.CAPS);
 

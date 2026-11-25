@@ -85,7 +85,7 @@ public class EmoteWheelEditScreen extends Screen {
 		for (int i = 0; i < EmotesMod.SLOTS; i++) {
 			int y = top() + i * ROW;
 			boolean over = Ui.inside(mouseX, mouseY, sx + 2, y, SIDE_W - 4, ROW);
-			if (i == slot || over) Ui.round(g, sx + 2, y, SIDE_W - 4, ROW, Ui.R_SM, i == slot ? 0x26FFFFFF : Ui.HOVER);
+			if (i == slot || over) Ui.round(g, sx + 2, y, SIDE_W - 4, ROW, Ui.R_SM, i == slot ? Ui.SELECTED : Ui.HOVER);
 			if (i == slot) Ui.round(g, sx + 2, y + 3, 2, ROW - 6, 1, Ui.BLUE);
 			Ui.text(g, String.valueOf(i + 1), sx + 9, y + 6, Ui.DIM, Ui.UI);
 			EmoteLibrary.Emote e = EmoteLibrary.get(mod.slot(i));
