@@ -67,7 +67,7 @@ public class HubScreen extends Screen {
 			hud.render(g, minecraft);
 			if (hud != hot) frame(g, hud, Ui.LINE);
 		}
-		if (hot != null) frame(g, hot, Ui.BLUE); // last, so its name is never hidden by a neighbour
+		if (hot != null) frame(g, hot, Ui.ACCENT); // last, so its name is never hidden by a neighbour
 
 		// A new stratum: the hub's own logo, buttons and hint always draw above the HUD previews and their name tags.
 		g.nextStratum();

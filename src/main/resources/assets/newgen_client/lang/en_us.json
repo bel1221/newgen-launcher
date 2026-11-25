@@ -42,5 +42,13 @@
 	"newgen_client.emote.rat_dance_1_2": "Rat dance",
 	"newgen_client.emote.scythe_strike": "Scythe strike",
 	"newgen_client.emote.take_the_l": "Take the L",
-	"newgen_client.emote.twerk": "Twerk"
+	"newgen_client.emote.twerk": "Twerk",
+	"newgen_client.choice.glass": "Glass",
+	"newgen_client.choice.moss": "Moss",
+	"newgen_client.choice.lagoon": "Lagoon",
+	"newgen_client.choice.lantern": "Lantern",
+	"newgen_client.choice.sakura": "Sakura",
+	"newgen_client.choice.front": "Front",
+	"newgen_client.choice.back": "Back",
+	"newgen_client.choice.dont_change": "Don't change"
 }

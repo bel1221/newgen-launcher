@@ -161,6 +161,12 @@ public class ModsScreen extends Screen {
 		return Ui.width(label, Ui.CAPS) + 16 + (icon ? 15 : 0);
 	}
 
+	/** A choice's value in the game's language when the lang files have it (newgen_client.choice.<value>), else as written. */
+	private static String choiceLabel(String value) {
+		String key = "newgen_client.choice." + value.toLowerCase().replace(' ', '_').replace("'", "");
+		return net.minecraft.client.resources.language.I18n.exists(key) ? net.minecraft.client.resources.language.I18n.get(key) : value;
+	}
+
 	/** The game's own word for its options, so the title screen and this menu spell it the same. */
 	private static String optionsLabel() {
 		return net.minecraft.client.resources.language.I18n.get("menu.options").replace("...", "").trim();
@@ -280,7 +286,7 @@ public class ModsScreen extends Screen {
 			int y = sideRowY(t);
 			boolean on = selected == null && t == tab, over = Ui.inside(mouseX, mouseY, sx + 2, y, SIDE_W - 4, SIDE_ROW);
 			if (on || over) Ui.round(g, sx + 2, y, SIDE_W - 4, SIDE_ROW, Ui.R_SM, on ? Ui.SELECTED : Ui.HOVER);
-			if (on) Ui.round(g, sx + 2, y + 4, 2, SIDE_ROW - 8, 1, Ui.BLUE); // the accent as a small mark
+			if (on) Ui.round(g, sx + 2, y + 4, 2, SIDE_ROW - 8, 1, Ui.ACCENT); // the accent as a small mark
 			Ui.glyph(g, TAB_ICONS[t], sx + 7, y + 4, 8, on ? Ui.TEXT : Ui.DIM);
 			Ui.text(g, Ui.tr("tab." + TABS[t].toLowerCase()), sx + 20, y + 5, on ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
 			int count = 0;
@@ -319,7 +325,7 @@ public class ModsScreen extends Screen {
 			for (int i = 0; i < list.size(); i++) {
 				int y = cardY(i);
 				if (y + CARD_H > viewTop() && y < viewBottom()) card(g, list.get(i), cardX(i), y, hot ? mouseX : -1, mouseY);
-				if (i == focus && y + CARD_H > viewTop() && y < viewBottom()) Ui.ring(g, cardX(i) - 1, y - 1, cardW() + 2, CARD_H + 2, Ui.R_MD + 1, Ui.BLUE);
+				if (i == focus && y + CARD_H > viewTop() && y < viewBottom()) Ui.ring(g, cardX(i) - 1, y - 1, cardW() + 2, CARD_H + 2, Ui.R_MD + 1, Ui.ACCENT);
 			}
 			g.disableScissor();
 			if (list.isEmpty()) Ui.centered(g, Ui.tr("mods.none"), (contentX() + right()) / 2, viewTop() + 12, Ui.DIM, Ui.UI);
@@ -383,7 +389,7 @@ public class ModsScreen extends Screen {
 		if (Ui.inside(mouseX, mouseY, x, status, w, STRIP)) Ui.roundBottom(g, x, status, w, STRIP, Ui.R_MD, Ui.HOVER);
 		String state = Ui.tr(mod.enabled ? "enabled" : "disabled");
 		int sw = Ui.width(state, Ui.CAPS) + (mod.enabled ? 7 : 0), sx = x + (w - sw) / 2;
-		if (mod.enabled) Ui.round(g, sx, status + 5, 4, 4, 2, Ui.BLUE);
+		if (mod.enabled) Ui.round(g, sx, status + 5, 4, 4, 2, Ui.ACCENT);
 		Ui.text(g, state, sx + (mod.enabled ? 7 : 0), status + 4, mod.enabled ? Ui.TEXT : Ui.DIM, Ui.CAPS);
 		Ui.ring(g, x, y, w, CARD_H, Ui.R_MD, Ui.LINE);
 	}
@@ -402,8 +408,8 @@ public class ModsScreen extends Screen {
 			int sw = sliderW(cell.w), sx = cr - sw;
 			int knob = sx + 4 + (int) ((num.get() - num.min) / (num.max - num.min) * (sw - 8));
 			Ui.round(g, sx, y + 9, sw, 3, 1, 0x70000000);
-			Ui.round(g, sx, y + 9, knob - sx, 3, 1, Ui.BLUE);
-			Ui.round(g, knob - 4, y + 6, 8, 8, 4, Ui.BLUE);
+			Ui.round(g, sx, y + 9, knob - sx, 3, 1, Ui.ACCENT);
+			Ui.round(g, knob - 4, y + 6, 8, 8, 4, Ui.ACCENT);
 			controlX = sx - 8 - Ui.width(num.text(), Ui.CAPS);
 			Ui.text(g, num.text(), controlX, y + 6, Ui.SOFT, Ui.CAPS);
 		} else if (setting instanceof Setting.Color color) {
@@ -427,7 +433,7 @@ public class ModsScreen extends Screen {
 				if (over) Ui.round(g, controlX, y + 3, w, BUTTON_H, 4, Ui.HOVER);
 				Ui.text(g, "‹", controlX + 5, y + 6, Ui.SOFT, Ui.TITLE);
 				Ui.text(g, "›", cr - 5 - Ui.width("›", Ui.TITLE), y + 6, Ui.SOFT, Ui.TITLE);
-				Ui.centered(g, Ui.fit(String.valueOf(choice.value), w - 30, Ui.UI, false), controlX + w / 2, y + 6, Ui.SOFT, Ui.UI);
+				Ui.centered(g, Ui.fit(choiceLabel(choice.value), w - 30, Ui.UI, false), controlX + w / 2, y + 6, Ui.SOFT, Ui.UI);
 			} else if (setting instanceof Setting.Action action) {
 				Ui.button(g, controlX, y + 3, w, BUTTON_H, net.minecraft.client.resources.language.I18n.get(action.label), over, Ui.DARK, Ui.CAPS);
 			} else if (setting instanceof Setting.Key key) {

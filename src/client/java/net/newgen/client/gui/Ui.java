@@ -12,21 +12,50 @@ import net.minecraft.resources.Identifier;
 import net.newgen.client.NewgenClient;
 
 /**
- * The shared look of the NewGen screens, matched to the Newgen Launcher: dark see-through glass, one accent
- * (the launcher's blue #2B4BFF) for the main action, on-states and focus, one radius scale (R_SM/R_MD/R_LG =
+ * The shared look of the NewGen screens: clear glass over the game or the title video, one accent from the chosen
+ * palette (white by default) used only as a small mark, one radius scale (R_SM/R_MD/R_LG =
  * 4/6/8 GUI units, i.e. 8/12/16 px at GUI scale 2, as in the launcher) and Inter in sentence case.
  * "Off" is a neutral grey, never red: off is not an error.
  */
 public final class Ui {
 	// v3.1 colour: clear glass over the NewGen footage (dark, low-saturation night scenes: mean RGB 22-78), white type with a
-	// soft shadow, hairline light borders, hover = the glass brightens. One accent, the launcher's blue, only as a small mark
-	// (switch on, slider, focus ring, the active-row bar); never a filled block. The one main action is a white pill.
-	public static final int TEXT = 0xFFFFFFFF, SOFT = 0xFFE4E6EA, DIM = 0xFFB0B5BD, INK = 0xFF15171C;
+	// soft shadow, hairline light borders, hover = the glass brightens. The accent is only ever a small mark, never a block.
+	public static final int TEXT = 0xFFFFFFFF, SOFT = 0xFFE4E6EA, DIM = 0xFFB0B5BD;
 	/** LINE a hairline border, HOVER the brightening on hover, SELECTED a chosen tab, chip or row. */
 	public static final int LINE = 0x2EFFFFFF, HOVER = 0x14FFFFFF, SELECTED = 0x24FFFFFF;
-	/** GLASS a panel (32 % black), CARD a lighter layer on it, DARK a button or field (22 % black), PRIMARY the main action. */
-	public static final int GLASS = 0x52000000, CARD = 0x0DFFFFFF, DARK = 0x38000000, PRIMARY = 0xD9FFFFFF;
-	public static final int BLUE = 0xFF2B4BFF;
+	public static final int CARD = 0x0DFFFFFF;
+	/**
+	 * The palette presets (Mods > Theme > Palette). Each is a glass tint for panels (GLASS) and buttons (DARK), the main
+	 * action's pill (PRIMARY) with its type (INK), and the ACCENT: a small mark only (switch on, slider, focus ring, the
+	 * active-row bar, the on-dot, the HUD element being moved). Hues come from the footage; no neon, no violet.
+	 */
+	public record Palette(String name, int accent, int primary, int ink, int glass, int dark) {
+	}
+
+	public static final Palette[] PALETTES = {
+			new Palette("Glass", 0xFFFFFFFF, 0xD9FFFFFF, 0xFF15171C, 0x52000000, 0x38000000),   // clear: white is the accent (default)
+			new Palette("Moss", 0xFF9CCB8F, 0xE09CCB8F, 0xFF0F1A0E, 0x520A120B, 0x380A120B),    // the leaves and the logo's sprout
+			new Palette("Lagoon", 0xFF7CC4BF, 0xE07CC4BF, 0xFF0A1A19, 0x52081213, 0x38081213),  // the teal glow by the water
+			new Palette("Lantern", 0xFFE6B872, 0xE0E6B872, 0xFF1E1407, 0x52130D07, 0x38130D07), // lanterns and the wooden sign
+			new Palette("Sakura", 0xFFE7A3B8, 0xE0E7A3B8, 0xFF22101A, 0x52130A0E, 0x38130A0E)}; // the pink blossoms
+
+	/** The current palette's colours; set by use(). Panels, buttons, the main action and its type, the accent mark. */
+	public static int GLASS, DARK, PRIMARY, INK, ACCENT;
+
+	static {
+		use(PALETTES[0].name());
+	}
+
+	/** Switches every menu to the named palette (unknown names fall back to Glass). */
+	public static void use(String name) {
+		Palette p = PALETTES[0];
+		for (Palette q : PALETTES) if (q.name().equals(name)) p = q;
+		GLASS = p.glass();
+		DARK = p.dark();
+		PRIMARY = p.primary();
+		INK = p.ink();
+		ACCENT = p.accent();
+	}
 	/** The track of a switch that is off. */
 	public static final int OFF = 0x40FFFFFF;
 	/** The radius scale: controls, cards, panels. */
@@ -198,11 +227,12 @@ public final class Ui {
 		g.blit(RenderPipelines.GUI_TEXTURED, ICONS, x, y, icon * 64, 0, size, size, 64, 64, ICON_COUNT * 64, 64, color);
 	}
 
-	/** An on/off switch, 20x10: a blue track with the knob right when on, a neutral track with the knob left when off. */
+	/** An on/off switch, 20x10: an accent track with the knob right when on, a neutral track with the knob left when off. */
 	public static void toggle(GuiGraphics g, int x, int y, boolean on, boolean hot) {
-		round(g, x, y, 20, 10, 5, on ? BLUE : OFF);
+		round(g, x, y, 20, 10, 5, on ? ACCENT : OFF);
 		if (hot) round(g, x, y, 20, 10, 5, HOVER);
-		round(g, on ? x + 11 : x + 1, y + 1, 8, 8, 4, 0xFFF2F3F5);
+		// The accents are light, so the knob is dark on an on-track and light on an off-track.
+		round(g, on ? x + 11 : x + 1, y + 1, 8, 8, 4, on ? INK : 0xFFF2F3F5);
 	}
 
 	/** Each 8-bit channel of a and b mixed: t = 0 gives a, t = 1 gives b. */

@@ -42,5 +42,13 @@
 	"newgen_client.emote.rat_dance_1_2": "Điệu nhảy chuột",
 	"newgen_client.emote.scythe_strike": "Chém lưỡi hái",
 	"newgen_client.emote.take_the_l": "Take the L",
-	"newgen_client.emote.twerk": "Twerk"
+	"newgen_client.emote.twerk": "Twerk",
+	"newgen_client.choice.glass": "Kính",
+	"newgen_client.choice.moss": "Rêu",
+	"newgen_client.choice.lagoon": "Đầm nước",
+	"newgen_client.choice.lantern": "Đèn lồng",
+	"newgen_client.choice.sakura": "Hoa anh đào",
+	"newgen_client.choice.front": "Phía trước",
+	"newgen_client.choice.back": "Phía sau",
+	"newgen_client.choice.dont_change": "Giữ nguyên"
 }

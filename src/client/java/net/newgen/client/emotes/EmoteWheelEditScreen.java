@@ -86,7 +86,7 @@ public class EmoteWheelEditScreen extends Screen {
 			int y = top() + i * ROW;
 			boolean over = Ui.inside(mouseX, mouseY, sx + 2, y, SIDE_W - 4, ROW);
 			if (i == slot || over) Ui.round(g, sx + 2, y, SIDE_W - 4, ROW, Ui.R_SM, i == slot ? Ui.SELECTED : Ui.HOVER);
-			if (i == slot) Ui.round(g, sx + 2, y + 3, 2, ROW - 6, 1, Ui.BLUE);
+			if (i == slot) Ui.round(g, sx + 2, y + 3, 2, ROW - 6, 1, Ui.ACCENT);
 			Ui.text(g, String.valueOf(i + 1), sx + 9, y + 6, Ui.DIM, Ui.UI);
 			EmoteLibrary.Emote e = EmoteLibrary.get(mod.slot(i));
 			if (e != null) {
@@ -108,7 +108,7 @@ public class EmoteWheelEditScreen extends Screen {
 			boolean inSlot = e.id().equals(mod.slot(slot)), over = Ui.inside(mouseX, mouseY, x, y, CARD_W, CARD_H) && mouseY >= top() && mouseY < bottom();
 			Ui.round(g, x, y, CARD_W, CARD_H, Ui.R_MD, Ui.CARD);
 			if (over) Ui.round(g, x, y, CARD_W, CARD_H, Ui.R_MD, Ui.HOVER);
-			Ui.ring(g, x, y, CARD_W, CARD_H, Ui.R_MD, inSlot ? Ui.BLUE : Ui.LINE);
+			Ui.ring(g, x, y, CARD_W, CARD_H, Ui.R_MD, inSlot ? Ui.ACCENT : Ui.LINE);
 			e.drawIcon(g, x + (CARD_W - 28) / 2, y + 6, 28);
 			Ui.centered(g, Ui.fit(e.name(), CARD_W - 6, Ui.CAPS, false), x + CARD_W / 2, y + 39, Ui.TEXT, Ui.CAPS);
 			Ui.centered(g, Ui.fit(I18n.get("newgen_client.emotes.by", e.author()), CARD_W - 6, Ui.UI, false), x + CARD_W / 2, y + 51, Ui.DIM, Ui.UI);

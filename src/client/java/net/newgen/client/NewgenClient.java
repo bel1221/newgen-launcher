@@ -33,6 +33,8 @@ public class NewgenClient implements ClientModInitializer {
 		Mods.register(new CpsMod());
 		Mods.register(new FpsMod());
 		Mods.register(new CoordinatesMod());
+		net.newgen.client.mods.ThemeMod theme = new net.newgen.client.mods.ThemeMod();
+		Mods.register("Visual", theme);
 		net.newgen.client.mods.hud.HudMods.register();
 		net.newgen.client.mods.visual.VisualMods.register();
 		net.newgen.client.mods.controls.ControlsMods.register();
@@ -41,6 +43,7 @@ public class NewgenClient implements ClientModInitializer {
 
 		KeyBindingHelper.registerKeyBinding(OPEN_MODS);
 		ClientTickEvents.END_CLIENT_TICK.register(mc -> {
+			theme.tick();
 			while (OPEN_MODS.consumeClick()) {
 				if (mc.screen == null) mc.setScreen(new HubScreen());
 			}
