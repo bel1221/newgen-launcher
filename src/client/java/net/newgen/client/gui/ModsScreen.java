@@ -63,6 +63,8 @@ public class ModsScreen extends Screen {
 	private int rowsHeight;           // height of all option rows, set by cells()
 	private Mod selected;             // null = card grid, otherwise the mod whose options are shown
 	private int focus = -1;           // card that has the keyboard focus in the grid (Tab), -1 = none
+	private int rowFocus = -1;        // option row with the keyboard focus in the options view
+	private Mod rowMod;               // the mod rowFocus belongs to
 	private Setting.Num dragging;     // slider being dragged, if any
 	private int dragX, dragW;         // where that slider is
 	private Setting.Key listening;    // key setting waiting for a key press, if any
@@ -358,6 +360,8 @@ public class ModsScreen extends Screen {
 				if (cell.y + ROW_H <= viewTop() || cell.y >= viewBottom()) continue;
 				if (cell.setting != null) {
 					row(g, cell, hot ? mouseX : -1, mouseY);
+					if (rowMod == selected && rowFocus >= 0 && rowFocus < rows().size() && rows().get(rowFocus) == cell.setting)
+						Ui.ring(g, cell.x - 3, cell.y + 1, cell.w + 6, ROW_H - 2, Ui.R_SM, Ui.ACCENT);
 				} else {
 					Ui.text(g, cell.heading, cell.x, cell.y + 4, Ui.TEXT, Ui.CAPS);
 					g.fill(cell.x + Ui.width(cell.heading, Ui.CAPS) + 6, cell.y + 7, cell.x + cell.w, cell.y + 8, FAINT);
@@ -673,6 +677,9 @@ public class ModsScreen extends Screen {
 			}
 			return true;
 		}
+		// Keyboard in the options view: Tab / Shift+Tab or Up / Down move between options, Enter or Space uses one (switch,
+		// key, button, text), Left / Right change sliders, choices (the palette too) and switches.
+		if (selected != null && rowKeys(key, event.hasShiftDown())) return true;
 		if (key == GLFW.GLFW_KEY_ESCAPE && selected != null) {
 			selected = null; // Esc in the options view goes back to the grid first
 			return true;
@@ -689,6 +696,46 @@ public class ModsScreen extends Screen {
 			return true;
 		}
 		return super.keyPressed(event);
+	}
+
+	/** The options a keyboard can reach, in screen order. */
+	private List<Setting> rows() {
+		List<Setting> out = new ArrayList<>();
+		for (Cell c : cells()) if (c.setting != null) out.add(c.setting);
+		return out;
+	}
+
+	private boolean rowKeys(int key, boolean shift) {
+		List<Setting> rows = rows();
+		if (rows.isEmpty()) return false;
+		if (rowMod != selected) {
+			rowMod = selected;
+			rowFocus = -1;
+		}
+		if (key == GLFW.GLFW_KEY_TAB || key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_UP) {
+			int step = key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_TAB && shift ? -1 : 1;
+			rowFocus = Math.floorMod(rowFocus < 0 ? (step > 0 ? -1 : 0) + step : rowFocus + step, rows.size());
+			return true;
+		}
+		if (rowFocus < 0 || rowFocus >= rows.size()) return false;
+		Setting s = rows.get(rowFocus);
+		int dir = key == GLFW.GLFW_KEY_RIGHT ? 1 : key == GLFW.GLFW_KEY_LEFT ? -1 : 0;
+		boolean use = key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER || key == GLFW.GLFW_KEY_SPACE;
+		if (dir == 0 && !use) return false;
+		if (s instanceof Setting.Bool b) b.value = dir == 0 ? !b.value : dir > 0;
+		else if (s instanceof Setting.Num n && dir != 0) n.set(n.get() + dir * n.step);
+		else if (s instanceof Setting.Choice c) {
+			int at = java.util.Arrays.asList(c.options).indexOf(c.value);
+			c.value = c.options[Math.floorMod(at + (dir == 0 ? 1 : dir), c.options.length)];
+		} else if (s instanceof Setting.Key k && use) listening = k;
+		else if (s instanceof Setting.Action a && use) a.run.run();
+		else if (s instanceof Setting.Color c && use) {
+			typing = c;
+			hex = String.format("%08X", c.value);
+		} else if (s instanceof Setting.Text && use) typing = s;
+		else return false;
+		Mods.save();
+		return true;
 	}
 
 	@Override
