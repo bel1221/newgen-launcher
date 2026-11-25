@@ -1,0 +1,25 @@
+{
+	"required": true,
+	"package": "net.newgen.client.mixin.visual",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"AbstractClientPlayerMixin",
+		"ClientLevelMixin",
+		"DebugRendererMixin",
+		"FogRendererMixin",
+		"GameRendererMixin",
+		"GuiMixin",
+		"ItemInHandRendererMixin",
+		"ItemStackMixin",
+		"LevelMixin",
+		"LevelRendererMixin",
+		"LightTextureMixin",
+		"LivingEntityRendererMixin",
+		"MinecraftMixin",
+		"NameTagStorageMixin",
+		"OverlayTextureAccessor",
+		"ParticleEngineMixin",
+		"ScreenEffectRendererMixin"
+	],
+	"injectors": { "defaultRequire": 1 }
+}

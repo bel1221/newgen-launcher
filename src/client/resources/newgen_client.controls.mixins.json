@@ -1,0 +1,7 @@
+{
+	"required": true,
+	"package": "net.newgen.client.mixin.controls",
+	"compatibilityLevel": "JAVA_21",
+	"client": ["CameraMixin", "KeyboardInputMixin", "MouseHandlerMixin"],
+	"injectors": { "defaultRequire": 1 }
+}

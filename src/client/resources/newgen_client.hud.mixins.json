@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "net.newgen.client.mixin.hud",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"BossHealthOverlayMixin",
+		"DebugScreenOverlayMixin",
+		"GuiMixin",
+		"PlayerTabOverlayMixin"
+	],
+	"injectors": { "defaultRequire": 1 }
+}

@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"package": "net.newgen.client.mixin.utility",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"ChatComponentMixin",
+		"GuiGraphicsMixin",
+		"ItemStackMixin",
+		"ScreenshotMixin",
+		"StringDecomposerMixin"
+	],
+	"injectors": { "defaultRequire": 1 }
+}

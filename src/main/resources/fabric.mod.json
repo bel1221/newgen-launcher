@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"id": "newgen_client",
+	"version": "${version}",
+	"name": "Newgen Client",
+	"description": "NewGen client features: the Newgen Mods menu and HUD mods (CPS, FPS, Coordinates).",
+	"authors": ["NewGen"],
+	"license": "All Rights Reserved",
+	"environment": "client",
+	"entrypoints": {
+		"client": ["net.newgen.client.NewgenClient"]
+	},
+	"mixins": [
+		{ "config": "newgen_client.hud.mixins.json", "environment": "client" },
+		{ "config": "newgen_client.visual.mixins.json", "environment": "client" },
+		{ "config": "newgen_client.controls.mixins.json", "environment": "client" },
+		{ "config": "newgen_client.utility.mixins.json", "environment": "client" }
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
