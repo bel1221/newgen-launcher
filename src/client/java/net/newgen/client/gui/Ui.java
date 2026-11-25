@@ -259,6 +259,26 @@ public final class Ui {
 		if (tutorial != null) tutorial.hide();
 	}
 
+	/**
+	 * Left / right as -1 / +1 (0 otherwise). The keypad 4 / 6 count too: a key event without the "extended" flag (some
+	 * remote or scripted input) arrives as the keypad key, and the menus should still follow it.
+	 */
+	public static int horizontal(int key) {
+		if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_6) return 1;
+		return key == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4 ? -1 : 0;
+	}
+
+	/** Up / down as -1 / +1 (0 otherwise), keypad 8 / 2 included (see horizontal). */
+	public static int vertical(int key) {
+		if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_2) return 1;
+		return key == org.lwjgl.glfw.GLFW.GLFW_KEY_UP || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_8 ? -1 : 0;
+	}
+
+	/** Any arrow as a step round a ring: right / down forward, left / up back. */
+	public static int arrow(int key) {
+		return horizontal(key) != 0 ? horizontal(key) : vertical(key);
+	}
+
 	// ---- interface sounds and motion (set by ThemeMod) ----
 
 	/** 0..1; 0 = silent. */

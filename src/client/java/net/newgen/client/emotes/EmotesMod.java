@@ -112,6 +112,9 @@ public class EmotesMod extends Mod {
 		if (c == null) return;
 		c.triggerAnimation(emote.animation());
 		playing = emote;
+		// The wheel key may still be held (an emote picked with 1-8 or Enter): that is not a new press, so the next tick
+		// must not read it as "press again to stop".
+		wasDown = keyHeld(mc);
 		playedTicks = 0;
 		level = mc.level;
 		if (!FreelookMod.active && !camera.value.equals("Don't change")) {

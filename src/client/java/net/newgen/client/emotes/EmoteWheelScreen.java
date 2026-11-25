@@ -223,10 +223,10 @@ public class EmoteWheelScreen extends Screen {
 			choose();
 			return true;
 		}
-		int step = key == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT || key == org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN ? 1
-				: key == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT || key == org.lwjgl.glfw.GLFW.GLFW_KEY_UP ? -1 : 0;
+		int step = Ui.arrow(key);
 		if (step != 0) {
 			hovered = Math.floorMod((hovered < 0 ? (step > 0 ? -1 : 0) : hovered) + step, EmotesMod.SLOTS);
+			lastMouseX = Double.NaN; // the mouse takes over again only once it moves
 			return true;
 		}
 		if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) {

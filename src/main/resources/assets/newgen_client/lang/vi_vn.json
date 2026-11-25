@@ -79,9 +79,9 @@
 	"newgen_client.setting.direction": "Hướng",
 	"newgen_client.setting.durability_as": "Hiện độ bền dạng",
 	"newgen_client.setting.dynamic_fov_sprint_speed_bow": "FOV động (chạy, tốc độ, cung)",
-	"newgen_client.setting.edge_size_of_screen": "Độ rộng viền (% màn hình)",
+	"newgen_client.setting.edge_size_of_screen": "Độ rộng viền (%% màn hình)",
 	"newgen_client.setting.emote_sound": "Âm thanh biểu cảm",
-	"newgen_client.setting.emote_volume": "Âm lượng biểu cảm (%)",
+	"newgen_client.setting.emote_volume": "Âm lượng biểu cảm (%%)",
 	"newgen_client.setting.field_of_view": "Tầm nhìn",
 	"newgen_client.setting.format": "Định dạng",
 	"newgen_client.setting.gui_scale": "Cỡ giao diện",
@@ -150,7 +150,7 @@
 	"newgen_client.setting.shift_wheel_scrolls_sideways": "Shift + lăn chuột để cuộn ngang",
 	"newgen_client.setting.show_a_grid_at_the_limit_when_close": "Hiện lưới ở giới hạn khi đến gần",
 	"newgen_client.setting.show_actions_in_chat": "Hiện hành động trong khung chat",
-	"newgen_client.setting.show_below_health": "Hiện khi máu dưới %",
+	"newgen_client.setting.show_below_health": "Hiện khi máu dưới %%",
 	"newgen_client.setting.show_coordinates": "Hiện tọa độ",
 	"newgen_client.setting.show_degrees": "Hiện độ",
 	"newgen_client.setting.show_distance": "Hiện khoảng cách",
@@ -355,6 +355,7 @@
 	"newgen_client.mod.weather_changer.description": "Hiện một kiểu thời tiết cố định, chỉ trên màn hình của bạn",
 	"newgen_client.mod.zoom.name": "Zoom",
 	"newgen_client.mod.zoom.description": "Giữ một phím để phóng to",
-	"newgen_client.setting.interface_sounds": "Âm thanh giao diện (%)",
-	"newgen_client.setting.reduce_motion": "Giảm chuyển động"
+	"newgen_client.setting.interface_sounds": "Âm thanh giao diện (%%)",
+	"newgen_client.setting.reduce_motion": "Giảm chuyển động",
+	"newgen_client.setting.background_colour": "Màu nền"
 }

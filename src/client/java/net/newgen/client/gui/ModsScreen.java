@@ -729,14 +729,14 @@ public class ModsScreen extends Screen {
 			rowMod = selected;
 			rowFocus = -1;
 		}
-		if (key == GLFW.GLFW_KEY_TAB || key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_UP) {
-			int step = key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_TAB && shift ? -1 : 1;
+		if (key == GLFW.GLFW_KEY_TAB || Ui.vertical(key) != 0) {
+			int step = Ui.vertical(key) < 0 || key == GLFW.GLFW_KEY_TAB && shift ? -1 : 1;
 			rowFocus = Math.floorMod(rowFocus < 0 ? (step > 0 ? -1 : 0) + step : rowFocus + step, rows.size());
 			return true;
 		}
 		if (rowFocus < 0 || rowFocus >= rows.size()) return false;
 		Setting s = rows.get(rowFocus);
-		int dir = key == GLFW.GLFW_KEY_RIGHT ? 1 : key == GLFW.GLFW_KEY_LEFT ? -1 : 0;
+		int dir = Ui.horizontal(key);
 		boolean use = key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER || key == GLFW.GLFW_KEY_SPACE;
 		if (dir == 0 && !use) return false;
 		if (s instanceof Setting.Bool b) b.value = dir == 0 ? !b.value : dir > 0;
