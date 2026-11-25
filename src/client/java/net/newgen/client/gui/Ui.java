@@ -251,8 +251,22 @@ public final class Ui {
 		return out;
 	}
 
+	// ---- interface sounds and motion (set by ThemeMod) ----
+
+	/** 0..1; 0 = silent. */
+	public static float soundVolume = 0.6f;
+	public static boolean reduceMotion;
+
+	/** Plays one of our interface sounds (ui.press, ui.hover, ui.open) in the Interface category, at the Theme volume. */
+	public static void sound(String name) {
+		if (soundVolume <= 0) return;
+		Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+				net.minecraft.sounds.SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath(NewgenClient.ID, "ui." + name)), 1f, soundVolume));
+	}
+
 	/** Ease-out (quartic) progress from 0 to 1 of an animation that started at startMs and lasts ms. */
 	public static float ease(long startMs, int ms) {
+		if (reduceMotion) return 1f;
 		float t = Math.max(0f, Math.min(1f, (System.currentTimeMillis() - startMs) / (float) ms));
 		float u = 1 - t;
 		return 1 - u * u * u * u;
@@ -308,6 +322,12 @@ public final class Ui {
 		@Override
 		protected net.minecraft.network.chat.MutableComponent createNarrationMessage() {
 			return narration != null ? Component.literal(narration) : super.createNarrationMessage();
+		}
+
+		/** Our press sound instead of the vanilla click. */
+		@Override
+		public void playDownSound(net.minecraft.client.sounds.SoundManager manager) {
+			sound("press");
 		}
 
 		@Override

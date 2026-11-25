@@ -122,6 +122,7 @@ public class EmoteWheelEditScreen extends Screen {
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		double mx = event.x(), my = event.y();
+		if (event.button() == 0 && Ui.inside(mx, my, px, py, pw, ph)) Ui.sound("press");
 		if (Ui.inside(mx, my, px + pw - PAD - 14, py + (HEADER - 14) / 2, 14, 14)) {
 			onClose();
 			return true;

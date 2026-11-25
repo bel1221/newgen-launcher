@@ -354,5 +354,7 @@
 	"newgen_client.mod.weather_changer.name": "Đổi thời tiết",
 	"newgen_client.mod.weather_changer.description": "Hiện một kiểu thời tiết cố định, chỉ trên màn hình của bạn",
 	"newgen_client.mod.zoom.name": "Zoom",
-	"newgen_client.mod.zoom.description": "Giữ một phím để phóng to"
+	"newgen_client.mod.zoom.description": "Giữ một phím để phóng to",
+	"newgen_client.setting.interface_sounds": "Âm thanh giao diện (%)",
+	"newgen_client.setting.reduce_motion": "Giảm chuyển động"
 }

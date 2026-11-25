@@ -493,6 +493,7 @@ public class ModsScreen extends Screen {
 			return true;
 		}
 		if (!left && event.button() != 1) return false;
+		if (left && Ui.inside(mx, my, px, py, pw, ph)) Ui.sound("press");
 		// Any click ends key capture and typing; the clicked row may start it again below.
 		listening = null;
 		if (typing != null) {

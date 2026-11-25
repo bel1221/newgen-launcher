@@ -1,3 +1,6 @@
 {
-	"emote.hello": {"sounds": [{"name": "newgen_client:emotes/hello"}]}
+	"emote.hello": {"sounds": [{"name": "newgen_client:emotes/hello"}]},
+	"ui.hover": {"sounds": [{"name": "newgen_client:ui/hover"}]},
+	"ui.open": {"sounds": [{"name": "newgen_client:ui/open"}]},
+	"ui.press": {"sounds": [{"name": "newgen_client:ui/press"}]}
 }

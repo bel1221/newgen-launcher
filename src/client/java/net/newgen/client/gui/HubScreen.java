@@ -25,6 +25,7 @@ public class HubScreen extends Screen {
 	private HudMod dragging;
 	private double grabX, grabY; // where inside the element the mouse grabbed it
 	private int logoW, top, hintY;
+	private boolean opened; // init runs again on resize; the open sound plays once
 	private static final int HINT_H = 13;
 
 	public HubScreen() {
@@ -35,6 +36,10 @@ public class HubScreen extends Screen {
 	protected void init() {
 		// Vanilla's tutorial and other toasts sit where our panels are; they go while our screens are open.
 		minecraft.getToastManager().clear();
+		if (!opened) {
+			opened = true;
+			Ui.sound("open");
+		}
 		HudMod.editing = true;
 		// The logo shrinks with the window and goes away before it would push the row off screen.
 		logoW = Math.max(0, Math.min(Math.min(150, width - 40), (height - 90) * 4));

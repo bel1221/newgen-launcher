@@ -23,7 +23,7 @@ import javax.imageio.ImageIO;
  *   <li>emotes/&lt;id&gt;.emotecraft: the same container, keeping only the animation and the text header
  *       (the icon and sound sections move to their own files);</li>
  *   <li>emotes/&lt;id&gt;.json: the author from the file header, and the sound id if it has one;</li>
- *   <li>textures/emotes/&lt;id&gt;.png: the icon, scaled to 64x64;</li>
+ *   <li>textures/emotes/&lt;id&gt;.png: the icon, filled into a 64 px circle;</li>
  *   <li>sounds/emotes/&lt;id&gt;.ogg: the Opus sound (section 3, version 3) muxed into Ogg and converted by ffmpeg
  *       to mono 44.1 kHz Ogg Vorbis, loudness-normalised (Minecraft cannot play Opus);</li>
  * </ul>
@@ -109,6 +109,14 @@ public class EmoteImport {
 			Files.writeString(ASSETS.resolve("emotes/" + id + ".json"), json);
 			System.out.printf("%-28s name=%s author=%s sound=%s%n", id, name, author, sound);
 		}
+		// The interface sounds (sounds/ui/*.ogg) are kept in sounds.json as ui.<name>.
+		Path uiDir = ASSETS.resolve("sounds/ui");
+		if (Files.isDirectory(uiDir)) {
+			try (var ui = Files.list(uiDir)) {
+				ui.map(p -> p.getFileName().toString()).filter(n -> n.endsWith(".ogg"))
+						.forEach(n -> sounds.put("ui." + n.replace(".ogg", ""), "newgen_client:ui/" + n.replace(".ogg", "")));
+			}
+		}
 		StringBuilder json = new StringBuilder("{\n");
 		int i = 0;
 		for (var e : sounds.entrySet()) {
@@ -139,7 +147,10 @@ public class EmoteImport {
 		BufferedImage dst = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
 		var g = dst.createGraphics();
 		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-		float scale = Math.min(64f / src.getWidth(), 64f / src.getHeight());
+		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		// Every icon the same: filled into a 64 px circle (scaled to cover it, centred), so the wheel's slots all match.
+		g.setClip(new java.awt.geom.Ellipse2D.Float(0, 0, 64, 64));
+		float scale = Math.max(64f / src.getWidth(), 64f / src.getHeight());
 		int w = Math.round(src.getWidth() * scale), h = Math.round(src.getHeight() * scale);
 		g.drawImage(src, (64 - w) / 2, (64 - h) / 2, w, h, null);
 		g.dispose();
