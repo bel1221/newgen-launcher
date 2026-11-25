@@ -22,6 +22,7 @@ Build a Windows installer: `npm run dist` (output in `dist/`).
 ```
 Login screen ──► POST {apiBaseUrl}/launcher/login         (username + password → sessionToken)
 PLAY ──► sync files from manifestUrl                       (mods, resource packs, configs)
+     ──► install bundled mods, refuse added mods            (see Mods)
      ──► POST {apiBaseUrl}/launcher/join-token             (sessionToken → one-time joinToken)
      ──► write <game dir>/config/launcher-auth.json        ({ username, token, createdAt })
      ──► start Fabric MC offline, auto-join serverHost:serverPort
@@ -39,6 +40,8 @@ Game folder: `%APPDATA%\.<folderName>`.
 | `src/main.js` | Electron main process; wires login → sync → launch |
 | `src/auth.js` | Calls the backend API (offline mode if `apiBaseUrl` is empty) |
 | `src/sync.js` | Downloads/verifies files from the manifest; deletes unlisted files in managed folders |
+| `mods/` | The client's mods, shipped with the launcher (see **Mods**) |
+| `src/mods.js` | Installs the bundled mods into the game folder and refuses added mods |
 | `src/launch.js` | Installs Fabric, offline auth (same UUID as an offline server), auto-join, token hand-off |
 | `src/preload.js` | Restricted bridge between the UI and main process |
 | `src/renderer/` | Login and Play UI, logo, window buttons, link buttons and footer (see **Branding**, **Window** and **Links**) |
@@ -219,6 +222,17 @@ Pressing PLAY runs `window.weaponBurst()` from `src/renderer/burst.js` first, th
 How it works: on startup `burst.js` reads `assets/weapons.bbmodel` (Blockbench JSON) and builds a real 3D model per weapon with three.js. Every top-level group in the Blockbench outliner is one weapon (49 in the current file), every cube becomes a box with its own per-face UVs and rotation, and the base64 PNG textures inside the file are used as-is (for animated textures only the first frame is shown). On click, 18 random weapons pop out of the button in a transparent full-window canvas, spin, arc outwards and fall, then shrink away (about 1.9 s). Tune `DURATION`, `COUNT` and `SIZE` at the top of `burst.js`.
 
 **Swapping the weapons:** replace `src/renderer/assets/weapons.bbmodel` with another Blockbench project saved as `.bbmodel` (File > Save Project) with textures embedded (the default). Put each weapon in its own top-level group, with its cubes directly inside it (nested sub-groups are ignored). No build step: restart the launcher.
+
+## Mods
+
+The client's mods are the `.jar` files in the project's `mods/` folder (14 today: Fabric API, Sodium, Iris, Lithium, Simple Voice Chat, Newgen-Addons and others). The installer ships that folder next to the app (`extraResources` in `package.json`).
+
+- **On PLAY** (`src/mods.js`, called from the `play` handler in `src/main.js`, after the manifest sync): the launcher copies any missing bundled jar into `%APPDATA%\.<folderName>\mods`, then starts the game.
+- **Added mods are refused.** Anything else in that folder (another file, a subfolder, or a bundled jar whose content was changed, compared by SHA-256) stops the launch. The player sees a warning pop-up: `Adding Mods is not Allowed, please remove "cheat.jar" to continue using Newgen Launcher` (several names are listed with commas). Nothing is deleted; the player removes the file and presses PLAY again.
+- **Change the mods:** add, remove or replace jars in `mods/`, then restart the launcher (for players: build and ship a new installer). The launcher remembers which jars it installed itself (`installed-mods.json` in its settings folder) and swaps its own old ones without blaming the player.
+- **Check the logic:** `node src/mods.js` runs a small self-check.
+- **With `manifestUrl` set:** every mod in the manifest must also be in `mods/`, or it is refused as an added mod.
+- **Limit:** this is a check on the player's own PC, once, before the game starts. It stops casual attempts only. A determined cheater can add a file after the game starts, change the launcher, or join the offline-mode server with another launcher. Real enforcement needs a server-side check.
 
 ## Manifest format
 

@@ -1,12 +1,13 @@
 // Electron main process: owns the window and does all the real work
 // (login, file sync, launching). The UI talks to it through preload.js.
-const { app, BrowserWindow, ipcMain, shell, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, screen, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const config = require('../config.json');
 const { login, getJoinToken } = require('./auth');
 const { syncFiles } = require('./sync');
 const { launchGame } = require('./launch');
+const { installMods } = require('./mods');
 const { WIDTH, HEIGHT, fitScale } = require('./fit');
 
 // Never hand the background videos to a Windows overlay plane: Chromium then always draws them into
@@ -16,6 +17,8 @@ app.commandLine.appendSwitch('disable_direct_composition_video_overlays');
 
 const gameRoot = path.join(app.getPath('appData'), '.' + config.folderName);
 const settingsFile = path.join(app.getPath('userData'), 'settings.json');
+// Bundled mods (README "Mods"): the project's mods folder, shipped next to the app (package.json "extraResources").
+const bundledModsDir = app.isPackaged ? path.join(process.resourcesPath, 'mods') : path.join(__dirname, '..', 'mods');
 
 let win = null;
 let session = null; // { username, sessionToken }
@@ -132,6 +135,16 @@ ipcMain.handle('play', async () => {
   try {
     send('status', 'Checking server files...');
     await syncFiles(config, gameRoot, (p) => send('progress', p));
+
+    // After the sync, so nothing gets past it: install the bundled mods, refuse anything else.
+    try {
+      installMods(bundledModsDir, path.join(gameRoot, 'mods'), path.join(app.getPath('userData'), 'installed-mods.json'));
+    } catch (err) {
+      if (!err.addedMods) throw err;
+      const message = `Adding Mods is not Allowed, please remove "${err.addedMods.join(', ')}" to continue using Newgen Launcher`;
+      await dialog.showMessageBox(win, { type: 'warning', title: config.serverName, message });
+      throw new Error(message);
+    }
 
     send('status', 'Getting login ticket...');
     const joinToken = await getJoinToken(config, session);

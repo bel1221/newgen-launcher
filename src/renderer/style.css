@@ -75,10 +75,12 @@ body {
 /* The logo: top left on the login screen, pushed away from the window buttons. Smooth cartoon art, so scaled normally. */
 .logo { height: 36px; margin-right: auto; }
 button, input, pre, a { -webkit-app-region: no-drag; }
-/* Top right: one frame (a .panel) round the account and the window buttons. Its padding hangs outside
-   the --edge line, so the buttons themselves stand on that line, like the link buttons below them. */
-#tray, #links { display: flex; gap: calc(4 * var(--px)); margin: calc(-3 * var(--px)); padding: calc(3 * var(--px)); }
-#player-name { padding: 0 calc(2 * var(--px)); font-size: 20px; line-height: 28px; }
+/* Top right: the account and the window buttons, in a row with no frame round them (the buttons are
+   solid already). They stand on the --edge line, like the link buttons below them. */
+#tray, #links { display: flex; gap: calc(4 * var(--px)); }
+/* The name is lettering on the video: it keeps a darkened backing of its own (README "Readability"). */
+#player-name { padding: 0 calc(4 * var(--px)); font-size: 20px; line-height: 28px; background: var(--glass); }
+#player-name:empty { display: none; }
 /* Per screen: no account while the login screen is up; on the Play screen the big logo takes over. */
 #login-view:not(.hidden) ~ #titlebar :is(#player-name, #logout-btn), #login-view.hidden ~ #titlebar .logo { display: none; }
 /* Window buttons: the same pixel construction as every other button, kept dark until hovered. */
@@ -98,8 +100,8 @@ button, input, pre, a { -webkit-app-region: no-drag; }
 :is(#win-min, #win-close):active { --hi: var(--card); --lo: var(--panel-hi); }
 #win-close:is(:hover, :focus-visible) { --o: var(--red-out); --hi: var(--red-hi); --lo: var(--red-lo); background: var(--red); color: var(--white); }
 #win-close:active { --hi: var(--red-lo); --lo: var(--red-hi); }
-/* Link buttons: a frame at the right edge, half-way down, on both screens. Not there if no link is set. */
-#links { position: fixed; right: var(--edge); top: 50%; flex-direction: column; margin-top: -50px; } /* half its height: 2 x 40 + 8 + 2 x 6 */
+/* Link buttons: a column at the right edge, half-way down, on both screens. Not there if no link is set. */
+#links { position: fixed; right: var(--edge); top: 50%; flex-direction: column; margin-top: -44px; } /* half its height: 2 x 40 + 8 */
 #links:not(:has(button:not(.hidden))) { display: none; }
 /* Icon buttons (the links, the game log): a square with a glyph on a 3px grid, in the button's text colour. */
 .icon { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; }
@@ -125,7 +127,7 @@ p { margin: 0; }
    top/left and a bottom/right line just inside it. Each piece only sets the colours. These three
    variables are inherited, so a piece inside a frame must set all three itself.
    --lift makes the bottom outline thicker: the ledge under a button that has risen (see "Hover"). */
-.bar, .panel, .plaque, button, input, pre, progress, .error {
+.bar, .panel, button, input, pre, progress, .error {
   border: 0;
   box-shadow:
     inset var(--px) var(--px) 0 var(--hi, transparent),
@@ -141,11 +143,12 @@ label, button, .plaque, #status {
    A frame is a button without its fill: the dark outline, and inside it one line in the screen's
    colour (--line) instead of the light and the shaded edge. The video shows through (--glass).
    The dark line reads on a bright picture and the light line on a dark one. */
-.bar, .panel, .plaque { --hi: var(--line); --lo: var(--line); background: var(--glass); }
+.bar, .panel { --hi: var(--line); --lo: var(--line); background: var(--glass); }
 /* Boxes inside a frame (fields, game log, progress bar, errors): one line, nothing inside it. */
 input, pre, progress, .error { --hi: transparent; --lo: transparent; }
-/* Title: a small frame of its own standing on the top edge of a frame, so the two
-   share one outline. Raised by whole pixels only: a percentage transform would land between pixels. */
+/* Title: plain lettering on a darkened tab with no lines of its own, standing on the top edge of a
+   frame. Raised by whole pixels only: a percentage transform would land between pixels. */
+.plaque { background: var(--glass); }
 .plaque {
   position: absolute; left: 0; right: 0; bottom: calc(100% + var(--px)); width: fit-content;
   margin: 0 auto; padding: calc(4 * var(--px)) calc(8 * var(--px)); white-space: nowrap; font-weight: 400;
@@ -158,7 +161,7 @@ input, pre, progress, .error { --hi: transparent; --lo: transparent; }
 .bar {
   position: relative; align-self: flex-end; margin-bottom: 68px; /* its outline ends one --edge above the link buttons */
   padding: var(--px); /* the frame's own line; the lines between the fields run into it */
-  --o: var(--cover); --line: var(--frame);
+  --o: transparent; --line: transparent; /* no frame lines: only the darkened backing, which the white captions need */
 }
 .bar form { display: flex; }
 /* The whole login bar uses the Minecraft font. It is drawn on an 8px grid, so the size is
@@ -232,14 +235,12 @@ button::after { content: ""; position: absolute; inset: 100% 0 auto; height: var
    The places are fixed, for the 1280x720 page (main.js keeps the page that size on every screen):
    sidebar | logo, PLAY and its messages at the upper left | game log beside them | cards along the bottom. */
 .panel { --o: var(--outline); --line: var(--panel); }
-.panel .plaque { --line: var(--red); }
-#links .plaque { --line: var(--panel); }
 #play-view { position: fixed; inset: 0; }
 #play-view > * { position: absolute; }
-/* Sidebar: a frame as tall as the window, so only its right-hand lines show. */
+/* Sidebar: a darkened strip as tall as the window, with one quiet dark line down its right edge. */
 #sidebar {
   inset: 0 auto 0 0; width: 72px; padding: 18px 16px; background: var(--glass);
-  box-shadow: inset calc(-1 * var(--px)) 0 0 var(--panel), var(--px) 0 0 var(--outline);
+  box-shadow: var(--px) 0 0 var(--outline);
 }
 #sidebar img { display: block; width: 40px; margin-bottom: 30px; } /* smooth cartoon art, so scaled normally */
 /* Game log button: on screen once the game has written something; it opens and closes the log (renderer.js).
@@ -297,16 +298,8 @@ pre {
 :is(pre, .error)::-webkit-scrollbar-thumb { background: var(--line, var(--red)); }
 /* News: one wide card and four small ones. Placeholders for now (index.html): empty frames, nothing to click. */
 #news { left: 112px; bottom: 26px; display: grid; grid: 126px 126px / 470px 224px 224px; gap: 12px; }
-#news .plaque { right: auto; margin: 0; --o: var(--outline); --line: var(--red); }
+#news .plaque { right: auto; margin: 0; }
 .card { display: grid; place-items: center; font: 8px "Silkscreen", monospace; letter-spacing: 1px; text-transform: uppercase; }
 .card:first-of-type { grid-row: span 2; font-size: calc(8 * var(--px)); letter-spacing: 0; }
 
 #burst-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
-
-/* "Show animations" switched off in Windows: the colours still change, nothing moves. */
-@media (prefers-reduced-motion: reduce) {
-  button:is(:hover, :focus-visible):not(:disabled) { --lift: 0px; transform: none; }
-  #links .plaque, #log-btn::before { transition: none; }
-  #links .plaque { transform: none; }
-  button.play { animation: none; }
-}

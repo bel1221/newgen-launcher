@@ -66,7 +66,7 @@
        in renderer.js. -->
   <header id="titlebar">
     <img class="logo" src="assets/lockup.png" alt="NewGen">
-    <div id="tray" class="panel">
+    <div id="tray">
       <p id="player-name" title="Logged in as"></p>
       <button id="logout-btn" type="button">Log out</button>
       <button id="win-min" type="button" aria-label="Minimize" title="Minimize"></button>
@@ -76,7 +76,7 @@
   <!-- Link buttons, in a frame at the right edge. The addresses are set in config.json ("links");
        renderer.js shows a button only if its link is set. The icons are plain pixel glyphs (speech
        bubble, globe); the name comes out beside the button on hover or keyboard focus. -->
-  <div id="links" class="panel">
+  <div id="links">
     <button type="button" class="icon hidden" data-link="discord">
       <svg viewBox="0 0 9 7" aria-hidden="true"><path d="M1 0h7v1H1zM0 1h9v3H0zM1 4h7v1H1zM2 5h2v1H2zM2 6h1v1H2zM2 2v1h1V2zM4 2v1h1V2zM6 2v1h1V2z"/></svg><span class="plaque">Discord</span>
     </button>
