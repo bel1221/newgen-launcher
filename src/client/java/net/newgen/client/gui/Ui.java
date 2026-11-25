@@ -29,18 +29,20 @@ public final class Ui {
 	 * action's pill (PRIMARY) with its type (INK), and the ACCENT: a small mark only (switch on, slider, focus ring, the
 	 * active-row bar, the on-dot, the HUD element being moved). Hues come from the footage; no neon, no violet.
 	 */
-	public record Palette(String name, int accent, int primary, int ink, int glass, int dark) {
+	public record Palette(String name, int accent, int glass, int dark) {
 	}
 
 	public static final Palette[] PALETTES = {
-			new Palette("Glass", 0xFFFFFFFF, 0xD9FFFFFF, 0xFF15171C, 0x52000000, 0x38000000),   // clear: white is the accent (default)
-			new Palette("Moss", 0xFF9CCB8F, 0xE09CCB8F, 0xFF0F1A0E, 0x520A120B, 0x380A120B),    // the leaves and the logo's sprout
-			new Palette("Lagoon", 0xFF7CC4BF, 0xE07CC4BF, 0xFF0A1A19, 0x52081213, 0x38081213),  // the teal glow by the water
-			new Palette("Lantern", 0xFFE6B872, 0xE0E6B872, 0xFF1E1407, 0x52130D07, 0x38130D07), // lanterns and the wooden sign
-			new Palette("Sakura", 0xFFE7A3B8, 0xE0E7A3B8, 0xFF22101A, 0x52130A0E, 0x38130A0E)}; // the pink blossoms
+			new Palette("Glass", 0xFFFFFFFF, 0x52000000, 0x38000000),   // clear: white is the accent (default)
+			new Palette("Moss", 0xFF9CCB8F, 0x520A120B, 0x380A120B),    // the leaves and the logo's sprout
+			new Palette("Lagoon", 0xFF7CC4BF, 0x52081213, 0x38081213),  // the teal glow by the water
+			new Palette("Lantern", 0xFFE6B872, 0x52130D07, 0x38130D07), // lanterns and the wooden sign
+			new Palette("Sakura", 0xFFE7A3B8, 0x52130A0E, 0x38130A0E)}; // the pink blossoms
 
 	/** The current palette's colours; set by use(). Panels, buttons, the main action and its type, the accent mark. */
-	public static int GLASS, DARK, PRIMARY, INK, ACCENT;
+	public static int GLASS, DARK, ACCENT;
+	/** The main action (Play NewGen) in every palette: the launcher's green Play button, with its dark type (10.7:1). */
+	public static final int PRIMARY = 0xFF9CCB8F, INK = 0xFF11171C;
 
 	static {
 		use(PALETTES[0].name());
@@ -52,8 +54,6 @@ public final class Ui {
 		for (Palette q : PALETTES) if (q.name().equals(name)) p = q;
 		GLASS = p.glass();
 		DARK = p.dark();
-		PRIMARY = p.primary();
-		INK = p.ink();
 		ACCENT = p.accent();
 	}
 	/** The track of a switch that is off. */
@@ -194,13 +194,19 @@ public final class Ui {
 	 * together. An empty label gives an icon-only square button.
 	 */
 	public static void button(GuiGraphics g, int x, int y, int w, int h, String label, int icon, float hot, int fill, int face) {
+		button(g, x, y, w, h, label, icon, hot, false, fill, face);
+	}
+
+	public static void button(GuiGraphics g, int x, int y, int w, int h, String label, int icon, float hot, boolean pressed, int fill, int face) {
 		int r = Math.min(R_SM, h / 2);
 		boolean primary = fill == PRIMARY;
 		int ink = primary ? INK : TEXT;
 		round(g, x, y, w, h, r, fill);
 		if (!primary) ring(g, x, y, w, h, r, hot > 0 ? lerp(LINE, 0x5CFFFFFF, hot) : LINE);
 		// Hover brightens the glass (the white pill goes fully opaque); colours never swap.
-		if (hot > 0) round(g, x, y, w, h, r, (int) ((primary ? 0x40 : 0x14) * hot) << 24 | 0xFFFFFF);
+		if (primary && pressed) round(g, x, y, w, h, r, 0x0FFFFFFF); // pressed: 6 % lighter, as in the launcher
+		else if (primary && hot > 0) round(g, x, y, w, h, r, (int) (0x21 * hot) << 24); // hover: 13 % darker
+		else if (hot > 0) round(g, x, y, w, h, r, (int) (0x14 * hot) << 24 | 0xFFFFFF);
 		int size = Math.min(10, h - 8);
 		if (icon >= 0 && label.isEmpty()) {
 			glyph(g, icon, x + (w - size) / 2, y + (h - size) / 2, size, ink);
@@ -310,7 +316,8 @@ public final class Ui {
 			float dt = Math.min(100, now - last);
 			last = now;
 			hover = isHoveredOrFocused() ? Math.min(1, hover + dt / 150f) : Math.max(0, hover - dt / 120f);
-			button(g, getX(), getY(), getWidth(), getHeight(), getMessage().getString(), icon, hover, fill, face);
+			boolean pressed = isHovered() && org.lwjgl.glfw.GLFW.glfwGetMouseButton(Minecraft.getInstance().getWindow().handle(), 0) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+			button(g, getX(), getY(), getWidth(), getHeight(), getMessage().getString(), icon, hover, pressed, fill, face);
 		}
 	}
 }
