@@ -28,6 +28,7 @@ public final class EmoteFile {
 		Animation animation = null;
 		for (int i = 0; i < count; i++) {
 			int id = buf.readByte() & 0xFF, version = buf.readByte(), size = buf.readInt(), pos = buf.readerIndex();
+			if (size < 0 || size > buf.readableBytes()) throw new IOException("emote file section " + id + " claims " + size + " bytes, " + buf.readableBytes() + " left");
 			ByteBuf section = buf.slice(pos, size);
 			if (id == 0x00) {
 				section.readInt();

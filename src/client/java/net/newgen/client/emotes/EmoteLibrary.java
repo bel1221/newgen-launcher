@@ -79,7 +79,7 @@ public final class EmoteLibrary {
 				}
 				boolean icon = resources.getResource(Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/emotes/" + id + ".png")).isPresent();
 				out.put(id, new Emote(id, animation, author, sound, icon));
-			} catch (Exception e) {
+			} catch (Throwable e) { // one bad file never takes the other emotes down
 				LOGGER.warn("Emote {} could not be loaded", file, e);
 			}
 		}

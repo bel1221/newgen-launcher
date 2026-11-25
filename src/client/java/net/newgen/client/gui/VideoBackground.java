@@ -41,6 +41,8 @@ public final class VideoBackground {
 	private static final long IDLE_MS = 500;
 
 	private static Player current, next;
+	/** The clip that stopped while no screen showed it: its last picture covers the restart. */
+	private static Player stale;
 	private static int clip;            // index of current's clip
 	private static int failures;        // clips in a row that could not play
 	private static boolean disabled;    // no clip can play: always fall back
@@ -59,40 +61,47 @@ public final class VideoBackground {
 
 	/** Draws the background over the whole screen; false when there is nothing to show (yet), so the caller draws its fallback. */
 	public static boolean render(GuiGraphics g, int width, int height) {
-		if (disabled) return false;
-		for (Player p : retired) p.release();
+		for (Player p : retired) p.release(); // first, so nothing leaks once the video is turned off
 		retired.clear();
+		if (disabled) return false;
 		try {
 			lastDrawn = System.currentTimeMillis();
-			// A clip that stopped before its end (idle, or failed) starts again; one that decoded to the end keeps its last
-			// frame on screen until the next clip has faded in.
+			// A clip that failed is skipped (and counted: when every clip has failed, the caller's fallback takes over).
+			if (current != null && current.failed) {
+				current.close();
+				current = null;
+				clip = (clip + 1) % CLIPS.length;
+				if (++failures >= CLIPS.length) {
+					disabled = true;
+					stopAll();
+					return false;
+				}
+			}
+			// A clip that stopped before its end (idle) starts again, its last picture staying on screen until the new
+			// one has a frame; one that decoded to the end keeps its last frame until the next clip has faded in.
 			if (current == null || current.stopped && !current.complete()) {
-				if (current != null) current.close();
-				current = start(clip);
-				if (current == null) return false;
-				firstFrameAt = -1;
+				if (current != null && current.shown >= 0 && stale == null) stale = current;
+				else if (current != null) current.close();
+				current = new Player(clip);
 			}
 			current.upload();
 			if (next != null) next.upload();
-
-			if (current.failed) {
-				current.close();
-				current = null;
-				if (++failures >= CLIPS.length) disabled = true;
-				clip = (clip + 1) % CLIPS.length;
-				return false;
-			}
 			if (current.shown < 0) {
-				poster(g, width, height, 0xFFFFFFFF);
+				if (stale != null) cover(g, stale, width, height, 0xFFFFFFFF);
+				else poster(g, width, height, 0xFFFFFFFF);
 				g.fill(0, 0, width, height, SHADE);
 				return true;
 			}
-			if (firstFrameAt < 0) firstFrameAt = System.currentTimeMillis();
+			if (firstFrameAt < 0) firstFrameAt = System.currentTimeMillis(); // once a session: the poster fades out at boot only
+			if (stale != null) {
+				stale.close();
+				stale = null;
+			}
 			failures = 0;
 			cover(g, current, width, height, 0xFFFFFFFF);
 
 			// Start the next clip a second before this one ends, and fade it in over that second.
-			if (next == null && current.total > 0 && current.shown >= current.total - FADE_FRAMES) next = start((clip + 1) % CLIPS.length);
+			if (next == null && current.total > 0 && current.shown >= current.total - FADE_FRAMES) next = new Player((clip + 1) % CLIPS.length);
 			if (next != null) {
 				if (next.failed) {
 					next.close();
@@ -124,23 +133,8 @@ public final class VideoBackground {
 	private static void stopAll() {
 		if (current != null) current.close();
 		if (next != null) next.close();
-		current = next = null;
-	}
-
-	private static Player start(int index) {
-		byte[][] parts = new byte[PARTS][];
-		for (int p = 0; p < PARTS; p++) {
-			Identifier file = Identifier.fromNamespaceAndPath(NewgenClient.ID, "backgrounds/" + CLIPS[index] + (char) ('a' + p) + ".mp4");
-			try (var in = Minecraft.getInstance().getResourceManager().open(file)) {
-				parts[p] = in.readAllBytes();
-			} catch (Exception e) {
-				LOGGER.warn("Background clip {} missing", file);
-				Player player = new Player(index, null);
-				player.failed = true;
-				return player;
-			}
-		}
-		return new Player(index, parts);
+		if (stale != null) stale.close();
+		current = next = stale = null;
 	}
 
 	/** Draws the poster still over the screen, cover-fitted like the video. */
@@ -167,7 +161,7 @@ public final class VideoBackground {
 		final Identifier id;
 		final DynamicTexture texture;
 		/** SLOTS frame buffers in the texture's memory order (ABGR ints = RGBA bytes); frame n goes to slot n % SLOTS. */
-		private final int[][] frames = new int[SLOTS][W * H];
+		private volatile int[][] frames; // allocated by the loader thread
 		private final CyclicBarrier barrier;
 		private int writing;                  // frame both bands are writing (only touched by the bands and the barrier action)
 		private volatile int ready = -1;      // number of the newest finished frame
@@ -176,12 +170,34 @@ public final class VideoBackground {
 		volatile boolean failed, stopped;
 		int shown = -1;                       // number of the frame in the texture
 
-		Player(int index, byte[][] parts) {
+		/** Registers the texture (render thread); a loader thread reads the files and allocates the buffers, then starts the bands. */
+		Player(int index) {
 			id = Identifier.fromNamespaceAndPath(NewgenClient.ID, "background_video_" + index + "_" + System.nanoTime());
 			texture = new LinearTexture();
 			Minecraft.getInstance().getTextureManager().register(id, texture);
 			barrier = new CyclicBarrier(PARTS, this::frameDone);
-			if (parts == null) return;
+			Thread loader = new Thread(() -> load(index), "Newgen background video loader");
+			loader.setDaemon(true);
+			loader.setPriority(Thread.MIN_PRIORITY + 1);
+			loader.start();
+		}
+
+		private void load(int index) {
+			byte[][] parts = new byte[PARTS][];
+			try {
+				for (int p = 0; p < PARTS; p++) {
+					Identifier file = Identifier.fromNamespaceAndPath(NewgenClient.ID, "backgrounds/" + CLIPS[index] + (char) ('a' + p) + ".mp4");
+					try (var in = Minecraft.getInstance().getResourceManager().open(file)) {
+						parts[p] = in.readAllBytes();
+					}
+				}
+				frames = new int[SLOTS][W * H];
+			} catch (Throwable e) {
+				LOGGER.warn("Background clip {} could not be read", CLIPS[index], e);
+				failed = true;
+				stopped = true;
+				return;
+			}
 			for (int p = 0; p < PARTS; p++) {
 				final int band = p;
 				Thread thread = new Thread(() -> decode(parts[band], band), "Newgen background video " + (char) ('a' + band));
