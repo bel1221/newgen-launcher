@@ -5,6 +5,10 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
+import com.zigythebird.playeranim.animation.PlayerAnimationController;
+import com.zigythebird.playeranim.api.PlayerAnimationAccess;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.player.RemotePlayer;
 import net.newgen.client.gui.Ui;
 
 /**
@@ -31,6 +35,15 @@ public class EmoteWheelScreen extends Screen {
 	/** The hovered emote's sound, played after 400 ms of hover at half volume; stopped when the hover leaves. */
 	private net.minecraft.client.resources.sounds.SoundInstance preview;
 	private boolean opened;
+	/**
+	 * Live previews: per filled slot a stand-in player (a RemotePlayer with your own profile, so your skin, never added
+	 * to the world) that loops the slot's emote on its own animation layer, so the real player is not touched. Ticked
+	 * here at 20 per second like any player; drawn every frame like the inventory's player figure. With Reduce motion the
+	 * figure holds one pose. Without a world (no level or player) the slots show the emote's icon instead.
+	 */
+	private final RemotePlayer[] figures = new RemotePlayer[EmotesMod.SLOTS];
+	private final int[] idle = new int[EmotesMod.SLOTS]; // ticks a one-shot emote has rested before it plays again
+	private static final int REST_TICKS = 12, KEY_POSE_TICKS = 10;
 
 	public EmoteWheelScreen(EmotesMod mod) {
 		super(Component.literal("Emotes"));
@@ -43,6 +56,7 @@ public class EmoteWheelScreen extends Screen {
 		if (!opened) {
 			opened = true;
 			Ui.sound("open");
+			makeFigures();
 		}
 	}
 
@@ -96,7 +110,14 @@ public class EmoteWheelScreen extends Screen {
 			Ui.ring(g, x, y, SLOT, SLOT, SLOT / 2, on ? 0x80FFFFFF : Ui.LINE);
 			if (emote != null) {
 				int o = (SLOT - ICON) / 2;
-				emote.drawIcon(g, x + o, y + o, ICON); // icons are circles of one size (see tools/EmoteImport)
+				if (figures[i] != null) {
+					// The figure stands in the slot, feet near the rim, facing you (it looks at the slot's own centre).
+					int fx = x + 4, fy = y + 3, fw = SLOT - 8, fh = SLOT - 5;
+					InventoryScreen.renderEntityInInventoryFollowsMouse(g, fx, fy, fx + fw, fy + fh, 13, 0.0625f,
+							fx + fw / 2f, fy + fh / 3f, figures[i]);
+				} else {
+					emote.drawIcon(g, x + o, y + o, ICON); // no world yet: the icon (a circle, see tools/EmoteImport)
+				}
 			} else {
 				Ui.centered(g, "+", x + SLOT / 2, y + (SLOT - 7) / 2, Ui.DIM, Ui.TITLE); // an empty slot, to fill in Edit wheel
 			}
@@ -124,7 +145,50 @@ public class EmoteWheelScreen extends Screen {
 
 	@Override
 	public void tick() {
-		if (!mod.keyHeld(minecraft)) choose();
+		if (!mod.keyHeld(minecraft)) {
+			choose();
+			return;
+		}
+		if (Ui.reduceMotion) return; // figures hold their key pose
+		for (int i = 0; i < figures.length; i++) {
+			if (figures[i] == null) continue;
+			step(figures[i]);
+			PlayerAnimationController c = controller(figures[i]);
+			if (c != null && !c.isActive() && ++idle[i] > REST_TICKS) { // a one-shot emote restarts after a short rest
+				idle[i] = 0;
+				EmoteLibrary.Emote emote = EmoteLibrary.get(mod.slot(i));
+				if (emote != null) c.triggerAnimation(emote.animation());
+			}
+		}
+	}
+
+	private void makeFigures() {
+		if (minecraft.level == null || minecraft.player == null) return;
+		for (int i = 0; i < figures.length; i++) {
+			EmoteLibrary.Emote emote = EmoteLibrary.get(mod.slot(i));
+			if (emote == null) continue;
+			try {
+				RemotePlayer figure = new RemotePlayer(minecraft.level, minecraft.player.getGameProfile());
+				PlayerAnimationController c = controller(figure);
+				if (c == null) continue;
+				c.triggerAnimation(emote.animation());
+				figures[i] = figure;
+				// The key pose for Reduce motion: a short way into the emote, then frozen.
+				if (Ui.reduceMotion) for (int t = 0; t < KEY_POSE_TICKS; t++) step(figure);
+			} catch (Throwable e) {
+				figures[i] = null; // that slot shows its icon
+			}
+		}
+	}
+
+	/** One animation tick of a stand-in, as Player Animation Library does for players in the world. */
+	private static void step(RemotePlayer figure) {
+		figure.tickCount++;
+		PlayerAnimationAccess.getPlayerAnimManager(figure).handleAnimations(0f, true, false);
+	}
+
+	private static PlayerAnimationController controller(RemotePlayer figure) {
+		return PlayerAnimationAccess.getPlayerAnimationLayer(figure, EmotesMod.LAYER) instanceof PlayerAnimationController c ? c : null;
 	}
 
 	@Override
