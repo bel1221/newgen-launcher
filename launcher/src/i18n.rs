@@ -55,6 +55,8 @@ strings! {
     Discord: "Discord", "Discord";
     Website: "Website", "Trang web";
     Minimize: "Minimize", "Thu nhỏ";
+    Fullscreen: "Fullscreen", "Toàn màn hình";
+    ExitFullscreen: "Exit fullscreen", "Thoát toàn màn hình";
     Close: "Close", "Đóng";
     // Launch steps and game
     CheckingFiles: "Checking server files...", "Đang kiểm tra file của server...";

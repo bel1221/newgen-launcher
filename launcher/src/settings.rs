@@ -90,6 +90,15 @@ pub fn save_last_seen_version(version: &str) {
     save("lastSeenVersion", Value::String(version.to_string()));
 }
 
+/// Whether the launcher was left fullscreen (default no).
+pub fn fullscreen() -> bool {
+    load().get("fullscreen").and_then(Value::as_bool).unwrap_or(false)
+}
+
+pub fn save_fullscreen(on: bool) {
+    save("fullscreen", Value::Bool(on));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

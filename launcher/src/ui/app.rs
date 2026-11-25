@@ -120,6 +120,138 @@ pub fn border() -> Border {
     Border::new().fill(theme::component_border()).width(1.).alignment(BorderAlignment::Inner)
 }
 
+static WINDOW_ZOOM: OnceLock<f64> = OnceLock::new();
+
+/// The zoom the window starts with (main.rs `window_zoom`), restored when leaving fullscreen.
+pub fn set_window_zoom(zoom: f64) {
+    let _ = WINDOW_ZOOM.set(zoom);
+}
+
+/// The zoom that fits 1280×720 into a `width`×`height` px monitor at OS scale `os`.
+pub fn fullscreen_zoom(width: f64, height: f64, os: f64) -> f64 {
+    (width / (f64::from(WIDTH) * os)).min(height / (f64::from(HEIGHT) * os))
+}
+
+/// The window's place before "fullscreen", restored after: (x, y, width, height) in physical px.
+static WINDOWED_RECT: std::sync::Mutex<Option<(i32, i32, u32, u32)>> = std::sync::Mutex::new(None);
+
+/// "Fullscreen" fills the monitor's work area, so the Windows taskbar stays visible: the
+/// borderless window is moved and sized to it, and the whole layout zoomed to fit (Freya lays
+/// out at the new scale, so text stays sharp). Off: back to the window's place and zoom.
+/// Applied on the window's next render pass; `state` and the saved setting change only once
+/// it really happened (the monitor may not be known yet on the very first frame).
+fn apply_fullscreen(on: bool, mut state: State<bool>) {
+    let platform_window = Platform::get().current_window();
+    Platform::get().with_window(Platform::window_id(), move |window| {
+        use freya::winit::dpi::{PhysicalPosition, PhysicalSize};
+        if on {
+            let (Some(monitor), Ok(pos)) = (window.current_monitor(), window.outer_position()) else { return };
+            let size = window.outer_size();
+            if let Ok(mut saved) = WINDOWED_RECT.lock() {
+                *saved = Some((pos.x, pos.y, size.width, size.height));
+            }
+            let (mx, my) = (monitor.position().x, monitor.position().y);
+            let whole = (mx, my, monitor.size().width, monitor.size().height);
+            let (x, y, w, h) = work_area(mx + whole.2 as i32 / 2, my + whole.3 as i32 / 2).unwrap_or(whole);
+            platform_window.set_custom_scale_factor(fullscreen_zoom(f64::from(w), f64::from(h), monitor.scale_factor()));
+            window.set_outer_position(PhysicalPosition::new(x, y));
+            let _ = window.request_inner_size(PhysicalSize::new(w, h));
+        } else {
+            platform_window.set_custom_scale_factor(WINDOW_ZOOM.get().copied().unwrap_or(1.));
+            if let Some((mut x, mut y, w, h)) = WINDOWED_RECT.lock().ok().and_then(|mut saved| saved.take()) {
+                // Its monitor may be gone (unplugged): then centred on the primary screen
+                if !on_a_monitor(x, y, w, h)
+                    && let Some((ax, ay, aw, ah)) = work_area(0, 0)
+                {
+                    (x, y) = (ax + (aw as i32 - w as i32) / 2, ay + (ah as i32 - h as i32) / 2);
+                }
+                let _ = window.request_inner_size(PhysicalSize::new(w, h));
+                window.set_outer_position(PhysicalPosition::new(x, y));
+            }
+        }
+        crate::settings::save_fullscreen(on);
+        state.set(on);
+    });
+}
+
+/// Whether any monitor shows part of this physical-px rectangle.
+#[cfg(windows)]
+fn on_a_monitor(x: i32, y: i32, w: u32, h: u32) -> bool {
+    #[repr(C)]
+    struct WinRect {
+        left: i32,
+        top: i32,
+        right: i32,
+        bottom: i32,
+    }
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn MonitorFromRect(rect: *const WinRect, flags: u32) -> *mut std::ffi::c_void;
+    }
+    const MONITOR_DEFAULTTONULL: u32 = 0;
+    let rect = WinRect { left: x, top: y, right: x + w as i32, bottom: y + h as i32 };
+    // SAFETY: a valid RECT pointer; the call only reads it
+    !unsafe { MonitorFromRect(&raw const rect, MONITOR_DEFAULTTONULL) }.is_null()
+}
+
+#[cfg(not(windows))]
+fn on_a_monitor(_x: i32, _y: i32, _w: u32, _h: u32) -> bool {
+    true
+}
+
+/// The work area (screen minus taskbar) of the monitor at physical point (x, y).
+#[cfg(windows)]
+fn work_area(x: i32, y: i32) -> Option<(i32, i32, u32, u32)> {
+    #[repr(C)]
+    struct WinRect {
+        left: i32,
+        top: i32,
+        right: i32,
+        bottom: i32,
+    }
+    #[repr(C)]
+    struct MonitorInfo {
+        size: u32,
+        monitor: WinRect,
+        work: WinRect,
+        flags: u32,
+    }
+    #[repr(C)]
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn MonitorFromPoint(point: Point, flags: u32) -> *mut std::ffi::c_void;
+        fn GetMonitorInfoW(monitor: *mut std::ffi::c_void, info: *mut MonitorInfo) -> i32;
+    }
+    const MONITOR_DEFAULTTONEAREST: u32 = 2;
+    let empty = || WinRect { left: 0, top: 0, right: 0, bottom: 0 };
+    let mut info = MonitorInfo { size: std::mem::size_of::<MonitorInfo>() as u32, monitor: empty(), work: empty(), flags: 0 };
+    // SAFETY: POINT is passed by value; GetMonitorInfoW fills the MONITORINFO whose size is set
+    let ok = unsafe { GetMonitorInfoW(MonitorFromPoint(Point { x, y }, MONITOR_DEFAULTTONEAREST), &raw mut info) };
+    let r = info.work;
+    (ok != 0 && r.right > r.left && r.bottom > r.top).then(|| (r.left, r.top, (r.right - r.left) as u32, (r.bottom - r.top) as u32))
+}
+
+#[cfg(not(windows))]
+fn work_area(_x: i32, _y: i32) -> Option<(i32, i32, u32, u32)> {
+    None
+}
+
+/// Esc belongs to whatever is open or focused: a text field, a side panel, the crash panel.
+fn esc_taken(s: Shared) -> bool {
+    let focused = Platform::get().current_window().focused_accessibility_node.peek().role();
+    let typing = matches!(focused, AccessibilityRole::TextInput | AccessibilityRole::PasswordInput | AccessibilityRole::MultilineTextInput);
+    typing || *s.log_open.peek() || *s.settings_open.peek() || s.crash.peek().is_some()
+}
+
+/// The navbar button, F11 and Esc; remembered for the next start.
+pub fn toggle_fullscreen(state: State<bool>) {
+    apply_fullscreen(!*state.peek(), state);
+}
+
 /// The current language; reading it re-renders the calling component when it changes.
 pub fn use_lang() -> Lang {
     *use_consume::<State<Lang>>().read()
@@ -202,11 +334,39 @@ impl App for Launcher {
         });
         let t = entrance.get().value();
 
+        // Fullscreen (remembered): the 1280×720 layout is zoomed to fit the monitor and centred;
+        // the backdrop layers fill the whole screen
+        let fullscreen = use_state(|| false);
+        use_hook(move || {
+            // Left fullscreen last time: retried for a few seconds until the window and its
+            // monitor are there
+            if crate::settings::fullscreen() {
+                spawn(async move {
+                    for _ in 0..30 {
+                        if *fullscreen.peek() {
+                            break;
+                        }
+                        apply_fullscreen(true, fullscreen);
+                        tokio::time::sleep(Duration::from_millis(100)).await;
+                    }
+                });
+            }
+        });
+        let root = *Platform::get().current_window().root_size.read();
+        let (left, top) = (((root.width - WIDTH) / 2.).max(0.), ((root.height - HEIGHT) / 2.).max(0.));
+
         rect()
             .width(Size::fill())
             .height(Size::fill())
             .font_family(theme::DEFAULT_FONT)
             .color(theme::fg_primary())
+            // F11 toggles fullscreen, Esc leaves it (nothing else on these screens uses Esc)
+            .on_global_key_down(move |e: Event<KeyboardEventData>| match &e.key {
+                Key::Named(NamedKey::F11) => toggle_fullscreen(fullscreen),
+                // Not while a text field, a side panel or the crash panel is open: Esc is theirs
+                Key::Named(NamedKey::Escape) if fullscreen() && !esc_taken(shared) => toggle_fullscreen(fullscreen),
+                _ => {}
+            })
             .child(Background { picture: self.picture.clone(), scale: 1.05 - 0.05 * reveal(t, 0., 1100.) })
             // Freya paints deeper elements on top and leaves equal depths unordered, so the
             // backdrop layers sit on explicit layers below everything else.
@@ -232,24 +392,31 @@ impl App for Launcher {
             .child(
                 rect()
                     .position(Position::new_absolute())
-                    .width(Size::px(720.))
+                    .width(Size::px(left + 720.))
                     .height(Size::fill())
                     .layer(Layer::Relative(-15))
                     .interactive(false)
                     .background(LinearGradient::new().angle(-90.).stop((a(theme::page(), 170), 0.)).stop((a(theme::page(), 0), 100.))),
             )
-            // The version would sit under the site cards on Home
-            .maybe_child((!on_home).then(|| {
+            // The 1280×720 layout, centred (it fills the window when not fullscreen)
+            .child(
                 rect()
-                    .position(Position::new_absolute().bottom(16.).right(EDGE))
-                    .child(text(format!("v{VERSION}"), 13., FontWeight::NORMAL, a(theme::fg_secondary(), 160)))
-            }))
-            .child(if on_home {
-                Home { shared, t }.into_element()
-            } else {
-                Login { session: shared.session, t }.into_element()
-            })
-            .child(Navbar { player, session: shared.session })
+                    .position(Position::new_absolute().left(left).top(top))
+                    .width(Size::px(WIDTH))
+                    .height(Size::px(HEIGHT))
+                    // The version would sit under the site cards on Home
+                    .maybe_child((!on_home).then(|| {
+                        rect()
+                            .position(Position::new_absolute().bottom(16.).right(EDGE))
+                            .child(text(format!("v{VERSION}"), 13., FontWeight::NORMAL, a(theme::fg_secondary(), 160)))
+                    }))
+                    .child(if on_home {
+                        Home { shared, t }.into_element()
+                    } else {
+                        Login { session: shared.session, t }.into_element()
+                    })
+                    .child(Navbar { player, session: shared.session, fullscreen }),
+            )
             .maybe_child(shared.burst.read().clone().map(|burst| BurstLayer { burst, slot: shared.burst }))
     }
 }
@@ -523,8 +690,8 @@ impl Component for BurstLayer {
         let burst = self.burst.clone();
         rect()
             .position(Position::new_absolute().top(0.).left(0.))
-            .width(Size::px(WIDTH))
-            .height(Size::px(HEIGHT))
+            .width(Size::fill())
+            .height(Size::fill())
             .layer(Layer::OverlayLevel(16)) // the highest level Freya has
             .interactive(false)
             .background(RenderCallback::new(move |ctx: &mut FillRenderContext| {
@@ -541,6 +708,7 @@ impl Component for BurstLayer {
 struct Navbar {
     player: Option<String>,
     session: State<Option<Session>>,
+    fullscreen: State<bool>,
 }
 
 impl Component for Navbar {
@@ -562,6 +730,11 @@ impl Component for Navbar {
             }
         }
         right = right
+            .child(if *self.fullscreen.read() {
+                NavIcon { icon: IconType::Minimize, size: 18., name: S::ExitFullscreen, pill: true, action: NavAction::Fullscreen(self.fullscreen) }
+            } else {
+                NavIcon { icon: IconType::Maximize, size: 18., name: S::Fullscreen, pill: true, action: NavAction::Fullscreen(self.fullscreen) }
+            })
             .child(NavIcon { icon: IconType::Minus, size: 18., name: S::Minimize, pill: false, action: NavAction::Minimize })
             .child(NavIcon { icon: IconType::X, size: 18., name: S::Close, pill: false, action: NavAction::Close });
 
@@ -609,6 +782,7 @@ impl Component for Navbar {
 enum NavAction {
     LogOut(State<Option<Session>>),
     Link(&'static str),
+    Fullscreen(State<bool>),
     Minimize,
     Close,
 }
@@ -624,6 +798,7 @@ impl NavAction {
                     tracing::warn!("could not open {url}: {err}");
                 }
             }
+            Self::Fullscreen(state) => toggle_fullscreen(state),
             Self::Minimize => Platform::get().with_window(Platform::window_id(), |window| window.set_minimized(true)),
             Self::Close => drop(Platform::get().post_callback(|ctx| ctx.exit())),
         }
@@ -701,6 +876,13 @@ impl Component for NavIcon {
 #[cfg(test)]
 mod tests {
     use super::{LOG_COLS, log_rows};
+
+    #[test]
+    fn fullscreen_zoom_fits_the_monitor() {
+        assert!((super::fullscreen_zoom(1920., 1080., 1.) - 1.5).abs() < 1e-9);
+        assert!((super::fullscreen_zoom(2560., 1080., 1.) - 1.5).abs() < 1e-9, "ultrawide: height decides");
+        assert!((super::fullscreen_zoom(3840., 2160., 1.5) - 2.).abs() < 1e-9, "OS scale counted once");
+    }
 
     #[test]
     fn log_rows_expand_tabs_and_wrap() {

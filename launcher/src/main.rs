@@ -39,6 +39,7 @@ fn main() {
     let picture = video::start(video::list_videos(&paths::videos_dir()));
 
     let zoom = window_zoom();
+    ui::app::set_window_zoom(zoom);
     let icon = Assets::get_bytes("newgen/icon.png").expect("icon is embedded");
     let window = WindowConfig::new_app(Launcher::new(events, sender, picture))
         .with_title(config::config().server_name.as_str())
