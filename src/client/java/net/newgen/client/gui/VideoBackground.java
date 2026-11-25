@@ -17,9 +17,9 @@ import org.lwjgl.system.MemoryUtil;
 
 /**
  * The ambient background of the menus outside a world: NewGen gameplay clips (assets/newgen_client/backgrounds,
- * 960x540, 24 fps, H.264 baseline) played one after another with a 1 s crossfade, cover-fitted to the screen.
+ * 1280x720, 24 fps, H.264 baseline, CRF 19) played one after another with a 1 s crossfade, cover-fitted to the screen.
  * <p>
- * Each clip is decoded by JCodec on its own low-priority daemon thread (about 7 ms a frame, measured), paced to
+ * Each clip is decoded by JCodec on its own low-priority daemon thread (13-17 ms a frame at 720p on an i5-12400F, 32-40 % of one core, measured), paced to
  * 24 fps; the render thread only copies the newest frame into a texture. A decoder stops by itself when no screen
  * has drawn the background for 500 ms, so nothing runs in a world or on screens that do not show it.
  * When a clip cannot be read or decoded it is skipped; when none can, render() returns false for good and the
@@ -28,7 +28,7 @@ import org.lwjgl.system.MemoryUtil;
 public final class VideoBackground {
 	private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("newgen_client");
 	private static final String[] CLIPS = {"clip1.mp4", "clip2.mp4", "clip3.mp4", "clip4.mp4"};
-	private static final int W = 960, H = 540, FPS = 24, FADE_FRAMES = FPS; // 1 s crossfade
+	private static final int W = 1280, H = 720, FPS = 24, FADE_FRAMES = FPS; // 1 s crossfade
 	/** A light shade over the footage, so the glass buttons and white text keep their contrast. */
 	private static final int SHADE = 0x38000000;
 	private static final long IDLE_MS = 500;
@@ -203,7 +203,7 @@ public final class VideoBackground {
 		}
 	}
 
-	/** A dynamic texture sampled smoothly, since the 960x540 frames are drawn larger than they are. */
+	/** A dynamic texture sampled smoothly, so frames drawn larger or smaller than 1280x720 stay smooth. */
 	private static final class LinearTexture extends DynamicTexture {
 		LinearTexture() {
 			super(() -> "newgen background video", W, H, false);
