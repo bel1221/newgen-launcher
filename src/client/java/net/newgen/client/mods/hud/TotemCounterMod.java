@@ -9,7 +9,7 @@ import net.newgen.client.core.HudMod;
 import net.newgen.client.core.Setting;
 
 public class TotemCounterMod extends HudMod {
-	private final Setting.Bool hideZero = bool("hide_zero", "Hide when you have none", false);
+	private final Setting.Bool hideZero = bool("hide_zero", "Hide when you have none", true);
 
 	private final List<ItemStack> icon = List.of(new ItemStack(Items.TOTEM_OF_UNDYING));
 

@@ -16,7 +16,7 @@ public class ReachDisplayMod extends HudMod {
 	@Override
 	protected List<String> lines(Minecraft mc) {
 		Combat.update(mc);
-		if (Combat.reach < 0) return List.of("No hit yet");
+		if (Combat.reach < 0) return List.of(); // nothing until the first hit (shown by name while arranging the HUD)
 		return List.of(String.format("%." + (int) decimals.get() + "f blocks", Combat.reach));
 	}
 }

@@ -7,7 +7,7 @@ import net.newgen.client.core.HudMod;
 import net.newgen.client.core.Setting;
 
 public class ComboMod extends HudMod {
-	private final Setting.Bool hideZero = bool("hide_zero", "Hide when no combo", false);
+	private final Setting.Bool hideZero = bool("hide_zero", "Hide when no combo", true);
 	private final Setting.Num timeout = num("timeout", "Combo ends after (seconds)", 3, 1, 10, 1);
 
 	public ComboMod() {

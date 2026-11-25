@@ -14,7 +14,7 @@ import net.newgen.client.core.Setting;
 public class PotionCounterMod extends HudMod {
 	private final Setting.Choice type = choice("type", "Potion type", "Splash", "Splash", "Drinkable", "All");
 	private final Setting.Bool healingOnly = bool("healing_only", "Healing potions only", true);
-	private final Setting.Bool hideZero = bool("hide_zero", "Hide when you have none", false);
+	private final Setting.Bool hideZero = bool("hide_zero", "Hide when you have none", true);
 
 	private final List<ItemStack> icon = List.of(new ItemStack(Items.SPLASH_POTION));
 
