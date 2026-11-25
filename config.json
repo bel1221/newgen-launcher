@@ -10,6 +10,8 @@
   "tokenFileName": "launcher-auth.json",
   "javaPath": "",
   "memory": { "min": "2G", "max": "4G" },
+  "statusUrl": "https://www.newgenmc.net/api/stats",
+  "tagline": { "vi": "Server Battle Royale thế hệ mới", "en": "The next-generation Battle Royale server" },
   "links": {
     "discord": "https://discord.com/invite/pbFPn8ajsT",
     "website": "https://www.newgenmc.net/"

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "legendary",
+    "title": { "vi": "Vũ khí Huyền Thoại", "en": "Legendary Weapons" },
+    "text": {
+      "vi": "Thu thập nguyên liệu hiếm và chế tạo vũ khí Huyền Thoại độc quyền để áp đảo cuối trận. Toàn bộ công thức nằm trong Recipe Book bên dưới.",
+      "en": "Gather rare materials and craft exclusive Legendary weapons to dominate the endgame. All recipes are in the Recipe Book below."
+    },
+    "url": "https://www.newgenmc.net/battle-royale#recipes",
+    "weapons": true
+  },
+  {
+    "id": "battle-royale",
+    "title": { "vi": "Battle Royale", "en": "Battle Royale" },
+    "text": {
+      "vi": "Nhảy dù xuống bản đồ nhiều biome, loot rương, chế tạo vũ khí Huyền Thoại và trụ lại đến cuối cùng.",
+      "en": "Drop onto a many-biome map, loot chests, craft Legendary weapons and be the last one standing."
+    },
+    "url": "https://www.newgenmc.net/battle-royale",
+    "image": "newgen/site/battle-royale.webp"
+  },
+  {
+    "id": "duels",
+    "title": { "vi": "Duels", "en": "Duels" },
+    "text": {
+      "vi": "Đấu 1v1 và 2v2 với mọi bộ đồ. Leo rank từ Copper lên Grandmaster, top 10 giữ danh hiệu Champion.",
+      "en": "1v1 and 2v2 fights with every kit. Climb from Copper to Grandmaster; the top 10 hold the Champion title."
+    },
+    "url": "https://www.newgenmc.net/duels",
+    "image": "newgen/site/duels.webp"
+  },
+  {
+    "id": "spiritbeast",
+    "title": { "vi": "Spiritbeast Realm", "en": "Spiritbeast Realm" },
+    "text": {
+      "vi": "Sắp mở cửa · Huấn luyện, tiến hoá và đấu thú. Chọn một linh thú Ngũ hành, cùng nó lớn lên và chiến đấu.",
+      "en": "Coming soon · Train, evolve and battle spirit beasts. Pick one of the Five Elements starters, raise it and fight together."
+    },
+    "url": "https://www.newgenmc.net/#cluster-spirit",
+    "image": "newgen/site/spiritbeast.webp"
+  }
+]

@@ -1,0 +1,69 @@
+[package]
+name = "newgen_launcher"
+description = "Newgen Launcher: custom launcher for the Newgen Minecraft server"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.97"
+license = "GPL-3.0-only"
+publish = false
+
+# The launcher core (Minecraft + Fabric install, Java download, launch arguments) is
+# OneLauncher's, pinned to one commit. OneLauncher is GPL-3.0-only, so this launcher is
+# too (see LICENSE and README "Licence").
+[dependencies]
+oneclient_common = { git = "https://github.com/Polyfrost/OneLauncher", rev = "39f0cf3f553cc2f4c5d8e8b2a619f10497d326ca" }
+oneclient_events = { git = "https://github.com/Polyfrost/OneLauncher", rev = "39f0cf3f553cc2f4c5d8e8b2a619f10497d326ca" }
+oneclient_net = { git = "https://github.com/Polyfrost/OneLauncher", rev = "39f0cf3f553cc2f4c5d8e8b2a619f10497d326ca" }
+oneclient_mc = { git = "https://github.com/Polyfrost/OneLauncher", rev = "39f0cf3f553cc2f4c5d8e8b2a619f10497d326ca" }
+oneclient_java = { git = "https://github.com/Polyfrost/OneLauncher", rev = "39f0cf3f553cc2f4c5d8e8b2a619f10497d326ca" }
+oneclient_auth = { git = "https://github.com/Polyfrost/OneLauncher", rev = "39f0cf3f553cc2f4c5d8e8b2a619f10497d326ca" }
+interfrost = "=1.5.0"
+
+# UI: the same Freya build OneLauncher ships with
+freya = { version = "0.5.4", features = ["engine", "winit", "sdk-tokio"] }
+freya-skia-safe = "=0.104.0"
+
+tokio = { version = "=1.53.1", features = ["full"] }
+reqwest = { version = "=0.13.5", default-features = false, features = ["json", "rustls", "http2", "gzip"] }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+sha1 = "=0.11.0"
+sha2 = "=0.11.0"
+uuid = { version = "=1.26.1", features = ["v4"] }
+bytes = "=1.12.1"
+rust-embed = { version = "=8.12.0", features = ["include-exclude", "compression", "debug-embed"] }
+open = { version = "=5.4.4", features = ["shellexecute-on-windows"] }
+url = "=2.5.8"
+anyhow = "=1.0.104"
+thiserror = "=2.0.21"
+tracing = "=0.1.44"
+tracing-subscriber = { version = "=0.3.23", features = ["env-filter", "fmt"] }
+rfd = "=0.17.2"
+directories = "=6.0.0"
+base64 = "=0.23.1"
+image = { version = "=0.25.10", default-features = false, features = ["png"] }
+
+# Background video: MP4 demuxing + H.264 decoding, both built from source (no system FFmpeg)
+mp4 = "0.14"
+openh264 = "0.9"
+
+[build-dependencies]
+image = { version = "=0.25.10", default-features = false, features = ["png", "ico"] }
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "=0.1.31"
+
+[profile.dev.package."*"]
+opt-level = 2
+
+# At opt-level 0 the background video's decode path ran ~2x slower in `cargo run` and could not
+# keep 30 fps on the larger clips; 1 matches release there and keeps builds quick.
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3
+panic = "abort"
+strip = true
