@@ -225,7 +225,7 @@ How it works: on startup `burst.js` reads `assets/weapons.bbmodel` (Blockbench J
 
 ## Mods
 
-The client's mods are the `.jar` files in the project's `mods/` folder (14 today: Fabric API, Sodium, Iris, Lithium, Simple Voice Chat, Newgen-Addons and others). The installer ships that folder next to the app (`extraResources` in `package.json`).
+The client's mods are the `.jar` files in the project's `mods/` folder (15 today: Fabric API, Sodium, Iris, Lithium, Simple Voice Chat, Newgen-Addons, Newgen Client and others). The jars are not in this repository (`mods/` is in `.gitignore`); put them in `mods/` before `npm start` or `npm run dist`. The Newgen Client source is on the `client-mod` branch. The installer ships that folder next to the app (`extraResources` in `package.json`).
 
 - **On PLAY** (`src/mods.js`, called from the `play` handler in `src/main.js`, after the manifest sync): the launcher copies any missing bundled jar into `%APPDATA%\.<folderName>\mods`, then starts the game.
 - **Added mods are refused.** Anything else in that folder (another file, a subfolder, or a bundled jar whose content was changed, compared by SHA-256) stops the launch. The player sees a warning pop-up: `Adding Mods is not Allowed, please remove "cheat.jar" to continue using Newgen Launcher` (several names are listed with commas). Nothing is deleted; the player removes the file and presses PLAY again.
