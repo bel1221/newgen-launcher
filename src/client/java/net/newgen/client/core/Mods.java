@@ -62,6 +62,7 @@ public final class Mods {
 		for (Mod mod : ALL) for (Setting s : mod.settings) s.def = s.toJson();
 		if (!Files.exists(FILE)) {
 			firstRun();
+			save(); // written now, so the preset applies once; if the folder is not writable it is simply the default each launch
 			return;
 		}
 		JsonObject root;

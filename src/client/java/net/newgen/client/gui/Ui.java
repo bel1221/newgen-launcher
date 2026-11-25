@@ -251,6 +251,14 @@ public final class Ui {
 		return out;
 	}
 
+	/** Hides Minecraft's tutorial hint toasts (they sit where our panels are); advancement, recipe and system toasts stay. */
+	public static void hideTutorialToasts() {
+		var toasts = Minecraft.getInstance().getToastManager();
+		var tutorial = toasts.getToast(net.minecraft.client.gui.components.toasts.TutorialToast.class,
+				net.minecraft.client.gui.components.toasts.Toast.NO_TOKEN);
+		if (tutorial != null) tutorial.hide();
+	}
+
 	// ---- interface sounds and motion (set by ThemeMod) ----
 
 	/** 0..1; 0 = silent. */

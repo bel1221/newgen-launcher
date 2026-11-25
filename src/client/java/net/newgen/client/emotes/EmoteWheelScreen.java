@@ -39,7 +39,7 @@ public class EmoteWheelScreen extends Screen {
 
 	@Override
 	protected void init() {
-		minecraft.getToastManager().clear();
+		Ui.hideTutorialToasts();
 		if (!opened) {
 			opened = true;
 			Ui.sound("open");

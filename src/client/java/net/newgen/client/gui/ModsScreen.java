@@ -78,8 +78,8 @@ public class ModsScreen extends Screen {
 
 	@Override
 	protected void init() {
-		// Vanilla's tutorial and other toasts sit where our panels are; they go while our screens are open.
-		minecraft.getToastManager().clear();
+		// Vanilla's tutorial toast ("Move with W, A, S and D") sits where our panels are; it goes. Other toasts stay.
+		Ui.hideTutorialToasts();
 		// 20 units of margin at every scale; the top stays below the 32 high toast column (tutorial hints) so the close
 		// button is never under a toast.
 		// Never below a usable minimum: on a tiny window or a huge GUI scale the panel overflows rather than turning negative.
@@ -563,6 +563,9 @@ public class ModsScreen extends Screen {
 			for (Cell cell : cells()) {
 				Setting setting = cell.setting;
 				if (setting == null || !Ui.inside(mx, my, cell.x, cell.y, cell.w, ROW_H)) continue;
+				// The keyboard focus follows the mouse, so Enter acts on the row just clicked.
+				rowMod = selected;
+				rowFocus = rows().indexOf(setting);
 				int cr = cell.x + cell.w, fieldX = cr - fieldW(cell.w);
 				if (setting instanceof Setting.Choice choice && mx >= fieldX) {
 					// The "<" end or a right click steps back, anywhere else steps forward.
