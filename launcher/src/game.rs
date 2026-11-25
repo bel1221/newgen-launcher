@@ -443,7 +443,9 @@ pub fn ensure_game_language(file: &std::path::Path, code: &str) -> std::io::Resu
     // Written next to it, then moved over it: an interrupted write never truncates the options
     let tmp = file.with_extension("txt.tmp");
     std::fs::write(&tmp, text)?;
-    std::fs::rename(&tmp, file)
+    std::fs::rename(&tmp, file).inspect_err(|_| {
+        let _ = std::fs::remove_file(&tmp);
+    })
 }
 
 /// Files in the game's crash-reports folder.

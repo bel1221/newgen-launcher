@@ -27,9 +27,15 @@ pub fn parse(json: &[u8]) -> Vec<Entry> {
     serde_json::from_slice(json).unwrap_or_default()
 }
 
-/// The entry to show: the one for `current` when it has lines and was not shown before.
+/// "0.10.1" → [0, 10, 1], compared number by number.
+fn version_key(version: &str) -> Vec<u64> {
+    version.trim().split('.').map(|part| part.trim().parse().unwrap_or(0)).collect()
+}
+
+/// The entry to show: the one for `current` when it has lines and `current` is newer than the
+/// version last shown (so going back to an older build never shows it again).
 pub fn to_show<'a>(entries: &'a [Entry], current: &str, last_seen: Option<&str>) -> Option<&'a Entry> {
-    if last_seen == Some(current) {
+    if last_seen.is_some_and(|seen| version_key(current) <= version_key(seen)) {
         return None;
     }
     entries.iter().find(|e| e.version == current && !(e.en.is_empty() && e.vi.is_empty()))
@@ -56,6 +62,8 @@ mod tests {
         assert_eq!(to_show(&all, "0.3.0", Some("0.2.0")).map(|e| e.version.as_str()), Some("0.3.0"), "after an update");
         assert!(to_show(&all, "0.4.0", Some("0.3.0")).is_none(), "an entry without lines");
         assert!(to_show(&all, "0.5.0", Some("0.3.0")).is_none(), "no entry for this version");
+        assert!(to_show(&all, "0.2.0", Some("0.3.0")).is_none(), "a downgrade does not show it again");
+        assert!(to_show(&all, "0.3.0", Some("0.10.0")).is_none(), "compared as numbers, not text");
     }
 
     #[test]
