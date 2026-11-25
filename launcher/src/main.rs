@@ -5,6 +5,7 @@ mod burst;
 mod config;
 mod game;
 mod i18n;
+mod whats_new;
 mod mods;
 mod paths;
 mod settings;

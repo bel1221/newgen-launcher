@@ -418,7 +418,7 @@ pub async fn launch(config: &Config, session: &Session, join_token: Option<Strin
     tokio::spawn(async move {
         let code = child.wait().await.ok().and_then(|status| status.code());
         release();
-        let new_report = crash_reports(&root) > reports_before;
+        let new_report = crash_reports(&root).difference(&reports_before).next().is_some();
         let _ = ui_close.send(LauncherEvent::GameClosed(code, is_crash(code, started.elapsed(), new_report)));
     });
     Ok(())
@@ -428,7 +428,8 @@ pub async fn launch(config: &Config, session: &Session, join_token: Option<Strin
 /// (creating it) only when there is no `lang:` line yet, so a language picked in game stays.
 pub fn ensure_game_language(file: &std::path::Path, code: &str) -> std::io::Result<()> {
     let mut text = match std::fs::read_to_string(file) {
-        Ok(text) => text,
+        // A byte-order mark would hide the first key (Minecraft does not read one either)
+        Ok(text) => text.strip_prefix('\u{feff}').map_or(text.clone(), str::to_string),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => String::new(),
         Err(err) => return Err(err),
     };
@@ -439,17 +440,22 @@ pub fn ensure_game_language(file: &std::path::Path, code: &str) -> std::io::Resu
         text.push('\n');
     }
     text.push_str(&format!("lang:{code}\n"));
-    std::fs::write(file, text)
+    // Written next to it, then moved over it: an interrupted write never truncates the options
+    let tmp = file.with_extension("txt.tmp");
+    std::fs::write(&tmp, text)?;
+    std::fs::rename(&tmp, file)
 }
 
 /// Files in the game's crash-reports folder.
-fn crash_reports(root: &std::path::Path) -> usize {
-    std::fs::read_dir(root.join("crash-reports")).map_or(0, |dir| dir.flatten().count())
+fn crash_reports(root: &std::path::Path) -> std::collections::BTreeSet<std::ffi::OsString> {
+    std::fs::read_dir(root.join("crash-reports")).map_or_else(|_| Default::default(), |dir| dir.flatten().map(|e| e.file_name()).collect())
 }
 
-/// A crash: Minecraft wrote a crash report, or it exited with an error within its first minute.
+/// A crash: Minecraft wrote a new crash report, or exited with an error code within its first
+/// minute. Without an exit code (stopped from outside, e.g. Task Manager) only a crash report
+/// counts; the launcher itself never stops the game.
 pub fn is_crash(code: Option<i32>, ran: Duration, new_report: bool) -> bool {
-    new_report || (code != Some(0) && ran < Duration::from_secs(60))
+    new_report || (code.is_some_and(|c| c != 0) && ran < Duration::from_secs(60))
 }
 
 #[cfg(test)]
@@ -467,14 +473,39 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&file).unwrap(), "fov:0.5\ngamma:1.0\nlang:vi_vn\n");
         super::ensure_game_language(&file, "en_us").unwrap();
         assert_eq!(std::fs::read_to_string(&file).unwrap(), "fov:0.5\ngamma:1.0\nlang:vi_vn\n", "a set language stays");
+        assert!(!dir.join("options.txt.tmp").exists(), "written through a temporary file, moved over");
+        // A byte-order mark before an existing lang: line must not add a second one
+        std::fs::write(&file, "\u{feff}lang:en_us\nfov:0.5\n").unwrap();
+        super::ensure_game_language(&file, "vi_vn").unwrap();
+        assert_eq!(std::fs::read_to_string(&file).unwrap().matches("lang:").count(), 1);
+        // The key is matched like Minecraft does, case-sensitively
+        std::fs::write(&file, "LANG:xx\n").unwrap();
+        super::ensure_game_language(&file, "vi_vn").unwrap();
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "LANG:xx\nlang:vi_vn\n");
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_new_crash_report_is_found_by_name_not_count() {
+        let root = std::env::temp_dir().join(format!("newgen-crash-test-{}", std::process::id()));
+        let reports = root.join("crash-reports");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&reports).unwrap();
+        std::fs::write(reports.join("old-1.txt"), "").unwrap();
+        let before = super::crash_reports(&root);
+        // One old report removed and a new one written: the count is the same
+        std::fs::remove_file(reports.join("old-1.txt")).unwrap();
+        std::fs::write(reports.join("new-2.txt"), "").unwrap();
+        assert_eq!(super::crash_reports(&root).difference(&before).count(), 1);
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]
     fn crash_rules() {
         use std::time::Duration;
         assert!(super::is_crash(Some(1), Duration::from_secs(10), false));
-        assert!(super::is_crash(None, Duration::from_secs(10), false));
+        assert!(!super::is_crash(None, Duration::from_secs(10), false), "stopped from outside, no report");
+        assert!(super::is_crash(None, Duration::from_secs(10), true), "stopped from outside, with a report");
         assert!(!super::is_crash(Some(0), Duration::from_secs(10), false), "a clean quit");
         assert!(!super::is_crash(Some(1), Duration::from_secs(600), false), "an error after a long session");
         assert!(super::is_crash(Some(0), Duration::from_secs(600), true), "a crash report always counts");

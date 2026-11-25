@@ -89,11 +89,17 @@ strings! {
     VersionFileFailed: "Could not download the game's version file: {}", "Không tải được file phiên bản của game: {}";
     MinecraftDownloadFailed: "Could not download Minecraft: {}", "Không tải được Minecraft: {}";
     MinecraftStartFailed: "Minecraft failed to start ({}). Check the game log.", "Minecraft không khởi động được ({}). Hãy xem nhật ký game.";
+    // What's new
+    WhatsNew: "What's new in v{}", "Có gì mới trong bản v{}";
+    SeeAll: "See all", "Xem tất cả";
+    ShowLess: "Show less", "Thu gọn";
     // Crash panel
     CrashTitle: "Minecraft closed unexpectedly", "Minecraft đã đóng bất ngờ";
     CrashHint: "The last lines of the game log:", "Những dòng cuối trong nhật ký game:";
     CopyLog: "Copy log", "Sao chép log";
     OpenCrashReports: "Open crash reports folder", "Mở thư mục báo cáo lỗi";
+    CopyFailed: "Could not copy the log", "Không sao chép được log";
+    OpenFolderFailed: "Could not open the folder", "Không mở được thư mục";
 }
 
 static LANG: AtomicU8 = AtomicU8::new(0);

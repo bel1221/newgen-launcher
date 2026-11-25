@@ -225,6 +225,8 @@ mod tests {
         }
         let sections = Assets::get_bytes("newgen/site/sections.json").expect("sections are embedded");
         text.push_str(std::str::from_utf8(&sections).expect("utf-8"));
+        let changelog = Assets::get_bytes("newgen/whats-new.json").expect("changelog is embedded");
+        text.push_str(std::str::from_utf8(&changelog).expect("utf-8"));
         text.chars().filter(|c| !c.is_control() && *c != ' ').collect()
     }
 

@@ -1,0 +1,19 @@
+[
+  {
+    "version": "0.2.0",
+    "en": [
+      "A brand-new launcher with a video background, English and Vietnamese, and a live count of who's playing.",
+      "The title screen now plays NewGen scenery in 1080p.",
+      "New in-game menus. Press Right Shift for your mods and HUD, and pick a palette that suits you.",
+      "14 emotes: hold G for the wheel or press 1–8. Only you see and hear them.",
+      "Your resource packs and Iris shaders work as before."
+    ],
+    "vi": [
+      "Launcher hoàn toàn mới có video nền, tiếng Việt và tiếng Anh, xem trực tiếp số người đang chơi.",
+      "Màn hình chính giờ chiếu cảnh NewGen ở 1080p.",
+      "Menu trong game mới. Nhấn Right Shift để chỉnh mod và HUD, chọn bảng màu bạn thích.",
+      "14 biểu cảm: giữ G để mở vòng biểu cảm hoặc nhấn 1–8. Chỉ bạn thấy và nghe được.",
+      "Gói tài nguyên và shader Iris của bạn vẫn dùng được như trước."
+    ]
+  }
+]

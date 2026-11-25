@@ -11,6 +11,7 @@ use super::cards::SiteCards;
 use super::components::{Button, Icon, IconType};
 use super::settings_panel::SettingsPanel;
 use super::theme::{self, with_alpha as a};
+use super::whats_new::WhatsNewCard;
 use crate::auth::{self, Session};
 use crate::burst::Burst;
 use crate::config::config;
@@ -236,9 +237,10 @@ impl Component for Home {
             .height(Size::px(app::HEIGHT - theme::NAVBAR_HEIGHT_PX))
             .child(hero)
             .child(SiteCards {})
+            .child(WhatsNewCard { hidden: log_open || settings_open })
             .maybe_child(log_open.then(|| log_panel(s, lang.text(S::GameLog), lang.text(S::CloseGameLog))))
             .maybe_child(settings_open.then(|| SettingsPanel { shared: s }))
-            .maybe_child(s.crash.read().clone().map(|lines| crash_panel(s, lines, lang)))
+            .maybe_child(s.crash.read().clone().map(|lines| CrashPanel { shared: s, lines }))
     }
 }
 
@@ -298,7 +300,19 @@ pub fn side_panel(width: f32, title: &'static str, close_alt: &'static str, on_c
 
 /// After a crash: what happened, the last log lines, Copy log / Open crash reports folder / Close.
 /// Centred over the screen on a dim backdrop that takes the clicks.
-fn crash_panel(s: Shared, lines: Vec<String>, lang: crate::i18n::Lang) -> Rect {
+#[derive(PartialEq)]
+struct CrashPanel {
+    shared: Shared,
+    lines: Vec<String>,
+}
+
+impl Component for CrashPanel {
+    fn render(&self) -> impl IntoElement {
+        crash_panel(self.shared, self.lines.clone(), use_lang(), use_state(|| None::<S>))
+    }
+}
+
+fn crash_panel(s: Shared, lines: Vec<String>, lang: crate::i18n::Lang, mut note: State<Option<S>>) -> Rect {
     let mut crash = s.crash;
     let log_text = lines.join("\n");
     let reports = paths::game_dir().join("crash-reports");
@@ -350,16 +364,20 @@ fn crash_panel(s: Shared, lines: Vec<String>, lang: crate::i18n::Lang) -> Rect {
                         .child(button(lang.text(S::CopyLog)).on_press(move |_| {
                             if let Err(err) = freya::clipboard::Clipboard::set(log_text.clone()) {
                                 tracing::warn!("could not copy the log: {err:?}");
+                                note.set(Some(S::CopyFailed));
                             }
                         }))
                         .child(button(lang.text(S::OpenCrashReports)).on_press(move |_| {
                             let _ = std::fs::create_dir_all(&reports);
                             if let Err(err) = open::that(&reports) {
                                 tracing::warn!("could not open {}: {err}", reports.display());
+                                note.set(Some(S::OpenFolderFailed));
                             }
                         }))
                         .child(button(lang.text(S::Close)).on_press(move |_| crash.set(None))),
-                ),
+                )
+                // A button that did not work says so here
+                .maybe_child((*note.read()).map(|n| text(lang.text(n), 13., FontWeight::MEDIUM, theme::danger()))),
         )
 }
 

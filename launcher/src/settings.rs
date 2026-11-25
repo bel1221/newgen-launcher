@@ -81,6 +81,15 @@ pub fn save_lang(code: &str) {
     save("language", Value::String(code.to_string()));
 }
 
+/// The launcher version whose "What's new" was last shown.
+pub fn last_seen_version() -> Option<String> {
+    load().get("lastSeenVersion").and_then(Value::as_str).map(str::to_string)
+}
+
+pub fn save_last_seen_version(version: &str) {
+    save("lastSeenVersion", Value::String(version.to_string()));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
