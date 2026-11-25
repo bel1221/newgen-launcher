@@ -227,6 +227,7 @@ public class ModsScreen extends Screen {
 		for (int pass = 0; pass < 2; pass++) {
 			List<Setting> part = new ArrayList<>();
 			for (Setting s : selected.settings) {
+				if (s instanceof Setting.Hidden) continue;
 				if (sections ? s instanceof Setting.Color == (pass == 1) : pass == 0) part.add(s);
 			}
 			if (part.isEmpty()) continue;
@@ -423,6 +424,8 @@ public class ModsScreen extends Screen {
 				Ui.text(g, "‹", controlX + 5, y + 6, Ui.BLUE, Ui.TITLE);
 				Ui.text(g, "›", cr - 5 - Ui.width("›", Ui.TITLE), y + 6, Ui.BLUE, Ui.TITLE);
 				Ui.centered(g, Ui.fit(String.valueOf(choice.value), w - 30, Ui.UI, false), controlX + w / 2, y + 6, Ui.SOFT, Ui.UI);
+			} else if (setting instanceof Setting.Action action) {
+				Ui.button(g, controlX, y + 3, w, BUTTON_H, net.minecraft.client.resources.language.I18n.get(action.label), over, Ui.DARK, Ui.CAPS);
 			} else if (setting instanceof Setting.Key key) {
 				Ui.button(g, controlX, y + 3, w, BUTTON_H, key == listening ? Ui.tr("key.listening") : keyName(key), over, active ? Ui.BLUE : Ui.DARK, Ui.CAPS);
 			}
@@ -546,6 +549,8 @@ public class ModsScreen extends Screen {
 					while (at < PALETTE.length && PALETTE[at] != (color.value & 0xFFFFFF)) at++;
 					color.value = color.value & 0xFF000000 | PALETTE[(at + 1) % PALETTE.length];
 					Mods.save();
+				} else if (setting instanceof Setting.Action action && mx >= fieldX) {
+					action.run.run();
 				} else if (setting instanceof Setting.Key key && mx >= fieldX) {
 					listening = key;
 				} else if (setting instanceof Setting.Text && mx >= fieldX) {

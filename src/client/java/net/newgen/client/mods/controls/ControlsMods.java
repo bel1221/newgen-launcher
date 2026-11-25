@@ -17,11 +17,13 @@ public final class ControlsMods {
 		ToggleSneakMod toggleSneak = new ToggleSneakMod();
 		AutoTextHotkeyMod hotkeys = new AutoTextHotkeyMod();
 		AutoTextActionsMod actions = new AutoTextActionsMod();
+		net.newgen.client.emotes.EmotesMod emotes = new net.newgen.client.emotes.EmotesMod();
 		Mods.register(CATEGORY, freelook);
 		Mods.register(CATEGORY, snaplook);
 		Mods.register(CATEGORY, toggleSneak);
 		Mods.register(CATEGORY, hotkeys);
 		Mods.register(CATEGORY, actions);
+		Mods.register(CATEGORY, emotes);
 
 		ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			freelook.tick(mc);
@@ -29,6 +31,7 @@ public final class ControlsMods {
 			toggleSneak.tick(mc);
 			hotkeys.tick(mc);
 			actions.tick(mc);
+			emotes.tick(mc);
 		});
 	}
 

@@ -165,4 +165,30 @@ public abstract class Setting {
 			value = json.getAsString();
 		}
 	}
+
+	/** Text kept in the config but not shown in the menu (the emote wheel's slots). */
+	public static class Hidden extends Text {
+		public Hidden(String id, String value) {
+			super(id, id, value);
+		}
+	}
+
+	/** A button in a mod's options that opens or does something; it stores nothing. */
+	public static class Action extends Setting {
+		public final String label;
+		public final Runnable run;
+
+		public Action(String id, String name, String label, Runnable run) {
+			super(id, name);
+			this.label = label;
+			this.run = run;
+		}
+
+		JsonElement toJson() {
+			return com.google.gson.JsonNull.INSTANCE;
+		}
+
+		void fromJson(JsonElement json) {
+		}
+	}
 }

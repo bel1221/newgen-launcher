@@ -4,6 +4,8 @@ plugins {
 
 repositories {
 	mavenCentral()
+	// Player Animation Library (MIT)
+	maven { url = "https://repo.redlance.org/public" }
 	// Add repositories to retrieve artifacts from in here.
 	// You should only use this when depending on other mods because
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
@@ -34,6 +36,13 @@ dependencies {
 	// JCodec (BSD 2-clause): pure-Java H.264 decoder for the title screen background; nested in the mod jar.
 	implementation "org.jcodec:jcodec:0.2.5"
 	include "org.jcodec:jcodec:0.2.5"
+
+	// Player Animation Library (MIT): plays the emotes on the player model; nested in the mod jar (it carries its core).
+	modImplementation "com.zigythebird.playeranim:PlayerAnimationLibFabric:1.1.12+mc.1.21.11"
+	include "com.zigythebird.playeranim:PlayerAnimationLibFabric:1.1.12+mc.1.21.11"
+
+	testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 processResources {
@@ -57,4 +66,14 @@ java {
 
 	sourceCompatibility = JavaVersion.VERSION_21
 	targetCompatibility = JavaVersion.VERSION_21
+}
+
+// The emote test reads the client code's emote loader and the bundled emote files.
+sourceSets.test {
+	compileClasspath += sourceSets.client.compileClasspath + sourceSets.client.output
+	runtimeClasspath += sourceSets.client.runtimeClasspath + sourceSets.client.output
+}
+
+test {
+	useJUnitPlatform()
 }
