@@ -25,8 +25,8 @@ public final class Ui {
 	public static final int LINE = 0x2EFFFFFF, HOVER = 0x14FFFFFF, SELECTED = 0x24FFFFFF;
 	public static final int CARD = 0x0DFFFFFF;
 	/**
-	 * The palette presets (Mods > Theme > Palette). Each is a glass tint for panels (GLASS) and buttons (DARK), the main
-	 * action's pill (PRIMARY) with its type (INK), and the ACCENT: a small mark only (switch on, slider, focus ring, the
+	 * The palette presets (Mods > Theme > Palette). Each is a glass tint for panels (GLASS) and buttons (DARK)
+	 * and the ACCENT: a small mark only (switch on, slider, focus ring, the
 	 * active-row bar, the on-dot, the HUD element being moved). Hues come from the footage; no neon, no violet.
 	 */
 	public record Palette(String name, int accent, int glass, int dark) {

@@ -48,6 +48,11 @@ public final class VideoBackground {
 	/** Players whose textures are freed at the start of the next render(): the GUI draws later in the frame than render()
 	 * records it, so freeing a texture in the same render() that drew it made the GPU sample a deleted texture. */
 	private static final java.util.List<Player> retired = new java.util.ArrayList<>();
+	/** Clip 1's first frame, bundled as a still: shown until the first decoded frame, then faded out over FADE_MS, so the
+	 * vanilla panorama never flashes at boot. */
+	private static final Identifier POSTER = Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/poster.png");
+	private static final int POSTER_W = 960, POSTER_H = 540, FADE_MS = 300;
+	private static long firstFrameAt = -1;
 
 	private VideoBackground() {
 	}
@@ -65,6 +70,7 @@ public final class VideoBackground {
 				if (current != null) current.close();
 				current = start(clip);
 				if (current == null) return false;
+				firstFrameAt = -1;
 			}
 			current.upload();
 			if (next != null) next.upload();
@@ -76,7 +82,12 @@ public final class VideoBackground {
 				clip = (clip + 1) % CLIPS.length;
 				return false;
 			}
-			if (current.shown < 0) return false;
+			if (current.shown < 0) {
+				poster(g, width, height, 0xFFFFFFFF);
+				g.fill(0, 0, width, height, SHADE);
+				return true;
+			}
+			if (firstFrameAt < 0) firstFrameAt = System.currentTimeMillis();
 			failures = 0;
 			cover(g, current, width, height, 0xFFFFFFFF);
 
@@ -98,6 +109,8 @@ public final class VideoBackground {
 					}
 				}
 			}
+			long since = System.currentTimeMillis() - firstFrameAt;
+			if (since < FADE_MS) poster(g, width, height, (int) (255 * (1 - since / (float) FADE_MS)) << 24 | 0xFFFFFF);
 			g.fill(0, 0, width, height, SHADE);
 			return true;
 		} catch (Throwable e) {
@@ -128,6 +141,13 @@ public final class VideoBackground {
 			}
 		}
 		return new Player(index, parts);
+	}
+
+	/** Draws the poster still over the screen, cover-fitted like the video. */
+	private static void poster(GuiGraphics g, int width, int height, int color) {
+		float scale = Math.max(width / (float) POSTER_W, height / (float) POSTER_H);
+		int w = Math.round(POSTER_W * scale), h = Math.round(POSTER_H * scale);
+		g.blit(RenderPipelines.GUI_TEXTURED, POSTER, (width - w) / 2, (height - h) / 2, 0, 0, w, h, POSTER_W, POSTER_H, POSTER_W, POSTER_H, color);
 	}
 
 	/** Draws a player's texture over the screen, scaled to cover it (cropped at the sides or top and bottom); one linear scale. */
