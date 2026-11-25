@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
@@ -11,15 +12,21 @@ import net.minecraft.resources.Identifier;
 import net.newgen.client.NewgenClient;
 
 /**
- * The shared look of the NewGen screens: dark see-through glass with rounded corners, thin soft outlines
- * and the Inter font. Colour is kept for what it means: blue = active, green = on, red = off.
+ * The shared look of the NewGen screens, matched to the Newgen Launcher: dark see-through glass, one accent
+ * (the launcher's blue #2B4BFF) for the main action, on-states and focus, one radius scale (R_SM/R_MD/R_LG =
+ * 4/6/8 GUI units, i.e. 8/12/16 px at GUI scale 2, as in the launcher) and Inter in sentence case.
+ * "Off" is a neutral grey, never red: off is not an error.
  */
 public final class Ui {
 	public static final int TEXT = 0xFFFFFFFF, SOFT = 0xFFD5D8DE, DIM = 0xFFA4A9B3, LINE = 0x30FFFFFF, HOVER = 0x1CFFFFFF;
 	/** GLASS is a panel over the blurred game, CARD a lighter layer on a panel, DARK a button or typing field. */
 	public static final int GLASS = 0x73000000, CARD = 0x14FFFFFF, DARK = 0x66000000;
-	public static final int BLUE = 0xFF4A8EF0, GREEN = 0xFF27A35E, RED = 0xFFB3274B;
-	/** The text faces: UI = Inter Regular 10, CAPS = Inter SemiBold 8 (for spaced capitals), TITLE = Inter SemiBold 11. */
+	public static final int BLUE = 0xFF2B4BFF;
+	/** The track of a switch that is off. */
+	public static final int OFF = 0x40FFFFFF;
+	/** The radius scale: controls, cards, panels. */
+	public static final int R_SM = 4, R_MD = 6, R_LG = 8;
+	/** The text faces: UI = Inter Regular 10, CAPS = Inter SemiBold 10 (labels and buttons), TITLE = Inter SemiBold 11. */
 	public static final int UI = 0, CAPS = 1, TITLE = 2;
 
 	private static final Identifier LOCKUP = Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/lockup.png");
@@ -31,7 +38,7 @@ public final class Ui {
 
 	private static final String[] FACES = {"ui_", "caps_", "title_"};
 	/** Moves a face down so its capitals sit in the same 7 pixel band as the Minecraft font's. */
-	private static final float[] FACE_DY = {0, -0.5f, 0.5f};
+	private static final float[] FACE_DY = {0, 0, 0.5f};
 	private static final int SCALES = 6;
 	private static final Style[][] STYLES = new Style[FACES.length][SCALES + 1];
 
@@ -40,6 +47,11 @@ public final class Ui {
 
 	public static boolean inside(double mx, double my, int x, int y, int w, int h) {
 		return mx >= x && mx < x + w && my >= y && my < y + h;
+	}
+
+	/** A string of this mod in the game's language (lang/en_us.json, lang/vi_vn.json): key "newgen_client.<key>". */
+	public static String tr(String key) {
+		return I18n.get("newgen_client." + key);
 	}
 
 	// ---- text ----
@@ -87,34 +99,24 @@ public final class Ui {
 		text(g, s, centerX - width(s, face) / 2, y, color, face);
 	}
 
-	/** "Edit HUD layout" becomes "E D I T   H U D   L A Y O U T": the spaced capitals of bars and buttons. */
-	public static String spaced(String s) {
-		return String.join(" ", s.toUpperCase().split(""));
-	}
-
 	// ---- shapes ----
 
 	/** A rounded rectangle with smooth edges. r is the corner radius; r = half the height gives a pill or a circle. */
 	public static void round(GuiGraphics g, int x, int y, int w, int h, int r, int color) {
-		slice(g, ROUND, x, y, w, h, r, color, true, true);
+		slice(g, ROUND, x, y, w, h, r, color);
 	}
 
 	/** The thin outline of round(). */
 	public static void ring(GuiGraphics g, int x, int y, int w, int h, int r, int color) {
-		slice(g, RING, x, y, w, h, r, color, true, true);
+		slice(g, RING, x, y, w, h, r, color);
 	}
 
-	/** round() with square top corners: the bar that closes a card. */
-	public static void roundBottom(GuiGraphics g, int x, int y, int w, int h, int r, int color) {
-		slice(g, ROUND, x, y, w, h, r, color, false, true);
-	}
 
-	private static void slice(GuiGraphics g, Identifier texture, int x, int y, int w, int h, int r, int color, boolean top, boolean bottom) {
+	private static void slice(GuiGraphics g, Identifier texture, int x, int y, int w, int h, int r, int color) {
 		r = Math.max(1, Math.min(r, Math.min(w, h) / 2));
 		int[] xs = {x, x + r, x + w - r, x + w}, ys = {y, y + r, y + h - r, y + h};
 		for (int row = 0; row < 3; row++) {
-			// A square end takes the middle of the texture, which has no corners.
-			int v = row == 0 && !top || row == 2 && !bottom ? 16 : row * 16;
+			int v = row * 16;
 			for (int col = 0; col < 3; col++) {
 				int cw = xs[col + 1] - xs[col], ch = ys[row + 1] - ys[row];
 				if (cw > 0 && ch > 0) g.blit(RenderPipelines.GUI_TEXTURED, texture, xs[col], ys[row], col * 16, v, cw, ch, 16, 16, 48, 48, color);
@@ -123,17 +125,46 @@ public final class Ui {
 	}
 
 	public static void panel(GuiGraphics g, int x, int y, int w, int h) {
-		round(g, x, y, w, h, 6, GLASS);
-		ring(g, x, y, w, h, 6, LINE);
+		round(g, x, y, w, h, R_LG, GLASS);
+		ring(g, x, y, w, h, R_LG, LINE);
 	}
 
-	/** A rounded button. fill is DARK (glass with an outline) or a strong colour; the label is drawn as given, in face. */
+	/** A rounded button. fill is DARK (glass with an outline) or BLUE (the one main action); the label is drawn as given. */
 	public static void button(GuiGraphics g, int x, int y, int w, int h, String label, boolean hot, int fill, int face) {
-		int r = Math.min(4, h / 2);
+		button(g, x, y, w, h, label, hot ? 1f : 0f, fill, face);
+	}
+
+	/** button() with the hover as an amount from 0 to 1, so a widget can fade it in and out. */
+	public static void button(GuiGraphics g, int x, int y, int w, int h, String label, float hot, int fill, int face) {
+		int r = Math.min(R_SM, h / 2);
 		round(g, x, y, w, h, r, fill);
-		if (fill >>> 24 != 0xFF) ring(g, x, y, w, h, r, LINE);
-		if (hot) round(g, x, y, w, h, r, HOVER);
-		centered(g, fit(label, w - 4, face, false), x + w / 2, y + (h - 7) / 2, TEXT, face);
+		if (fill >>> 24 != 0xFF) ring(g, x, y, w, h, r, hot > 0 ? lerp(LINE, 0x66FFFFFF, hot) : LINE);
+		if (hot > 0) round(g, x, y, w, h, r, (int) (0x1C * hot) << 24 | 0xFFFFFF);
+		centered(g, fit(label, w - 8, face, false), x + w / 2, y + (h - 7) / 2, TEXT, face);
+	}
+
+	/** An on/off switch, 20x10: a blue track with the knob right when on, a neutral track with the knob left when off. */
+	public static void toggle(GuiGraphics g, int x, int y, boolean on, boolean hot) {
+		round(g, x, y, 20, 10, 5, on ? BLUE : OFF);
+		if (hot) round(g, x, y, 20, 10, 5, HOVER);
+		round(g, on ? x + 11 : x + 1, y + 1, 8, 8, 4, 0xFFF2F3F5);
+	}
+
+	/** Each 8-bit channel of a and b mixed: t = 0 gives a, t = 1 gives b. */
+	public static int lerp(int a, int b, float t) {
+		int out = 0;
+		for (int shift = 0; shift < 32; shift += 8) {
+			int ca = a >>> shift & 0xFF, cb = b >>> shift & 0xFF;
+			out |= Math.round(ca + (cb - ca) * t) << shift;
+		}
+		return out;
+	}
+
+	/** Ease-out (quartic) progress from 0 to 1 of an animation that started at startMs and lasts ms. */
+	public static float ease(long startMs, int ms) {
+		float t = Math.max(0f, Math.min(1f, (System.currentTimeMillis() - startMs) / (float) ms));
+		float u = 1 - t;
+		return 1 - u * u * u * u;
 	}
 
 	/** Height the logo gets when it is drawn w wide. */
@@ -143,7 +174,12 @@ public final class Ui {
 
 	/** The NewGen logo with lettering, w wide, centred on centerX. */
 	public static void logo(GuiGraphics g, int centerX, int y, int w) {
-		if (w >= 40) g.blit(RenderPipelines.GUI_TEXTURED, LOCKUP, centerX - w / 2, y, 0, 0, w, logoHeight(w), LOCKUP_W, LOCKUP_H, LOCKUP_W, LOCKUP_H);
+		logo(g, centerX, y, w, 0xFFFFFFFF);
+	}
+
+	/** logo() with a tint; the top byte fades it in. */
+	public static void logo(GuiGraphics g, int centerX, int y, int w, int color) {
+		if (w >= 40) g.blit(RenderPipelines.GUI_TEXTURED, LOCKUP, centerX - w / 2, y, 0, 0, w, logoHeight(w), LOCKUP_W, LOCKUP_H, LOCKUP_W, LOCKUP_H, color);
 	}
 
 	/** The square NewGen icon. */
@@ -151,9 +187,12 @@ public final class Ui {
 		g.blit(RenderPipelines.GUI_TEXTURED, ICON, x, y, 0, 0, size, size, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
 	}
 
-	/** A vanilla button (keyboard focus, click sound, narration) that looks like button(). */
+	/** A vanilla button (keyboard focus, click sound, narration) that looks like button() and fades its hover. */
 	public static class Btn extends Button {
 		private final int fill, face;
+		/** 0..1: in over 150 ms, out over 120 ms. */
+		private float hover;
+		private long last = System.currentTimeMillis();
 
 		public Btn(int x, int y, int w, int h, String label, int fill, int face, Runnable action) {
 			super(x, y, w, h, Component.literal(label), button -> action.run(), DEFAULT_NARRATION);
@@ -163,8 +202,11 @@ public final class Ui {
 
 		@Override
 		protected void renderContents(GuiGraphics g, int mouseX, int mouseY, float delta) {
-			String label = getMessage().getString();
-			button(g, getX(), getY(), getWidth(), getHeight(), face == CAPS ? spaced(label) : label, isHoveredOrFocused(), fill, face);
+			long now = System.currentTimeMillis();
+			float dt = Math.min(100, now - last);
+			last = now;
+			hover = isHoveredOrFocused() ? Math.min(1, hover + dt / 150f) : Math.max(0, hover - dt / 120f);
+			button(g, getX(), getY(), getWidth(), getHeight(), getMessage().getString(), hover, fill, face);
 		}
 	}
 }

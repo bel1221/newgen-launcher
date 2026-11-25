@@ -3,7 +3,7 @@
 	"id": "newgen_client",
 	"version": "${version}",
 	"name": "Newgen Client",
-	"description": "NewGen client features: the Newgen Mods menu and HUD mods (CPS, FPS, Coordinates).",
+	"description": "NewGen client features: the Newgen Mods menu, HUD, visual, controls and utility mods.",
 	"authors": ["NewGen"],
 	"license": "All Rights Reserved",
 	"environment": "client",

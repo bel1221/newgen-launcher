@@ -16,7 +16,7 @@ import net.newgen.client.core.Mods;
  * and the HUD elements stay on screen where they can be arranged: drag to move, mouse wheel resizes, right click puts back.
  */
 public class HubScreen extends Screen {
-	private static final String[] HINT = {"Drag a HUD element to move it", "Mouse wheel: resize   Right click: reset"};
+	private static final String[] HINT = {"hub.hint.move", "hub.hint.resize"};
 
 	private HudMod dragging;
 	private double grabX, grabY; // where inside the element the mouse grabbed it
@@ -34,7 +34,7 @@ public class HubScreen extends Screen {
 		logoW = Math.max(0, Math.min(Math.min(190, width - 40), (height - 90) * 4));
 		int logoH = logoW >= 40 ? Ui.logoHeight(logoW) + 6 : 0;
 		top = (height - logoH - 20) / 2;
-		addRenderableWidget(new Ui.Btn((width - buttonW) / 2, top + logoH, buttonW, 20, "MODS", Ui.DARK, Ui.CAPS, () -> minecraft.setScreen(new ModsScreen(null))));
+		addRenderableWidget(new Ui.Btn((width - buttonW) / 2, top + logoH, buttonW, 20, Ui.tr("mods"), Ui.DARK, Ui.CAPS, () -> minecraft.setScreen(new ModsScreen(null))));
 	}
 
 	@Override
@@ -63,7 +63,7 @@ public class HubScreen extends Screen {
 		super.render(g, mouseX, mouseY, delta);
 		int y = top + (logoW >= 40 ? Ui.logoHeight(logoW) + 6 : 0) + 26;
 		if (minecraft.level != null && y + 20 < height) {
-			for (int i = 0; i < HINT.length; i++) Ui.centered(g, Ui.fit(HINT[i], width - 8, Ui.UI, false), width / 2, y + i * 11, Ui.SOFT, Ui.UI);
+			for (int i = 0; i < HINT.length; i++) Ui.centered(g, Ui.fit(Ui.tr(HINT[i]), width - 8, Ui.UI, false), width / 2, y + i * 11, Ui.SOFT, Ui.UI);
 		}
 	}
 
@@ -73,7 +73,7 @@ public class HubScreen extends Screen {
 		int w = Ui.width(hud.name, Ui.UI) + 8;
 		int x = Math.max(0, Math.min(hud.left - 1, width - w));
 		int y = hud.top >= 13 ? hud.top - 13 : Math.min(hud.top + hud.height + 1, height - 12);
-		Ui.round(g, x, y, w, 12, 3, Ui.GLASS);
+		Ui.round(g, x, y, w, 12, Ui.R_SM, Ui.GLASS);
 		Ui.text(g, hud.name, x + 4, y + 2, color | 0xFF000000, Ui.UI);
 	}
 

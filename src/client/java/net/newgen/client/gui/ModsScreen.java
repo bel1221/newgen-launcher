@@ -30,11 +30,11 @@ public class ModsScreen extends Screen {
 	private static final String[] TABS = {"All", "HUD", "Visual", "Controls", "Utility"};
 
 	private static final int PAD = 8, HEADER = 26, BAR_H = 18, GAP = 5, ROW_H = 20, HEAD_H = 14;
-	/** A card is the name (NAME_H), the OPTIONS strip and the ENABLED/DISABLED strip. */
-	private static final int NAME_H = 24, STRIP = 13, CARD_H = NAME_H + STRIP * 2;
-	private static final int PILL_W = 32, PILL_H = 12, SWATCH = 10, HEX_W = 66, BUTTON_H = 14, COLUMN_GAP = 14;
-	/** FAINT is for dividing lines and the scroll track, KNOB for the knob of an ON/OFF pill. */
-	private static final int FAINT = 0x18FFFFFF, KNOB = 0xFFF2F3F5;
+	/** A card is the name with its on/off switch, then one line of description; a click opens its options. */
+	private static final int CARD_H = 38, SWITCH_W = 20;
+	private static final int PILL_W = 20, SWATCH = 10, HEX_W = 66, BUTTON_H = 14, COLUMN_GAP = 14;
+	/** FAINT is for dividing lines and the scroll track. */
+	private static final int FAINT = 0x18FFFFFF;
 
 	private static int tab;           // static: coming back from the Right Shift screen lands on the same tab
 
@@ -62,7 +62,7 @@ public class ModsScreen extends Screen {
 		ph = Math.min(300, height - 12);
 		px = (width - pw) / 2;
 		py = (height - ph) / 2;
-		columns = Math.max(1, (pw - PAD * 2) / 108);
+		columns = Math.max(1, (pw - PAD * 2) / 140);
 	}
 
 	// ---- layout helpers ----
@@ -110,7 +110,7 @@ public class ModsScreen extends Screen {
 	}
 
 	private int chipW(int i) {
-		return Ui.width(Ui.spaced(TABS[i]), Ui.CAPS) + 12;
+		return Ui.width(tabLabel(i), Ui.CAPS) + 16;
 	}
 
 	/** Left edge of chip i; chipX(TABS.length) is where the chips end. */
@@ -129,12 +129,12 @@ public class ModsScreen extends Screen {
 	}
 
 	private int toggleW() {
-		return Ui.width(Ui.spaced("DISABLED"), Ui.CAPS) + 14;
+		return SWITCH_W;
 	}
 
 	/** Width of the bottom-left button: "Edit HUD layout" or "Reset to defaults". */
 	private int footW(String label) {
-		return Math.min(Ui.width(Ui.spaced(label), Ui.CAPS) + 16, pw - PAD * 2);
+		return Math.min(Ui.width(label, Ui.CAPS) + 20, pw - PAD * 2);
 	}
 
 	/** Width of the box used by choice, key and text options in a column that is w wide. */
@@ -182,7 +182,7 @@ public class ModsScreen extends Screen {
 			}
 			if (part.isEmpty()) continue;
 			if (sections) {
-				out.add(new Cell(null, pass == 0 ? "GENERAL" : "COLOUR", left, y, full));
+				out.add(new Cell(null, Ui.tr(pass == 0 ? "section.general" : "section.colour"), left, y, full));
 				y += HEAD_H;
 			}
 			for (int i = 0; i < part.size(); i++) {
@@ -196,7 +196,7 @@ public class ModsScreen extends Screen {
 
 	private static String keyName(Setting.Key key) {
 		if (key.isMouse()) return InputConstants.Type.MOUSE.getOrCreate(key.value - Setting.Key.MOUSE).getDisplayName().getString();
-		return key.value < 0 ? "None" : InputConstants.Type.KEYSYM.getOrCreate(key.value).getDisplayName().getString();
+		return key.value < 0 ? Ui.tr("key.none") : InputConstants.Type.KEYSYM.getOrCreate(key.value).getDisplayName().getString();
 	}
 
 	// ---- drawing ----
@@ -219,13 +219,13 @@ public class ModsScreen extends Screen {
 
 		if (selected == null) {
 			Ui.icon(g, px + PAD, py + (HEADER - 16) / 2, 16);
-			Ui.text(g, Ui.fit("NEWGEN MODS", pw - PAD * 2 - 44, Ui.TITLE, false), px + PAD + 21, titleY, Ui.TEXT, Ui.TITLE);
+			Ui.text(g, Ui.fit(Ui.tr("mods.title"), pw - PAD * 2 - 44, Ui.TITLE, false), px + PAD + 21, titleY, Ui.TEXT, Ui.TITLE);
 
-			for (int i = 0; i < TABS.length; i++) button(g, chipX(i), barY(), chipW(i), TABS[i], mouseX, mouseY, i == tab ? Ui.BLUE : Ui.DARK);
+			for (int i = 0; i < TABS.length; i++) button(g, chipX(i), barY(), chipW(i), tabLabel(i), mouseX, mouseY, i == tab ? Ui.BLUE : Ui.DARK);
 			int sx = searchX(), sw = right() - sx;
 			if (sw >= 30) {
 				field(g, sx, barY(), sw, !search.isEmpty());
-				if (search.isEmpty()) Ui.text(g, Ui.fit("Search...", sw - 12, Ui.UI, false), sx + 6, barY() + 3, Ui.DIM, Ui.UI);
+				if (search.isEmpty()) Ui.text(g, Ui.fit(Ui.tr("search"), sw - 12, Ui.UI, false), sx + 6, barY() + 3, Ui.DIM, Ui.UI);
 				else Ui.text(g, Ui.fit(search + "_", sw - 12, Ui.UI, true), sx + 6, barY() + 3, Ui.TEXT, Ui.UI);
 			}
 
@@ -238,9 +238,9 @@ public class ModsScreen extends Screen {
 				if (y + CARD_H > viewTop() && y < viewBottom()) card(g, list.get(i), cardX(i), y, hot ? mouseX : -1, mouseY);
 			}
 			g.disableScissor();
-			if (list.isEmpty()) Ui.centered(g, "No mods found", px + pw / 2, viewTop() + 8, Ui.DIM, Ui.UI);
+			if (list.isEmpty()) Ui.centered(g, Ui.tr("mods.none"), px + pw / 2, viewTop() + 8, Ui.DIM, Ui.UI);
 			// Without a world there is no HUD to arrange.
-			if (minecraft.level != null) button(g, px + PAD, footY(), footW("Edit HUD layout"), "Edit HUD layout", mouseX, mouseY, Ui.BLUE);
+			if (minecraft.level != null) button(g, px + PAD, footY(), footW(Ui.tr("hud.edit")), Ui.tr("hud.edit"), mouseX, mouseY, Ui.BLUE);
 		} else {
 			// The round back button.
 			int bx = px + PAD, by = headY();
@@ -249,8 +249,8 @@ public class ModsScreen extends Screen {
 			if (Ui.inside(mouseX, mouseY, bx, by, BUTTON_H, BUTTON_H)) Ui.round(g, bx, by, BUTTON_H, BUTTON_H, BUTTON_H / 2, Ui.HOVER);
 			Ui.centered(g, "←", bx + BUTTON_H / 2, by + 3, Ui.TEXT, Ui.UI);
 			int nameX = bx + BUTTON_H + 8, toggleX = right() - BUTTON_H - 4 - toggleW();
-			Ui.text(g, Ui.fit(Ui.spaced(selected.name), toggleX - 8 - nameX, Ui.TITLE, false), nameX, titleY, Ui.TEXT, Ui.TITLE);
-			button(g, toggleX, headY(), toggleW(), selected.enabled ? "Enabled" : "Disabled", mouseX, mouseY, selected.enabled ? Ui.GREEN : Ui.RED);
+			Ui.text(g, Ui.fit(selected.name, toggleX - 8 - nameX, Ui.TITLE, false), nameX, titleY, Ui.TEXT, Ui.TITLE);
+			Ui.toggle(g, toggleX, headY() + 2, selected.enabled, Ui.inside(mouseX, mouseY, toggleX, headY(), SWITCH_W, BUTTON_H));
 			Ui.text(g, Ui.fit(selected.description, pw - PAD * 2, Ui.UI, false), px + PAD, barY() + 3, Ui.DIM, Ui.UI);
 
 			List<Cell> cells = cells();
@@ -270,8 +270,8 @@ public class ModsScreen extends Screen {
 				}
 			}
 			g.disableScissor();
-			if (selected.settings.isEmpty()) Ui.centered(g, "No options", px + pw / 2, viewTop() + 8, Ui.DIM, Ui.UI);
-			button(g, px + PAD, footY(), footW("Reset to defaults"), "Reset to defaults", mouseX, mouseY, Ui.DARK);
+			if (selected.settings.isEmpty()) Ui.centered(g, Ui.tr("options.none"), px + pw / 2, viewTop() + 8, Ui.DIM, Ui.UI);
+			button(g, px + PAD, footY(), footW(Ui.tr("reset")), Ui.tr("reset"), mouseX, mouseY, Ui.DARK);
 		}
 
 		int viewH = viewBottom() - viewTop(), max = content - viewH;
@@ -284,18 +284,25 @@ public class ModsScreen extends Screen {
 	}
 
 	private void card(GuiGraphics g, Mod mod, int x, int y, int mouseX, int mouseY) {
-		int w = cardW(), options = y + NAME_H, status = options + STRIP;
-		Ui.round(g, x, y, w, CARD_H, 5, Ui.CARD);
-		Ui.centered(g, Ui.fit(mod.name, w - 8, Ui.UI, false), x + w / 2, y + (NAME_H - 7) / 2, Ui.SOFT, Ui.UI);
-		g.fill(x, options, x + w, status, 0x55000000);
-		g.fill(x, options, x + w, options + 1, FAINT);
-		if (Ui.inside(mouseX, mouseY, x, y, w, NAME_H + STRIP)) g.fill(x, options, x + w, status, Ui.HOVER);
-		Ui.centered(g, Ui.spaced("Options"), x + w / 2, options + 3, Ui.TEXT, Ui.CAPS);
-		// The strip that closes the card: its bottom corners are the card's.
-		Ui.roundBottom(g, x, status, w, STRIP, 5, mod.enabled ? Ui.GREEN : Ui.RED);
-		if (Ui.inside(mouseX, mouseY, x, status, w, STRIP)) Ui.roundBottom(g, x, status, w, STRIP, 5, Ui.HOVER);
-		Ui.centered(g, Ui.spaced(mod.enabled ? "Enabled" : "Disabled"), x + w / 2, status + 3, Ui.TEXT, Ui.CAPS);
-		Ui.ring(g, x, y, w, CARD_H, 5, Ui.LINE);
+		// One card: the name and its switch on the first line, one line of description under it.
+		// The switch toggles the mod; anywhere else on the card opens its options.
+		int w = cardW(), sx = x + w - 8 - SWITCH_W;
+		boolean overCard = Ui.inside(mouseX, mouseY, x, y, w, CARD_H), overSwitch = onSwitch(mouseX, mouseY, x, y);
+		Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.CARD);
+		if (overCard && !overSwitch) Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.HOVER);
+		Ui.text(g, Ui.fit(mod.name, sx - 6 - (x + 8), Ui.CAPS, false), x + 8, y + 9, mod.enabled ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
+		Ui.toggle(g, sx, y + 8, mod.enabled, overSwitch);
+		Ui.text(g, Ui.fit(mod.description, w - 16, Ui.UI, false), x + 8, y + 23, Ui.DIM, Ui.UI);
+		Ui.ring(g, x, y, w, CARD_H, Ui.R_MD, overCard ? 0x50FFFFFF : Ui.LINE);
+	}
+
+	/** Whether the mouse is on the switch of the card at x, y (a slightly larger target than the switch). */
+	private boolean onSwitch(double mx, double my, int x, int y) {
+		return Ui.inside(mx, my, x + cardW() - 12 - SWITCH_W, y + 4, SWITCH_W + 8, 18);
+	}
+
+	private static String tabLabel(int i) {
+		return Ui.tr("tab." + TABS[i].toLowerCase());
 	}
 
 	private void row(GuiGraphics g, Cell cell, int mouseX, int mouseY) {
@@ -305,10 +312,8 @@ public class ModsScreen extends Screen {
 
 		if (setting instanceof Setting.Bool bool) {
 			controlX = cr - PILL_W;
-			// An ON/OFF pill: the word says the state, colour and knob side repeat it.
-			Ui.round(g, controlX, y + 4, PILL_W, PILL_H, PILL_H / 2, bool.value ? Ui.GREEN : Ui.RED);
-			Ui.round(g, bool.value ? cr - 10 : controlX + 2, y + 6, 8, 8, 4, KNOB);
-			Ui.text(g, bool.value ? "ON" : "OFF", controlX + (bool.value ? 6 : 13), y + 6, Ui.TEXT, Ui.CAPS);
+			// The same switch as on the cards: blue track and knob right when on.
+			Ui.toggle(g, controlX, y + 5, bool.value, Ui.inside(mouseX, mouseY, controlX - 4, y, PILL_W + 4, ROW_H));
 		} else if (setting instanceof Setting.Num num) {
 			// The knob's centre runs from 4 pixels inside one end of the track to 4 inside the other (see the click).
 			int sw = sliderW(cell.w), sx = cr - sw;
@@ -341,21 +346,21 @@ public class ModsScreen extends Screen {
 				Ui.text(g, "›", cr - 5 - Ui.width("›", Ui.TITLE), y + 6, Ui.BLUE, Ui.TITLE);
 				Ui.centered(g, Ui.fit(String.valueOf(choice.value), w - 30, Ui.UI, false), controlX + w / 2, y + 6, Ui.SOFT, Ui.UI);
 			} else if (setting instanceof Setting.Key key) {
-				Ui.button(g, controlX, y + 3, w, BUTTON_H, Ui.spaced(key == listening ? "Key or mouse" : keyName(key)), over, active ? Ui.BLUE : Ui.DARK, Ui.CAPS);
+				Ui.button(g, controlX, y + 3, w, BUTTON_H, key == listening ? Ui.tr("key.listening") : keyName(key), over, active ? Ui.BLUE : Ui.DARK, Ui.CAPS);
 			}
 		}
 		Ui.text(g, Ui.fit(setting.name, controlX - 6 - x, Ui.UI, false), x, y + 6, Ui.SOFT, Ui.UI);
 	}
 
-	/** A rounded button of the usual height with its label in spaced capitals. */
+	/** A rounded button of the usual height with its label in the label face. */
 	private void button(GuiGraphics g, int x, int y, int w, String label, int mouseX, int mouseY, int fill) {
-		Ui.button(g, x, y, w, BUTTON_H, Ui.spaced(label), Ui.inside(mouseX, mouseY, x, y, w, BUTTON_H), fill, Ui.CAPS);
+		Ui.button(g, x, y, w, BUTTON_H, label, Ui.inside(mouseX, mouseY, x, y, w, BUTTON_H), fill, Ui.CAPS);
 	}
 
 	/** A rounded typing field; the outline turns blue while it holds text or is being typed into. */
 	private void field(GuiGraphics g, int x, int y, int w, boolean active) {
-		Ui.round(g, x, y, w, BUTTON_H, 4, Ui.DARK);
-		Ui.ring(g, x, y, w, BUTTON_H, 4, active ? Ui.BLUE : Ui.LINE);
+		Ui.round(g, x, y, w, BUTTON_H, Ui.R_SM, Ui.DARK);
+		Ui.ring(g, x, y, w, BUTTON_H, Ui.R_SM, active ? Ui.BLUE : Ui.LINE);
 	}
 
 	// ---- input ----
@@ -381,7 +386,7 @@ public class ModsScreen extends Screen {
 		}
 		if (selected == null) {
 			if (!left) return true;
-			if (minecraft.level != null && Ui.inside(mx, my, px + PAD, footY(), footW("Edit HUD layout"), BUTTON_H)) {
+			if (minecraft.level != null && Ui.inside(mx, my, px + PAD, footY(), footW(Ui.tr("hud.edit")), BUTTON_H)) {
 				minecraft.setScreen(new HubScreen());
 				return true;
 			}
@@ -397,7 +402,7 @@ public class ModsScreen extends Screen {
 				Mod mod = list.get(i);
 				int x = cardX(i), y = cardY(i);
 				if (!Ui.inside(mx, my, x, y, cardW(), CARD_H)) continue;
-				if (my >= y + NAME_H + STRIP) {
+				if (onSwitch(mx, my, x, y)) {
 					mod.enabled = !mod.enabled;
 					Mods.save();
 				} else {
@@ -413,7 +418,7 @@ public class ModsScreen extends Screen {
 		} else if (left && Ui.inside(mx, my, right() - BUTTON_H - 4 - toggleW(), headY(), toggleW(), BUTTON_H)) {
 			selected.enabled = !selected.enabled;
 			Mods.save();
-		} else if (left && Ui.inside(mx, my, px + PAD, footY(), footW("Reset to defaults"), BUTTON_H)) {
+		} else if (left && Ui.inside(mx, my, px + PAD, footY(), footW(Ui.tr("reset")), BUTTON_H)) {
 			selected.reset();
 			Mods.save();
 		} else if (inView(my)) {
