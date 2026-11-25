@@ -96,9 +96,23 @@ public class ModsScreen extends Screen {
 		return px + pw - PAD;
 	}
 
-	/** Left edge of the grid / options area, right of the category column. */
+	/** Left edge of the grid / options area: right of the category column, or the full panel on the Theme tab. */
 	private int contentX() {
-		return px + PAD + SIDE_W + PAD;
+		return themeView() ? px + PAD : px + PAD + SIDE_W + PAD;
+	}
+
+	/** The Theme card lives on its own header tab, not in the grid: it is always on and only has settings. */
+	private static boolean isTheme(Mod mod) {
+		return mod != null && mod.id.equals("theme");
+	}
+
+	private boolean themeView() {
+		return isTheme(selected);
+	}
+
+	private static Mod themeMod() {
+		for (Mod mod : Mods.ALL) if (isTheme(mod)) return mod;
+		return null;
 	}
 
 	/** Right edge of the scrolling content; leaves room for the scroll bar. */
@@ -196,10 +210,12 @@ public class ModsScreen extends Screen {
 		return net.minecraft.client.resources.language.I18n.get("menu.options").replace("...", "").trim();
 	}
 
-	/** The header tabs: Mods (this screen) and Options (the game's own options), after the name. */
+	/** The header tabs after the name: Mods (this screen), Options (the game's own options), Theme (our look and sounds). */
 	private int tabX(int i) {
 		int x = px + PAD + 18 + Ui.width("NewGen", Ui.TITLE) + 14;
-		return i == 0 ? x : x + tabW(Ui.tr("mods"), false) + 4;
+		if (i >= 1) x += tabW(Ui.tr("mods"), false) + 4;
+		if (i >= 2) x += tabW(optionsLabel(), true) + 4;
+		return x;
 	}
 
 	/** Width of the bottom-left button: "Reset to defaults". */
@@ -234,7 +250,7 @@ public class ModsScreen extends Screen {
 		List<Mod> list = new ArrayList<>();
 		String query = search.toLowerCase();
 		for (Mod mod : Mods.ALL) {
-			if (!inTab(mod, tab) || state == 1 && !mod.enabled || state == 2 && mod.enabled) continue;
+			if (isTheme(mod) || !inTab(mod, tab) || state == 1 && !mod.enabled || state == 2 && mod.enabled) continue;
 			if ((mod.name + " " + mod.description + " " + modName(mod) + " " + modDescription(mod)).toLowerCase().contains(query)) list.add(mod);
 		}
 		return list;
@@ -297,14 +313,19 @@ public class ModsScreen extends Screen {
 		Ui.icon(g, px + PAD, py + (HEADER - 14) / 2, 14);
 		Ui.text(g, "NewGen", px + PAD + 18, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
 		String mods = Ui.tr("mods"), options = optionsLabel();
-		Ui.button(g, tabX(0), headY(), tabW(mods, false), BUTTON_H, mods, false, Ui.SELECTED, Ui.CAPS);
+		Ui.button(g, tabX(0), headY(), tabW(mods, false), BUTTON_H, mods, Ui.inside(mouseX, mouseY, tabX(0), headY(), tabW(mods, false), BUTTON_H),
+				themeView() ? Ui.DARK : Ui.SELECTED, Ui.CAPS);
 		Ui.button(g, tabX(1), headY(), tabW(options, true), BUTTON_H, options, Ui.I_GEAR,
 				Ui.inside(mouseX, mouseY, tabX(1), headY(), tabW(options, true), BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+		String theme = Ui.tr("theme");
+		Ui.button(g, tabX(2), headY(), tabW(theme, true), BUTTON_H, theme, Ui.I_PALETTE,
+				Ui.inside(mouseX, mouseY, tabX(2), headY(), tabW(theme, true), BUTTON_H) ? 1f : 0f, themeView() ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
 		Ui.button(g, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H, "", Ui.I_CLOSE,
 				Ui.inside(mouseX, mouseY, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 
-		// Left column: the categories with their counts, and Edit HUD layout at its foot.
+		// Left column: the categories with their counts, and Edit HUD layout at its foot (not on the Theme tab).
 		int sx = px + PAD;
+		if (!themeView()) {
 		Ui.round(g, sx, barY() - 2, SIDE_W, py + ph - PAD - (barY() - 2), Ui.R_MD, Ui.CARD);
 		for (int t = 0; t < TABS.length; t++) {
 			int y = sideRowY(t);
@@ -314,7 +335,7 @@ public class ModsScreen extends Screen {
 			Ui.glyph(g, TAB_ICONS[t], sx + 7, y + 4, 8, on ? Ui.TEXT : Ui.DIM);
 			Ui.text(g, Ui.tr("tab." + TABS[t].toLowerCase()), sx + 20, y + 5, on ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
 			int count = 0;
-			for (Mod mod : Mods.ALL) if (inTab(mod, t)) count++;
+			for (Mod mod : Mods.ALL) if (!isTheme(mod) && inTab(mod, t)) count++;
 			String n = String.valueOf(count);
 			Ui.text(g, n, sx + SIDE_W - 7 - Ui.width(n, Ui.UI), y + 5, Ui.DIM, Ui.UI);
 		}
@@ -324,6 +345,7 @@ public class ModsScreen extends Screen {
 			String edit = Ui.tr("hud.edit");
 			Ui.button(g, sx + 4, by, SIDE_W - 8, BUTTON_H, edit, Ui.I_LAYOUT,
 					Ui.inside(mouseX, mouseY, sx + 4, by, SIDE_W - 8, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+		}
 		}
 
 		boolean hot = inView(mouseY);
@@ -356,10 +378,10 @@ public class ModsScreen extends Screen {
 		} else {
 			// The options of one mod: back, its name and its switch; its description under them.
 			int bx = contentX(), by = barY();
-			Ui.button(g, bx, by, BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mouseX, mouseY, bx, by, BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
-			int nameX = bx + BUTTON_H + 8, toggleX = right() - PILL_W;
+			if (!themeView()) Ui.button(g, bx, by, BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mouseX, mouseY, bx, by, BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+			int nameX = themeView() ? bx : bx + BUTTON_H + 8, toggleX = right() - PILL_W;
 			Ui.text(g, Ui.fit(modName(selected), toggleX - 8 - nameX, Ui.TITLE, false), nameX, by + 3, Ui.TEXT, Ui.TITLE);
-			Ui.toggle(g, toggleX, by + 2, selected.enabled, Ui.inside(mouseX, mouseY, toggleX - 4, by, PILL_W + 4, BUTTON_H));
+			if (!themeView()) Ui.toggle(g, toggleX, by + 2, selected.enabled, Ui.inside(mouseX, mouseY, toggleX - 4, by, PILL_W + 4, BUTTON_H));
 			Ui.text(g, Ui.fit(modDescription(selected), right() - bx, Ui.UI, false), bx, by + BUTTON_H + 5, Ui.DIM, Ui.UI);
 
 			List<Cell> cells = cells();
@@ -460,6 +482,7 @@ public class ModsScreen extends Screen {
 				Ui.text(g, "‹", controlX + 5, y + 6, Ui.SOFT, Ui.TITLE);
 				Ui.text(g, "›", cr - 5 - Ui.width("›", Ui.TITLE), y + 6, Ui.SOFT, Ui.TITLE);
 				Ui.centered(g, Ui.fit(choiceLabel(choice.value), w - 30, Ui.UI, false), controlX + w / 2, y + 6, Ui.SOFT, Ui.UI);
+				if (choice.id.equals("palette")) controlX = swatches(g, choice, controlX, y, mouseX, mouseY); // the label ends before them
 			} else if (setting instanceof Setting.Action action) {
 				Ui.button(g, controlX, y + 3, w, BUTTON_H, net.minecraft.client.resources.language.I18n.get(action.label), over, Ui.DARK, Ui.CAPS);
 			} else if (setting instanceof Setting.Key key) {
@@ -467,6 +490,34 @@ public class ModsScreen extends Screen {
 			}
 		}
 		Ui.text(g, Ui.fit(settingLabel(setting.name), controlX - 6 - x, Ui.UI, false), x, y + 6, Ui.SOFT, Ui.UI);
+	}
+
+	/** The palette row's swatches: one dot per preset in its accent colour, the chosen one ringed; returns where they start. */
+	private static final int SWATCH_D = 8, SWATCH_GAP = 4;
+
+	private static int swatchesX(int controlX) {
+		return controlX - 8 - Ui.PALETTES.length * (SWATCH_D + SWATCH_GAP);
+	}
+
+	private int swatches(GuiGraphics g, Setting.Choice choice, int controlX, int y, int mouseX, int mouseY) {
+		int x0 = swatchesX(controlX);
+		for (int k = 0; k < Ui.PALETTES.length; k++) {
+			int sx = x0 + k * (SWATCH_D + SWATCH_GAP), sy = y + (ROW_H - SWATCH_D) / 2;
+			boolean chosen = Ui.PALETTES[k].name().equals(choice.value), over = Ui.inside(mouseX, mouseY, sx - 1, sy - 1, SWATCH_D + 2, SWATCH_D + 2);
+			Ui.round(g, sx, sy, SWATCH_D, SWATCH_D, SWATCH_D / 2, Ui.PALETTES[k].accent());
+			if (chosen || over) Ui.ring(g, sx - 2, sy - 2, SWATCH_D + 4, SWATCH_D + 4, SWATCH_D / 2 + 2, chosen ? 0xE6FFFFFF : 0x66FFFFFF);
+		}
+		return x0;
+	}
+
+	/** The preset under the mouse on the palette row, or -1. */
+	private int swatchAt(double mx, double my, int controlX, int rowY) {
+		int x0 = swatchesX(controlX), sy = rowY + (ROW_H - SWATCH_D) / 2;
+		for (int k = 0; k < Ui.PALETTES.length; k++) {
+			int sx = x0 + k * (SWATCH_D + SWATCH_GAP);
+			if (Ui.inside(mx, my, sx - 2, sy - 2, SWATCH_D + 4, SWATCH_D + 4)) return k;
+		}
+		return -1;
 	}
 
 	/** A rounded button of the usual height with its label in the label face. */
@@ -506,16 +557,25 @@ public class ModsScreen extends Screen {
 			onClose();
 			return true;
 		}
+		if (left && Ui.inside(mx, my, tabX(0), headY(), tabW(Ui.tr("mods"), false), BUTTON_H)) {
+			selected = null;
+			return true;
+		}
+		if (left && Ui.inside(mx, my, tabX(2), headY(), tabW(Ui.tr("theme"), true), BUTTON_H)) {
+			selected = themeMod();
+			rowScroll = 0;
+			return true;
+		}
 		if (left && Ui.inside(mx, my, tabX(1), headY(), tabW(optionsLabel(), true), BUTTON_H)) {
 			minecraft.setScreen(new OptionsScreen(this, minecraft.options));
 			return true;
 		}
 		int sx = px + PAD;
-		if (left && minecraft.level != null && Ui.inside(mx, my, sx + 4, py + ph - PAD - 4 - BUTTON_H, SIDE_W - 8, BUTTON_H)) {
+		if (!themeView() && left && minecraft.level != null && Ui.inside(mx, my, sx + 4, py + ph - PAD - 4 - BUTTON_H, SIDE_W - 8, BUTTON_H)) {
 			minecraft.setScreen(new HubScreen());
 			return true;
 		}
-		for (int t = 0; t < TABS.length; t++) {
+		for (int t = 0; t < TABS.length && !themeView(); t++) {
 			if (left && Ui.inside(mx, my, sx + 2, sideRowY(t), SIDE_W - 4, SIDE_ROW)) {
 				tab = t;
 				focus = -1;
@@ -551,9 +611,9 @@ public class ModsScreen extends Screen {
 			return true;
 		}
 
-		if (left && Ui.inside(mx, my, contentX(), barY(), BUTTON_H, BUTTON_H)) {
+		if (!themeView() && left && Ui.inside(mx, my, contentX(), barY(), BUTTON_H, BUTTON_H)) {
 			selected = null;
-		} else if (left && Ui.inside(mx, my, right() - PILL_W - 4, barY(), PILL_W + 4, BUTTON_H)) {
+		} else if (!themeView() && left && Ui.inside(mx, my, right() - PILL_W - 4, barY(), PILL_W + 4, BUTTON_H)) {
 			selected.enabled = !selected.enabled;
 			Mods.save();
 		} else if (left && Ui.inside(mx, my, contentX(), footY(), footW(Ui.tr("reset")), BUTTON_H)) {
@@ -567,7 +627,11 @@ public class ModsScreen extends Screen {
 				rowMod = selected;
 				rowFocus = rows().indexOf(setting);
 				int cr = cell.x + cell.w, fieldX = cr - fieldW(cell.w);
-				if (setting instanceof Setting.Choice choice && mx >= fieldX) {
+				int swatch = setting instanceof Setting.Choice c0 && c0.id.equals("palette") ? swatchAt(mx, my, cr - fieldW(cell.w), cell.y) : -1;
+				if (swatch >= 0) {
+					((Setting.Choice) setting).value = Ui.PALETTES[swatch].name();
+					Mods.save();
+				} else if (setting instanceof Setting.Choice choice && mx >= fieldX) {
 					// The "<" end or a right click steps back, anywhere else steps forward.
 					int n = choice.options.length, at = 0;
 					while (at < n && !choice.options[at].equals(choice.value)) at++;

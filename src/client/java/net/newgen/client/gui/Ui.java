@@ -226,8 +226,8 @@ public final class Ui {
 	/** The icon atlas: white line icons, 64x64 each, in one row; drawn tinted at any size. */
 	private static final Identifier ICONS = Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/icons.png");
 	public static final int I_PLAY = 0, I_USER = 1, I_USERS = 2, I_GEAR = 3, I_GRID = 4, I_CLOSE = 5, I_BACK = 6,
-			I_SEARCH = 7, I_LAYOUT = 8, I_GLOBE = 9, I_EYE = 10, I_MOUSE = 11, I_SLIDERS = 12;
-	private static final int ICON_COUNT = 13;
+			I_SEARCH = 7, I_LAYOUT = 8, I_GLOBE = 9, I_EYE = 10, I_MOUSE = 11, I_SLIDERS = 12, I_PALETTE = 13;
+	private static final int ICON_COUNT = 14;
 
 	public static void glyph(GuiGraphics g, int icon, int x, int y, int size, int color) {
 		g.blit(RenderPipelines.GUI_TEXTURED, ICONS, x, y, icon * 64, 0, size, size, 64, 64, ICON_COUNT * 64, 64, color);

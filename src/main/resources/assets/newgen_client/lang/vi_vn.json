@@ -357,5 +357,6 @@
 	"newgen_client.mod.zoom.description": "Giữ một phím để phóng to",
 	"newgen_client.setting.interface_sounds": "Âm thanh giao diện (%%)",
 	"newgen_client.setting.reduce_motion": "Giảm chuyển động",
-	"newgen_client.setting.background_colour": "Màu nền"
+	"newgen_client.setting.background_colour": "Màu nền",
+	"newgen_client.theme": "Giao diện"
 }

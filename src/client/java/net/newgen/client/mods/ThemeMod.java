@@ -21,6 +21,7 @@ public class ThemeMod extends Mod {
 	}
 
 	public void tick() {
+		enabled = true; // the Theme tab cannot be switched off; an old saved "off" turns back on
 		Ui.use(enabled ? palette.value : Ui.PALETTES[0].name());
 		Ui.soundVolume = enabled ? (float) (sounds.get() / 100) : 0.6f;
 		Ui.reduceMotion = enabled && reduceMotion.value;

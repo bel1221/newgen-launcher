@@ -202,5 +202,6 @@
 	"newgen_client.mod.weather_changer.description": "Shows a fixed weather on your screen only",
 	"newgen_client.mod.weather_changer.name": "Weather Changer",
 	"newgen_client.mod.zoom.description": "Hold a key to zoom in",
-	"newgen_client.mod.zoom.name": "Zoom"
+	"newgen_client.mod.zoom.name": "Zoom",
+	"newgen_client.theme": "Theme"
 }
