@@ -3,7 +3,12 @@
 	"key.newgen_client.open_mods": "Mở Newgen Mods",
 	"newgen_client.title.play": "Chơi NewGen",
 	"newgen_client.mods": "Mod",
-	"newgen_client.mods.title": "Newgen Mods",
+	"newgen_client.options": "Tùy chọn",
+	"newgen_client.enabled": "Đang bật",
+	"newgen_client.disabled": "Đang tắt",
+	"newgen_client.state.all": "Tất cả",
+	"newgen_client.state.on": "Bật",
+	"newgen_client.state.off": "Tắt",
 	"newgen_client.mods.none": "Không có mod nào khớp",
 	"newgen_client.options.none": "Mod này không có tùy chọn",
 	"newgen_client.search": "Tìm mod",
@@ -12,12 +17,11 @@
 	"newgen_client.tab.visual": "Hình ảnh",
 	"newgen_client.tab.controls": "Điều khiển",
 	"newgen_client.tab.utility": "Tiện ích",
-	"newgen_client.hud.edit": "Sắp xếp HUD",
+	"newgen_client.hud.edit": "Sửa HUD",
 	"newgen_client.reset": "Khôi phục mặc định",
 	"newgen_client.section.general": "Chung",
 	"newgen_client.section.colour": "Màu sắc",
 	"newgen_client.key.listening": "Nhấn một phím hoặc nút chuột",
 	"newgen_client.key.none": "Không có",
-	"newgen_client.hub.hint.move": "Kéo một thành phần HUD để di chuyển",
-	"newgen_client.hub.hint.resize": "Lăn chuột để đổi cỡ, chuột phải để đặt lại"
+	"newgen_client.hub.hint": "Kéo thành phần HUD để di chuyển, lăn chuột để đổi cỡ, chuột phải để đặt lại"
 }

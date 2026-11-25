@@ -108,15 +108,24 @@ public final class Ui {
 
 	/** The thin outline of round(). */
 	public static void ring(GuiGraphics g, int x, int y, int w, int h, int r, int color) {
-		slice(g, RING, x, y, w, h, r, color);
+		slice(g, RING, x, y, w, h, r, color, true);
 	}
 
+	/** round() with square top corners: the strip that closes a card. */
+	public static void roundBottom(GuiGraphics g, int x, int y, int w, int h, int r, int color) {
+		slice(g, ROUND, x, y, w, h, r, color, false);
+	}
 
 	private static void slice(GuiGraphics g, Identifier texture, int x, int y, int w, int h, int r, int color) {
+		slice(g, texture, x, y, w, h, r, color, true);
+	}
+
+	private static void slice(GuiGraphics g, Identifier texture, int x, int y, int w, int h, int r, int color, boolean top) {
 		r = Math.max(1, Math.min(r, Math.min(w, h) / 2));
 		int[] xs = {x, x + r, x + w - r, x + w}, ys = {y, y + r, y + h - r, y + h};
 		for (int row = 0; row < 3; row++) {
-			int v = row * 16;
+			// Square top corners take the middle of the texture, which has none.
+			int v = row == 0 && !top ? 16 : row * 16;
 			for (int col = 0; col < 3; col++) {
 				int cw = xs[col + 1] - xs[col], ch = ys[row + 1] - ys[row];
 				if (cw > 0 && ch > 0) g.blit(RenderPipelines.GUI_TEXTURED, texture, xs[col], ys[row], col * 16, v, cw, ch, 16, 16, 48, 48, color);
@@ -136,11 +145,42 @@ public final class Ui {
 
 	/** button() with the hover as an amount from 0 to 1, so a widget can fade it in and out. */
 	public static void button(GuiGraphics g, int x, int y, int w, int h, String label, float hot, int fill, int face) {
+		button(g, x, y, w, h, label, -1, hot, fill, face);
+	}
+
+	/**
+	 * A button with an optional icon (index into the icon atlas, -1 = none) left of its label, the two centred
+	 * together. An empty label gives an icon-only square button.
+	 */
+	public static void button(GuiGraphics g, int x, int y, int w, int h, String label, int icon, float hot, int fill, int face) {
 		int r = Math.min(R_SM, h / 2);
 		round(g, x, y, w, h, r, fill);
 		if (fill >>> 24 != 0xFF) ring(g, x, y, w, h, r, hot > 0 ? lerp(LINE, 0x66FFFFFF, hot) : LINE);
 		if (hot > 0) round(g, x, y, w, h, r, (int) (0x1C * hot) << 24 | 0xFFFFFF);
-		centered(g, fit(label, w - 8, face, false), x + w / 2, y + (h - 7) / 2, TEXT, face);
+		int size = Math.min(10, h - 8);
+		if (icon >= 0 && label.isEmpty()) {
+			glyph(g, icon, x + (w - size) / 2, y + (h - size) / 2, size, TEXT);
+			return;
+		}
+		String text = fit(label, w - 8 - (icon >= 0 ? size + 5 : 0), face, false);
+		int tw = width(text, face), left = x + (w - tw - (icon >= 0 ? size + 5 : 0)) / 2;
+		if (icon >= 0) {
+			glyph(g, icon, left, y + (h - size) / 2, size, TEXT);
+			left += size + 5;
+		}
+		text(g, text, left, y + (h - 7) / 2, TEXT, face);
+	}
+
+	// ---- icons ----
+
+	/** The icon atlas: white line icons, 64x64 each, in one row; drawn tinted at any size. */
+	private static final Identifier ICONS = Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/icons.png");
+	public static final int I_PLAY = 0, I_USER = 1, I_USERS = 2, I_GEAR = 3, I_GRID = 4, I_CLOSE = 5, I_BACK = 6,
+			I_SEARCH = 7, I_LAYOUT = 8, I_GLOBE = 9, I_EYE = 10, I_MOUSE = 11, I_SLIDERS = 12;
+	private static final int ICON_COUNT = 13;
+
+	public static void glyph(GuiGraphics g, int icon, int x, int y, int size, int color) {
+		g.blit(RenderPipelines.GUI_TEXTURED, ICONS, x, y, icon * 64, 0, size, size, 64, 64, ICON_COUNT * 64, 64, color);
 	}
 
 	/** An on/off switch, 20x10: a blue track with the knob right when on, a neutral track with the knob left when off. */
@@ -189,15 +229,34 @@ public final class Ui {
 
 	/** A vanilla button (keyboard focus, click sound, narration) that looks like button() and fades its hover. */
 	public static class Btn extends Button {
-		private final int fill, face;
+		private final int fill, face, icon;
 		/** 0..1: in over 150 ms, out over 120 ms. */
 		private float hover;
 		private long last = System.currentTimeMillis();
 
 		public Btn(int x, int y, int w, int h, String label, int fill, int face, Runnable action) {
+			this(x, y, w, h, label, -1, fill, face, action);
+		}
+
+		/** With an icon left of the label; an empty label gives an icon-only button (narrated as narration). */
+		public Btn(int x, int y, int w, int h, String label, int icon, int fill, int face, Runnable action) {
 			super(x, y, w, h, Component.literal(label), button -> action.run(), DEFAULT_NARRATION);
 			this.fill = fill;
 			this.face = face;
+			this.icon = icon;
+		}
+
+		/** The text a screen reader says for an icon-only button; it is never drawn. */
+		public Btn narration(String text) {
+			this.narration = text;
+			return this;
+		}
+
+		private String narration;
+
+		@Override
+		protected net.minecraft.network.chat.MutableComponent createNarrationMessage() {
+			return narration != null ? Component.literal(narration) : super.createNarrationMessage();
 		}
 
 		@Override
@@ -206,7 +265,7 @@ public final class Ui {
 			float dt = Math.min(100, now - last);
 			last = now;
 			hover = isHoveredOrFocused() ? Math.min(1, hover + dt / 150f) : Math.max(0, hover - dt / 120f);
-			button(g, getX(), getY(), getWidth(), getHeight(), getMessage().getString(), hover, fill, face);
+			button(g, getX(), getY(), getWidth(), getHeight(), getMessage().getString(), icon, hover, fill, face);
 		}
 	}
 }

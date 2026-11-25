@@ -6,6 +6,7 @@ import java.util.List;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.options.OptionsScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -17,26 +18,42 @@ import net.newgen.client.core.Setting;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * The "Newgen Mods" menu: a glass panel over the game (or over the panorama when opened from the title screen).
- * Two views: the grid of mod cards (category chips + search), and the options of one mod ("selected").
- * Both views scroll with the mouse wheel. Everything is drawn by hand; the small x/y helper
- * methods below are shared by drawing and clicking so the two can never disagree.
+ * The "Newgen Mods" menu: one centred glass panel over the game (or the panorama from the title screen).
+ * <pre>
+ * [icon] NewGen   [Mods] [Options]                         [x]
+ * ------------------------------------------------------------
+ * | All      74 |  [All] [On] [Off]   [search............]  |
+ * | HUD      30 |  +--------+ +--------+ +--------+          |
+ * | Visual   20 |  |  icon  | |  icon  | |  icon  |          |
+ * | Controls  6 |  |  name  | |  name  | |  name  |          |
+ * | Utility  18 |  |Options*| |Options*| |Options*|          |
+ * |             |  |Enabled | |Disabled| |Enabled |          |
+ * |[Edit HUD]   |  +--------+ +--------+ +--------+          |
+ * </pre>
+ * The categories on the left filter the grid, the chips filter by state, the search by name. A card's Options strip
+ * (or its icon) opens the mod's options in the same area; its last strip turns it on (blue) or off (neutral).
+ * Everything is drawn by hand; the x/y helpers are shared by drawing and clicking so the two never disagree.
  */
 public class ModsScreen extends Screen {
 	/** Quick colours: a click on a colour swatch steps through these. */
 	private static final int[] PALETTE = {
 			0xFFFFFF, 0xAAAAAA, 0x000000, 0xFF5555, 0xFFAA00, 0xFFFF55,
 			0x55FF55, 0x55FFFF, 0x5599FF, 0xAA55FF, 0xFF77CC};
+	/** The categories (Mod.category values) and their icons. */
 	private static final String[] TABS = {"All", "HUD", "Visual", "Controls", "Utility"};
+	private static final int[] TAB_ICONS = {Ui.I_GRID, Ui.I_LAYOUT, Ui.I_EYE, Ui.I_MOUSE, Ui.I_SLIDERS};
+	/** The state chips over the grid. */
+	private static final String[] STATES = {"state.all", "state.on", "state.off"};
 
-	private static final int PAD = 8, HEADER = 26, BAR_H = 18, GAP = 5, ROW_H = 20, HEAD_H = 14;
-	/** A card is the name with its on/off switch, then one line of description; a click opens its options. */
-	private static final int CARD_H = 38, SWITCH_W = 20;
+	private static final int PAD = 8, HEADER = 28, SIDE_W = 92, SIDE_ROW = 16, GAP = 6, ROW_H = 20, HEAD_H = 14;
+	/** A card: icon and name (TOP_H), then the Options strip and the Enabled/Disabled strip (STRIP each). */
+	private static final int TOP_H = 38, STRIP = 14, CARD_H = TOP_H + STRIP * 2;
 	private static final int PILL_W = 20, SWATCH = 10, HEX_W = 66, BUTTON_H = 14, COLUMN_GAP = 14;
-	/** FAINT is for dividing lines and the scroll track. */
-	private static final int FAINT = 0x18FFFFFF;
+	/** FAINT is for dividing lines and the scroll track, ACTIVE for the selected tab and category. */
+	private static final int FAINT = 0x18FFFFFF, ACTIVE = 0x26FFFFFF, STRIP_BG = 0x33000000;
 
-	private static int tab;           // static: coming back from the Right Shift screen lands on the same tab
+	private static int tab;           // static: coming back from the Right Shift screen lands on the same category
+	private static int state;         // 0 all, 1 on, 2 off
 
 	private final Screen parent;      // where Esc goes; null = back into the game
 	private int px, py, pw, ph;       // panel position and size
@@ -58,11 +75,11 @@ public class ModsScreen extends Screen {
 
 	@Override
 	protected void init() {
-		pw = Math.min(480, width - 12);
-		ph = Math.min(300, height - 12);
+		pw = Math.min(500, width - 12);
+		ph = Math.min(310, height - 12);
 		px = (width - pw) / 2;
 		py = (height - ph) / 2;
-		columns = Math.max(1, (pw - PAD * 2) / 140);
+		columns = Math.max(1, (contentRight() - contentX() + GAP) / (96 + GAP));
 	}
 
 	// ---- layout helpers ----
@@ -71,18 +88,27 @@ public class ModsScreen extends Screen {
 		return px + pw - PAD;
 	}
 
+	/** Left edge of the grid / options area, right of the category column. */
+	private int contentX() {
+		return px + PAD + SIDE_W + PAD;
+	}
+
 	/** Right edge of the scrolling content; leaves room for the scroll bar. */
 	private int contentRight() {
 		return right() - 7;
 	}
 
-	/** Top of the buttons in the header. */
 	private int headY() {
 		return py + (HEADER - BUTTON_H) / 2;
 	}
 
+	/** Top of the row under the header: the chips and search, or the back button, name and switch. */
+	private int barY() {
+		return py + HEADER + PAD;
+	}
+
 	private int viewTop() {
-		return py + HEADER + BAR_H + 6;
+		return barY() + BUTTON_H + (selected == null ? GAP : 18);
 	}
 
 	private int footY() {
@@ -90,7 +116,7 @@ public class ModsScreen extends Screen {
 	}
 
 	private int viewBottom() {
-		return footY() - 4;
+		return selected == null ? py + ph - PAD : footY() - 4;
 	}
 
 	private boolean inView(double my) {
@@ -98,43 +124,48 @@ public class ModsScreen extends Screen {
 	}
 
 	private int cardW() {
-		return (contentRight() - px - PAD - GAP * (columns - 1)) / columns;
+		return (contentRight() - contentX() - GAP * (columns - 1)) / columns;
 	}
 
 	private int cardX(int i) {
-		return px + PAD + (i % columns) * (cardW() + GAP);
+		return contentX() + (i % columns) * (cardW() + GAP);
 	}
 
 	private int cardY(int i) {
 		return viewTop() - gridScroll + (i / columns) * (CARD_H + GAP);
 	}
 
-	private int chipW(int i) {
-		return Ui.width(tabLabel(i), Ui.CAPS) + 16;
+	private int sideRowY(int i) {
+		return barY() + i * (SIDE_ROW + 2);
 	}
 
-	/** Left edge of chip i; chipX(TABS.length) is where the chips end. */
-	private int chipX(int i) {
-		int x = px + PAD;
-		for (int k = 0; k < i; k++) x += chipW(k) + 4;
+	private int stateW(int i) {
+		return Ui.width(Ui.tr(STATES[i]), Ui.CAPS) + 14;
+	}
+
+	private int stateX(int i) {
+		int x = contentX();
+		for (int k = 0; k < i; k++) x += stateW(k) + 4;
 		return x;
 	}
 
 	private int searchX() {
-		return Math.max(chipX(TABS.length) + 4, right() - 130);
+		return stateX(STATES.length) + 2;
 	}
 
-	private int barY() {
-		return py + HEADER + 4;
+	private int tabW(String label) {
+		return Ui.width(label, Ui.CAPS) + 16;
 	}
 
-	private int toggleW() {
-		return SWITCH_W;
+	/** The header tabs: Mods (this screen) and Options (the game's own options), after the name. */
+	private int tabX(int i) {
+		int x = px + PAD + 18 + Ui.width("NewGen", Ui.TITLE) + 14;
+		return i == 0 ? x : x + tabW(Ui.tr("mods")) + 4;
 	}
 
-	/** Width of the bottom-left button: "Edit HUD layout" or "Reset to defaults". */
+	/** Width of the bottom-left button: "Reset to defaults". */
 	private int footW(String label) {
-		return Math.min(Ui.width(label, Ui.CAPS) + 20, pw - PAD * 2);
+		return Math.min(Ui.width(label, Ui.CAPS) + 20, right() - contentX());
 	}
 
 	/** Width of the box used by choice, key and text options in a column that is w wide. */
@@ -150,12 +181,21 @@ public class ModsScreen extends Screen {
 		return Math.max(0, Math.min(scroll, contentHeight - (viewBottom() - viewTop())));
 	}
 
-	/** The mods of the current tab that match the search text. */
+	private static boolean inTab(Mod mod, int t) {
+		return t == 0 || TABS[t].equalsIgnoreCase(mod.category);
+	}
+
+	private static int tabIcon(Mod mod) {
+		for (int t = 1; t < TABS.length; t++) if (TABS[t].equalsIgnoreCase(mod.category)) return TAB_ICONS[t];
+		return Ui.I_GRID;
+	}
+
+	/** The mods of the current category and state that match the search text. */
 	private List<Mod> shown() {
 		List<Mod> list = new ArrayList<>();
 		String query = search.toLowerCase();
 		for (Mod mod : Mods.ALL) {
-			if (tab != 0 && !TABS[tab].equalsIgnoreCase(mod.category)) continue;
+			if (!inTab(mod, tab) || state == 1 && !mod.enabled || state == 2 && mod.enabled) continue;
 			if ((mod.name + " " + mod.description).toLowerCase().contains(query)) list.add(mod);
 		}
 		return list;
@@ -166,14 +206,14 @@ public class ModsScreen extends Screen {
 	}
 
 	/**
-	 * Where every option of the selected mod goes. A mod with many options gets the sections GENERAL and COLOUR,
-	 * and two columns when the panel is wide enough.
+	 * Where every option of the selected mod goes. A mod with many options gets the sections General and Colour,
+	 * and two columns when the area is wide enough.
 	 */
 	private List<Cell> cells() {
 		List<Cell> out = new ArrayList<>();
-		int left = px + PAD, full = contentRight() - left, top = viewTop() - rowScroll, y = top;
+		int left = contentX(), full = contentRight() - left, top = viewTop() - rowScroll, y = top;
 		boolean sections = selected.settings.size() > 6;
-		int cols = sections && full >= 360 ? 2 : 1;
+		int cols = sections && full >= 300 ? 2 : 1;
 		int colW = (full - (cols - 1) * COLUMN_GAP) / cols;
 		for (int pass = 0; pass < 2; pass++) {
 			List<Setting> part = new ArrayList<>();
@@ -212,46 +252,73 @@ public class ModsScreen extends Screen {
 	public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
 		Ui.panel(g, px, py, pw, ph);
 		g.fill(px + 1, py + HEADER, px + pw - 1, py + HEADER + 1, FAINT);
+
+		// Header: icon and name, the two tabs, the close button.
+		Ui.icon(g, px + PAD, py + (HEADER - 14) / 2, 14);
+		Ui.text(g, "NewGen", px + PAD + 18, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
+		String mods = Ui.tr("mods"), options = Ui.tr("options");
+		Ui.button(g, tabX(0), headY(), tabW(mods), BUTTON_H, mods, false, ACTIVE, Ui.CAPS);
+		Ui.button(g, tabX(1), headY(), tabW(options), BUTTON_H, options, Ui.I_GEAR,
+				Ui.inside(mouseX, mouseY, tabX(1), headY(), tabW(options), BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+		Ui.button(g, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H, "", Ui.I_CLOSE,
+				Ui.inside(mouseX, mouseY, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+
+		// Left column: the categories with their counts, and Edit HUD layout at its foot.
+		int sx = px + PAD;
+		Ui.round(g, sx, barY() - 2, SIDE_W, py + ph - PAD - (barY() - 2), Ui.R_MD, Ui.CARD);
+		for (int t = 0; t < TABS.length; t++) {
+			int y = sideRowY(t);
+			boolean on = selected == null && t == tab, over = Ui.inside(mouseX, mouseY, sx + 2, y, SIDE_W - 4, SIDE_ROW);
+			if (on || over) Ui.round(g, sx + 2, y, SIDE_W - 4, SIDE_ROW, Ui.R_SM, on ? ACTIVE : Ui.HOVER);
+			Ui.glyph(g, TAB_ICONS[t], sx + 7, y + 4, 8, on ? Ui.BLUE | 0xFF000000 : Ui.DIM);
+			Ui.text(g, Ui.tr("tab." + TABS[t].toLowerCase()), sx + 20, y + 5, on ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
+			int count = 0;
+			for (Mod mod : Mods.ALL) if (inTab(mod, t)) count++;
+			String n = String.valueOf(count);
+			Ui.text(g, n, sx + SIDE_W - 7 - Ui.width(n, Ui.UI), y + 5, Ui.DIM, Ui.UI);
+		}
+		// Without a world there is no HUD to arrange.
+		if (minecraft.level != null) {
+			int by = py + ph - PAD - 4 - BUTTON_H;
+			String edit = Ui.tr("hud.edit");
+			Ui.button(g, sx + 4, by, SIDE_W - 8, BUTTON_H, edit, Ui.I_LAYOUT,
+					Ui.inside(mouseX, mouseY, sx + 4, by, SIDE_W - 8, BUTTON_H) ? 1f : 0f, Ui.BLUE, Ui.CAPS);
+		}
+
 		boolean hot = inView(mouseY);
-		int titleY = py + (HEADER - 7) / 2;
-		Ui.button(g, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H, "×", Ui.inside(mouseX, mouseY, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H), Ui.DARK, Ui.TITLE);
 		int content;
-
 		if (selected == null) {
-			Ui.icon(g, px + PAD, py + (HEADER - 16) / 2, 16);
-			Ui.text(g, Ui.fit(Ui.tr("mods.title"), pw - PAD * 2 - 44, Ui.TITLE, false), px + PAD + 21, titleY, Ui.TEXT, Ui.TITLE);
-
-			for (int i = 0; i < TABS.length; i++) button(g, chipX(i), barY(), chipW(i), tabLabel(i), mouseX, mouseY, i == tab ? Ui.BLUE : Ui.DARK);
-			int sx = searchX(), sw = right() - sx;
-			if (sw >= 30) {
-				field(g, sx, barY(), sw, !search.isEmpty());
-				if (search.isEmpty()) Ui.text(g, Ui.fit(Ui.tr("search"), sw - 12, Ui.UI, false), sx + 6, barY() + 3, Ui.DIM, Ui.UI);
-				else Ui.text(g, Ui.fit(search + "_", sw - 12, Ui.UI, true), sx + 6, barY() + 3, Ui.TEXT, Ui.UI);
+			for (int i = 0; i < STATES.length; i++) {
+				String label = Ui.tr(STATES[i]);
+				Ui.button(g, stateX(i), barY(), stateW(i), BUTTON_H, label, Ui.inside(mouseX, mouseY, stateX(i), barY(), stateW(i), BUTTON_H),
+						i == state ? Ui.BLUE : Ui.DARK, Ui.CAPS);
+			}
+			int fx = searchX(), fw = right() - fx;
+			if (fw >= 40) {
+				field(g, fx, barY(), fw, !search.isEmpty());
+				Ui.glyph(g, Ui.I_SEARCH, fx + 5, barY() + 3, 8, Ui.DIM);
+				if (search.isEmpty()) Ui.text(g, Ui.fit(Ui.tr("search"), fw - 24, Ui.UI, false), fx + 17, barY() + 3, Ui.DIM, Ui.UI);
+				else Ui.text(g, Ui.fit(search + "_", fw - 24, Ui.UI, true), fx + 17, barY() + 3, Ui.TEXT, Ui.UI);
 			}
 
 			List<Mod> list = shown();
 			content = (list.size() + columns - 1) / columns * (CARD_H + GAP) - GAP;
 			gridScroll = limit(gridScroll, content);
-			g.enableScissor(px, viewTop(), px + pw, viewBottom());
+			g.enableScissor(contentX(), viewTop(), right(), viewBottom());
 			for (int i = 0; i < list.size(); i++) {
 				int y = cardY(i);
 				if (y + CARD_H > viewTop() && y < viewBottom()) card(g, list.get(i), cardX(i), y, hot ? mouseX : -1, mouseY);
 			}
 			g.disableScissor();
-			if (list.isEmpty()) Ui.centered(g, Ui.tr("mods.none"), px + pw / 2, viewTop() + 8, Ui.DIM, Ui.UI);
-			// Without a world there is no HUD to arrange.
-			if (minecraft.level != null) button(g, px + PAD, footY(), footW(Ui.tr("hud.edit")), Ui.tr("hud.edit"), mouseX, mouseY, Ui.BLUE);
+			if (list.isEmpty()) Ui.centered(g, Ui.tr("mods.none"), (contentX() + right()) / 2, viewTop() + 12, Ui.DIM, Ui.UI);
 		} else {
-			// The round back button.
-			int bx = px + PAD, by = headY();
-			Ui.round(g, bx, by, BUTTON_H, BUTTON_H, BUTTON_H / 2, Ui.DARK);
-			Ui.ring(g, bx, by, BUTTON_H, BUTTON_H, BUTTON_H / 2, Ui.LINE);
-			if (Ui.inside(mouseX, mouseY, bx, by, BUTTON_H, BUTTON_H)) Ui.round(g, bx, by, BUTTON_H, BUTTON_H, BUTTON_H / 2, Ui.HOVER);
-			Ui.centered(g, "←", bx + BUTTON_H / 2, by + 3, Ui.TEXT, Ui.UI);
-			int nameX = bx + BUTTON_H + 8, toggleX = right() - BUTTON_H - 4 - toggleW();
-			Ui.text(g, Ui.fit(selected.name, toggleX - 8 - nameX, Ui.TITLE, false), nameX, titleY, Ui.TEXT, Ui.TITLE);
-			Ui.toggle(g, toggleX, headY() + 2, selected.enabled, Ui.inside(mouseX, mouseY, toggleX, headY(), SWITCH_W, BUTTON_H));
-			Ui.text(g, Ui.fit(selected.description, pw - PAD * 2, Ui.UI, false), px + PAD, barY() + 3, Ui.DIM, Ui.UI);
+			// The options of one mod: back, its name and its switch; its description under them.
+			int bx = contentX(), by = barY();
+			Ui.button(g, bx, by, BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mouseX, mouseY, bx, by, BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+			int nameX = bx + BUTTON_H + 8, toggleX = right() - PILL_W;
+			Ui.text(g, Ui.fit(selected.name, toggleX - 8 - nameX, Ui.TITLE, false), nameX, by + 3, Ui.TEXT, Ui.TITLE);
+			Ui.toggle(g, toggleX, by + 2, selected.enabled, Ui.inside(mouseX, mouseY, toggleX - 4, by, PILL_W + 4, BUTTON_H));
+			Ui.text(g, Ui.fit(selected.description, right() - bx, Ui.UI, false), bx, by + BUTTON_H + 5, Ui.DIM, Ui.UI);
 
 			List<Cell> cells = cells();
 			content = rowsHeight;
@@ -259,7 +326,7 @@ public class ModsScreen extends Screen {
 				rowScroll = limit(rowScroll, content);
 				cells = cells();
 			}
-			g.enableScissor(px, viewTop(), px + pw, viewBottom());
+			g.enableScissor(contentX() - 4, viewTop(), right(), viewBottom());
 			for (Cell cell : cells) {
 				if (cell.y + ROW_H <= viewTop() || cell.y >= viewBottom()) continue;
 				if (cell.setting != null) {
@@ -270,8 +337,8 @@ public class ModsScreen extends Screen {
 				}
 			}
 			g.disableScissor();
-			if (selected.settings.isEmpty()) Ui.centered(g, Ui.tr("options.none"), px + pw / 2, viewTop() + 8, Ui.DIM, Ui.UI);
-			button(g, px + PAD, footY(), footW(Ui.tr("reset")), Ui.tr("reset"), mouseX, mouseY, Ui.DARK);
+			if (selected.settings.isEmpty()) Ui.centered(g, Ui.tr("options.none"), (contentX() + right()) / 2, viewTop() + 8, Ui.DIM, Ui.UI);
+			button(g, contentX(), footY(), footW(Ui.tr("reset")), Ui.tr("reset"), mouseX, mouseY, Ui.DARK);
 		}
 
 		int viewH = viewBottom() - viewTop(), max = content - viewH;
@@ -283,26 +350,27 @@ public class ModsScreen extends Screen {
 		}
 	}
 
+	/** A card: the category icon and the name, then an Options strip with a gear, then the Enabled / Disabled strip. */
 	private void card(GuiGraphics g, Mod mod, int x, int y, int mouseX, int mouseY) {
-		// One card: the name and its switch on the first line, one line of description under it.
-		// The switch toggles the mod; anywhere else on the card opens its options.
-		int w = cardW(), sx = x + w - 8 - SWITCH_W;
-		boolean overCard = Ui.inside(mouseX, mouseY, x, y, w, CARD_H), overSwitch = onSwitch(mouseX, mouseY, x, y);
+		int w = cardW(), opt = y + TOP_H, status = opt + STRIP;
 		Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.CARD);
-		if (overCard && !overSwitch) Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.HOVER);
-		Ui.text(g, Ui.fit(mod.name, sx - 6 - (x + 8), Ui.CAPS, false), x + 8, y + 9, mod.enabled ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
-		Ui.toggle(g, sx, y + 8, mod.enabled, overSwitch);
-		Ui.text(g, Ui.fit(mod.description, w - 16, Ui.UI, false), x + 8, y + 23, Ui.DIM, Ui.UI);
-		Ui.ring(g, x, y, w, CARD_H, Ui.R_MD, overCard ? 0x50FFFFFF : Ui.LINE);
-	}
+		if (Ui.inside(mouseX, mouseY, x, y, w, TOP_H)) Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.HOVER);
+		Ui.glyph(g, tabIcon(mod), x + (w - 14) / 2, y + 7, 14, mod.enabled ? Ui.TEXT : Ui.DIM);
+		Ui.centered(g, Ui.fit(mod.name, w - 10, Ui.CAPS, false), x + w / 2, y + 26, mod.enabled ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
 
-	/** Whether the mouse is on the switch of the card at x, y (a slightly larger target than the switch). */
-	private boolean onSwitch(double mx, double my, int x, int y) {
-		return Ui.inside(mx, my, x + cardW() - 12 - SWITCH_W, y + 4, SWITCH_W + 8, 18);
-	}
+		g.fill(x, opt, x + w, status, STRIP_BG);
+		g.fill(x, opt, x + w, opt + 1, FAINT);
+		if (Ui.inside(mouseX, mouseY, x, opt, w, STRIP)) g.fill(x, opt, x + w, status, Ui.HOVER);
+		String options = Ui.tr("options");
+		int ow = Ui.width(options, Ui.CAPS) + 12, ox = x + (w - ow) / 2;
+		Ui.text(g, options, ox, opt + 4, Ui.SOFT, Ui.CAPS);
+		Ui.glyph(g, Ui.I_GEAR, ox + ow - 8, opt + 3, 8, Ui.SOFT);
 
-	private static String tabLabel(int i) {
-		return Ui.tr("tab." + TABS[i].toLowerCase());
+		// The strip that closes the card: blue when on, neutral when off; its bottom corners are the card's.
+		Ui.roundBottom(g, x, status, w, STRIP, Ui.R_MD, mod.enabled ? Ui.BLUE : 0x1AFFFFFF);
+		if (Ui.inside(mouseX, mouseY, x, status, w, STRIP)) Ui.roundBottom(g, x, status, w, STRIP, Ui.R_MD, Ui.HOVER);
+		Ui.centered(g, Ui.tr(mod.enabled ? "enabled" : "disabled"), x + w / 2, status + 4, mod.enabled ? Ui.TEXT : Ui.DIM, Ui.CAPS);
+		Ui.ring(g, x, y, w, CARD_H, Ui.R_MD, Ui.LINE);
 	}
 
 	private void row(GuiGraphics g, Cell cell, int mouseX, int mouseY) {
@@ -380,19 +448,34 @@ public class ModsScreen extends Screen {
 		listening = null;
 		typing = null;
 
+		// Header and left column work in both views.
 		if (left && Ui.inside(mx, my, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H)) {
 			onClose();
 			return true;
 		}
-		if (selected == null) {
-			if (!left) return true;
-			if (minecraft.level != null && Ui.inside(mx, my, px + PAD, footY(), footW(Ui.tr("hud.edit")), BUTTON_H)) {
-				minecraft.setScreen(new HubScreen());
+		if (left && Ui.inside(mx, my, tabX(1), headY(), tabW(Ui.tr("options")), BUTTON_H)) {
+			minecraft.setScreen(new OptionsScreen(this, minecraft.options));
+			return true;
+		}
+		int sx = px + PAD;
+		if (left && minecraft.level != null && Ui.inside(mx, my, sx + 4, py + ph - PAD - 4 - BUTTON_H, SIDE_W - 8, BUTTON_H)) {
+			minecraft.setScreen(new HubScreen());
+			return true;
+		}
+		for (int t = 0; t < TABS.length; t++) {
+			if (left && Ui.inside(mx, my, sx + 2, sideRowY(t), SIDE_W - 4, SIDE_ROW)) {
+				tab = t;
+				selected = null;
+				gridScroll = 0;
 				return true;
 			}
-			for (int i = 0; i < TABS.length; i++) {
-				if (Ui.inside(mx, my, chipX(i), barY(), chipW(i), BUTTON_H)) {
-					tab = i;
+		}
+
+		if (selected == null) {
+			if (!left) return true;
+			for (int i = 0; i < STATES.length; i++) {
+				if (Ui.inside(mx, my, stateX(i), barY(), stateW(i), BUTTON_H)) {
+					state = i;
 					gridScroll = 0;
 				}
 			}
@@ -402,7 +485,7 @@ public class ModsScreen extends Screen {
 				Mod mod = list.get(i);
 				int x = cardX(i), y = cardY(i);
 				if (!Ui.inside(mx, my, x, y, cardW(), CARD_H)) continue;
-				if (onSwitch(mx, my, x, y)) {
+				if (my >= y + TOP_H + STRIP) {
 					mod.enabled = !mod.enabled;
 					Mods.save();
 				} else {
@@ -413,12 +496,12 @@ public class ModsScreen extends Screen {
 			return true;
 		}
 
-		if (left && Ui.inside(mx, my, px + PAD, headY(), BUTTON_H, BUTTON_H)) {
+		if (left && Ui.inside(mx, my, contentX(), barY(), BUTTON_H, BUTTON_H)) {
 			selected = null;
-		} else if (left && Ui.inside(mx, my, right() - BUTTON_H - 4 - toggleW(), headY(), toggleW(), BUTTON_H)) {
+		} else if (left && Ui.inside(mx, my, right() - PILL_W - 4, barY(), PILL_W + 4, BUTTON_H)) {
 			selected.enabled = !selected.enabled;
 			Mods.save();
-		} else if (left && Ui.inside(mx, my, px + PAD, footY(), footW(Ui.tr("reset")), BUTTON_H)) {
+		} else if (left && Ui.inside(mx, my, contentX(), footY(), footW(Ui.tr("reset")), BUTTON_H)) {
 			selected.reset();
 			Mods.save();
 		} else if (inView(my)) {

@@ -4,6 +4,9 @@ import java.util.List;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.options.LanguageSelectScreen;
+import net.minecraft.client.gui.screens.options.OptionsScreen;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -12,11 +15,12 @@ import net.newgen.client.core.HudMod;
 import net.newgen.client.core.Mods;
 
 /**
- * What Right Shift opens: the game stays visible (blurred), the NewGen logo with a MODS button sits in the middle,
- * and the HUD elements stay on screen where they can be arranged: drag to move, mouse wheel resizes, right click puts back.
+ * What Right Shift opens, kept minimal: the live game (not blurred, so the HUD reads as it will in play), the NewGen
+ * logo in the middle and one row under it: [options] [Mods] [language]. The HUD elements stay on screen where they
+ * can be arranged: drag to move, mouse wheel resizes, right click puts back. One quiet hint line at the foot.
  */
 public class HubScreen extends Screen {
-	private static final String[] HINT = {"hub.hint.move", "hub.hint.resize"};
+	private static final int ROW_H = 20, MODS_W = 110, GAP = 4;
 
 	private HudMod dragging;
 	private double grabX, grabY; // where inside the element the mouse grabbed it
@@ -29,19 +33,24 @@ public class HubScreen extends Screen {
 	@Override
 	protected void init() {
 		HudMod.editing = true;
-		int buttonW = Math.min(160, width - 40);
-		// The logo shrinks with the window and goes away before it would push the button off screen.
-		logoW = Math.max(0, Math.min(Math.min(190, width - 40), (height - 90) * 4));
-		int logoH = logoW >= 40 ? Ui.logoHeight(logoW) + 6 : 0;
-		top = (height - logoH - 20) / 2;
-		addRenderableWidget(new Ui.Btn((width - buttonW) / 2, top + logoH, buttonW, 20, Ui.tr("mods"), Ui.DARK, Ui.CAPS, () -> minecraft.setScreen(new ModsScreen(null))));
+		// The logo shrinks with the window and goes away before it would push the row off screen.
+		logoW = Math.max(0, Math.min(Math.min(150, width - 40), (height - 90) * 4));
+		int logoH = logoW >= 40 ? Ui.logoHeight(logoW) + 10 : 0;
+		top = (height - logoH - ROW_H) / 2;
+		int y = top + logoH, x = (width - MODS_W) / 2;
+		addRenderableWidget(new Ui.Btn(x - GAP - ROW_H, y, ROW_H, ROW_H, "", Ui.I_GEAR, Ui.DARK, Ui.CAPS,
+				() -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))).narration(I18n.get("menu.options")));
+		addRenderableWidget(new Ui.Btn(x, y, MODS_W, ROW_H, Ui.tr("mods"), Ui.DARK, Ui.CAPS, () -> minecraft.setScreen(new ModsScreen(null))));
+		addRenderableWidget(new Ui.Btn(x + MODS_W + GAP, y, ROW_H, ROW_H, "", Ui.I_GLOBE, Ui.DARK, Ui.CAPS,
+				() -> minecraft.setScreen(new LanguageSelectScreen(this, minecraft.options, minecraft.getLanguageManager())))
+				.narration(I18n.get("options.language")));
 	}
 
 	@Override
 	public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
-		// The game's own blur (strength follows Options > Accessibility > Menu Background Blur), no dark overlay.
+		// In a world: the live game with only a light shade, no blur. Without one: the panorama.
 		if (minecraft.level == null) renderPanorama(g, delta);
-		renderBlurredBackground(g);
+		else g.fill(0, 0, width, height, 0x30000000);
 	}
 
 	/** The elements on screen. Without a world there is nothing they could show. */
@@ -51,7 +60,7 @@ public class HubScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
-		// Drawn here and not by the game's HUD layer, so the elements stay sharp on top of the blur.
+		// Drawn here and not by the game's HUD layer, so they stay above this screen's shade.
 		HudMod hot = dragging != null ? dragging : at(mouseX, mouseY);
 		for (HudMod hud : huds()) {
 			hud.render(g, minecraft);
@@ -61,10 +70,7 @@ public class HubScreen extends Screen {
 
 		Ui.logo(g, width / 2, top, logoW);
 		super.render(g, mouseX, mouseY, delta);
-		int y = top + (logoW >= 40 ? Ui.logoHeight(logoW) + 6 : 0) + 26;
-		if (minecraft.level != null && y + 20 < height) {
-			for (int i = 0; i < HINT.length; i++) Ui.centered(g, Ui.fit(Ui.tr(HINT[i]), width - 8, Ui.UI, false), width / 2, y + i * 11, Ui.SOFT, Ui.UI);
-		}
+		if (minecraft.level != null) Ui.centered(g, Ui.fit(Ui.tr("hub.hint"), width - 8, Ui.UI, false), width / 2, height - 16, Ui.SOFT, Ui.UI);
 	}
 
 	private void frame(GuiGraphics g, HudMod hud, int color) {
