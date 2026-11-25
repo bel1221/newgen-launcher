@@ -46,7 +46,7 @@ public class EmotesMod extends Mod {
 	private Level level;
 	private SoundInstance clip;
 	private CameraType before;
-	private boolean cameraChanged, wasDown, preloaded;
+	private boolean cameraChanged, wasDown, preloaded, overlayWas;
 
 	public EmotesMod() {
 		super("emotes", "Emotes", "Hold G for the emote wheel; only you see and hear them");
@@ -81,10 +81,14 @@ public class EmotesMod extends Mod {
 	// ---- playback ----
 
 	public void tick(Minecraft mc) {
-		if (!preloaded && mc.getOverlay() == null) { // resources are loaded
+		// Emotes (re)load whenever the resources finish loading: at start-up, after F3+T and after a pack change
+		// (each shows the loading overlay).
+		boolean overlay = mc.getOverlay() != null;
+		if (!overlay && (overlayWas || !preloaded)) {
 			preloaded = true;
-			EmoteLibrary.preload();
+			EmoteLibrary.reload();
 		}
+		overlayWas = overlay;
 		if (playing != null && (mc.player == null || mc.level != level || !enabled)) stop(mc);
 		if (!enabled || mc.player == null) {
 			wasDown = false;

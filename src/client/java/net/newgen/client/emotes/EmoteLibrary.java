@@ -23,7 +23,9 @@ import net.newgen.client.NewgenClient;
  */
 public final class EmoteLibrary {
 	private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("newgen_client");
-	private static Map<String, Emote> all;
+	/** The loaded emotes; replaced whole by the loader thread, so readers never wait or see a half-built map. */
+	private static volatile Map<String, Emote> all = Map.of();
+	private static final java.util.concurrent.atomic.AtomicInteger generation = new java.util.concurrent.atomic.AtomicInteger();
 
 	/** One emote. sound is null when it has none. */
 	public record Emote(String id, Animation animation, String author, Identifier sound, boolean hasIcon) {
@@ -45,15 +47,18 @@ public final class EmoteLibrary {
 	private EmoteLibrary() {
 	}
 
-	/** Every emote by id, sorted by id. */
-	public static synchronized Map<String, Emote> all() {
-		if (all == null) all = load(Minecraft.getInstance().getResourceManager());
+	/** Every emote by id, sorted by id; empty until the first load has finished. Never blocks. */
+	public static Map<String, Emote> all() {
 		return all;
 	}
 
-	/** Loads the emotes on a background thread once the game's resources are ready, so no menu waits for them. */
-	public static void preload() {
-		Thread t = new Thread(EmoteLibrary::all, "Newgen emote loader");
+	/** (Re)loads the emotes on a background thread; called when the game's resources are ready and after each resource reload. */
+	public static void reload() {
+		int mine = generation.incrementAndGet();
+		Thread t = new Thread(() -> {
+			Map<String, Emote> loaded = load(Minecraft.getInstance().getResourceManager());
+			if (generation.get() == mine) all = loaded; // a newer reload wins
+		}, "Newgen emote loader");
 		t.setDaemon(true);
 		t.start();
 	}

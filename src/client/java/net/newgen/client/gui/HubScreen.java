@@ -41,7 +41,7 @@ public class HubScreen extends Screen {
 		int y = top + logoH, x = (width - MODS_W) / 2;
 		addRenderableWidget(new Ui.Btn(x - GAP - ROW_H, y, ROW_H, ROW_H, "", Ui.I_GEAR, Ui.DARK, Ui.CAPS,
 				() -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))).narration(I18n.get("menu.options")));
-		addRenderableWidget(new Ui.Btn(x, y, MODS_W, ROW_H, Ui.tr("mods"), Ui.DARK, Ui.CAPS, () -> minecraft.setScreen(new ModsScreen(null))));
+		addRenderableWidget(new Ui.Btn(x, y, MODS_W, ROW_H, Ui.tr("mods"), Ui.DARK, Ui.CAPS, () -> minecraft.setScreen(new ModsScreen(this))));
 		addRenderableWidget(new Ui.Btn(x + MODS_W + GAP, y, ROW_H, ROW_H, "", Ui.I_GLOBE, Ui.DARK, Ui.CAPS,
 				() -> minecraft.setScreen(new LanguageSelectScreen(this, minecraft.options, minecraft.getLanguageManager())))
 				.narration(I18n.get("options.language")));
