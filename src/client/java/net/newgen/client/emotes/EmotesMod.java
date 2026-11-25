@@ -46,7 +46,7 @@ public class EmotesMod extends Mod {
 	private Level level;
 	private SoundInstance clip;
 	private CameraType before;
-	private boolean cameraChanged, wasDown, preloaded, overlayWas;
+	private boolean cameraChanged, wasDown;
 
 	public EmotesMod() {
 		super("emotes", "Emotes", "Hold G for the emote wheel; only you see and hear them");
@@ -54,6 +54,7 @@ public class EmotesMod extends Mod {
 				() -> Minecraft.getInstance().setScreen(new EmoteWheelEditScreen(Minecraft.getInstance().screen, this))));
 		settings.add(wheel);
 		enabled = true;
+		EmoteLibrary.register();
 		// Every player model gets the layer; only the local player's is ever triggered.
 		PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory(LAYER, 1000,
 				avatar -> new PlayerAnimationController(avatar, (controller, data, setter) -> PlayState.CONTINUE));
@@ -81,14 +82,6 @@ public class EmotesMod extends Mod {
 	// ---- playback ----
 
 	public void tick(Minecraft mc) {
-		// Emotes (re)load whenever the resources finish loading: at start-up, after F3+T and after a pack change
-		// (each shows the loading overlay).
-		boolean overlay = mc.getOverlay() != null;
-		if (!overlay && (overlayWas || !preloaded)) {
-			preloaded = true;
-			EmoteLibrary.reload();
-		}
-		overlayWas = overlay;
 		if (playing != null && (mc.player == null || mc.level != level || !enabled)) stop(mc);
 		if (!enabled || mc.player == null) {
 			wasDown = false;

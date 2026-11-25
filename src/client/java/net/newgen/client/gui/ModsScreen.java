@@ -78,8 +78,9 @@ public class ModsScreen extends Screen {
 	protected void init() {
 		// 20 units of margin at every scale; the top stays below the 32 high toast column (tutorial hints) so the close
 		// button is never under a toast.
-		pw = Math.min(500, width - 40);
-		ph = Math.min(310, height - TOAST_H - 12);
+		// Never below a usable minimum: on a tiny window or a huge GUI scale the panel overflows rather than turning negative.
+		pw = Math.max(240, Math.min(500, width - 40));
+		ph = Math.max(120, Math.min(310, height - TOAST_H - 12));
 		px = (width - pw) / 2;
 		py = Math.max(TOAST_H + 4, (height - ph) / 2);
 		columns = Math.max(1, (contentRight() - contentX() + GAP) / (96 + GAP));
@@ -327,13 +328,13 @@ public class ModsScreen extends Screen {
 			List<Mod> list = shown();
 			content = (list.size() + columns - 1) / columns * (CARD_H + GAP) - GAP;
 			gridScroll = limit(gridScroll, content);
-			g.enableScissor(contentX(), viewTop(), right(), viewBottom());
+			if (viewBottom() > viewTop()) g.enableScissor(contentX(), viewTop(), right(), viewBottom());
 			for (int i = 0; i < list.size(); i++) {
 				int y = cardY(i);
 				if (y + CARD_H > viewTop() && y < viewBottom()) card(g, list.get(i), cardX(i), y, hot ? mouseX : -1, mouseY);
 				if (i == focus && y + CARD_H > viewTop() && y < viewBottom()) Ui.ring(g, cardX(i) - 1, y - 1, cardW() + 2, CARD_H + 2, Ui.R_MD + 1, Ui.ACCENT);
 			}
-			g.disableScissor();
+			if (viewBottom() > viewTop()) g.disableScissor();
 			if (list.isEmpty()) Ui.centered(g, Ui.tr("mods.none"), (contentX() + right()) / 2, viewTop() + 12, Ui.DIM, Ui.UI);
 		} else {
 			// The options of one mod: back, its name and its switch; its description under them.
@@ -350,7 +351,7 @@ public class ModsScreen extends Screen {
 				rowScroll = limit(rowScroll, content);
 				cells = cells();
 			}
-			g.enableScissor(contentX() - 4, viewTop(), right(), viewBottom());
+			if (viewBottom() > viewTop()) g.enableScissor(contentX() - 4, viewTop(), right(), viewBottom());
 			for (Cell cell : cells) {
 				if (cell.y + ROW_H <= viewTop() || cell.y >= viewBottom()) continue;
 				if (cell.setting != null) {
@@ -360,7 +361,7 @@ public class ModsScreen extends Screen {
 					g.fill(cell.x + Ui.width(cell.heading, Ui.CAPS) + 6, cell.y + 7, cell.x + cell.w, cell.y + 8, FAINT);
 				}
 			}
-			g.disableScissor();
+			if (viewBottom() > viewTop()) g.disableScissor();
 			if (selected.settings.isEmpty()) Ui.centered(g, Ui.tr("options.none"), (contentX() + right()) / 2, viewTop() + 8, Ui.DIM, Ui.UI);
 			button(g, contentX(), footY(), footW(Ui.tr("reset")), Ui.tr("reset"), mouseX, mouseY, Ui.DARK);
 		}

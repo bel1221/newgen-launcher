@@ -10,10 +10,12 @@ import java.util.TreeMap;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.zigythebird.playeranimcore.animation.Animation;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.resources.Identifier;
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.newgen.client.NewgenClient;
 
 /**
@@ -52,12 +54,25 @@ public final class EmoteLibrary {
 		return all;
 	}
 
-	/** (Re)loads the emotes on a background thread; called when the game's resources are ready and after each resource reload. */
-	public static void reload() {
-		int mine = generation.incrementAndGet();
+	/**
+	 * Registers a client resource reload listener: the emotes (re)load on a background thread after every resource
+	 * load (start-up, F3+T, resource-pack changes).
+	 */
+	public static void register() {
+		ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloader(Identifier.fromNamespaceAndPath(NewgenClient.ID, "emotes"),
+				(ResourceManagerReloadListener) EmoteLibrary::reload);
+	}
+
+	private static void reload(ResourceManager resources) {
+		int mine;
+		synchronized (EmoteLibrary.class) {
+			mine = generation.incrementAndGet();
+		}
 		Thread t = new Thread(() -> {
-			Map<String, Emote> loaded = load(Minecraft.getInstance().getResourceManager());
-			if (generation.get() == mine) all = loaded; // a newer reload wins
+			Map<String, Emote> loaded = load(resources);
+			synchronized (EmoteLibrary.class) { // check and publish together: an older load never replaces a newer one
+				if (generation.get() == mine) all = loaded;
+			}
 		}, "Newgen emote loader");
 		t.setDaemon(true);
 		t.start();
