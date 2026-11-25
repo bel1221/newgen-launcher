@@ -44,9 +44,26 @@ public final class Mods {
 		return out;
 	}
 
+	/** A fresh profile (no config file yet) starts with four HUD elements stacked on the left; saved layouts are never touched. */
+	private static void firstRun() {
+		float[][] place = {{0f, 0f}, {0f, 0.09f}, {0f, 0.2f}, {0f, 0.75f}};
+		String[] ids = {"fps", "cps", "coordinates", "keystrokes"};
+		for (int i = 0; i < ids.length; i++) {
+			for (Mod mod : ALL) {
+				if (!mod.id.equals(ids[i]) || !(mod instanceof HudMod hud)) continue;
+				hud.enabled = true;
+				hud.x = place[i][0];
+				hud.y = place[i][1];
+			}
+		}
+	}
+
 	public static void load() {
 		for (Mod mod : ALL) for (Setting s : mod.settings) s.def = s.toJson();
-		if (!Files.exists(FILE)) return;
+		if (!Files.exists(FILE)) {
+			firstRun();
+			return;
+		}
 		JsonObject root;
 		try {
 			root = JsonParser.parseString(Files.readString(FILE)).getAsJsonObject();
