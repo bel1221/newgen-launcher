@@ -237,11 +237,12 @@ public class EmoteWheelScreen extends Screen {
 		}
 		int step = Ui.arrow(key);
 		if (step != 0) {
-			hovered = Math.floorMod((hovered < 0 ? (step > 0 ? -1 : 0) : hovered) + step, EmotesMod.SLOTS);
+			// With nothing lit yet the wheel counts as being on slot 1, so the first arrow already moves (right: 2, left: 8).
+			hovered = Math.floorMod((hovered < 0 ? 0 : hovered) + step, EmotesMod.SLOTS);
 			lastMouseX = Double.NaN; // the mouse takes over again only once it moves
 			return true;
 		}
-		if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) {
+		if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE) {
 			choose();
 			return true;
 		}
