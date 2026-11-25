@@ -76,6 +76,8 @@ public class ModsScreen extends Screen {
 
 	@Override
 	protected void init() {
+		// Vanilla's tutorial and other toasts sit where our panels are; they go while our screens are open.
+		minecraft.getToastManager().clear();
 		// 20 units of margin at every scale; the top stays below the 32 high toast column (tutorial hints) so the close
 		// button is never under a toast.
 		// Never below a usable minimum: on a tiny window or a huge GUI scale the panel overflows rather than turning negative.

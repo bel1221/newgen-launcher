@@ -30,6 +30,11 @@ public class EmoteWheelScreen extends Screen {
 	}
 
 	@Override
+	protected void init() {
+		minecraft.getToastManager().clear();
+	}
+
+	@Override
 	public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
 		g.fill(0, 0, width, height, 0x30000000); // the game stays visible
 	}

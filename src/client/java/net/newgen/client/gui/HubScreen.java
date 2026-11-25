@@ -32,6 +32,8 @@ public class HubScreen extends Screen {
 
 	@Override
 	protected void init() {
+		// Vanilla's tutorial and other toasts sit where our panels are; they go while our screens are open.
+		minecraft.getToastManager().clear();
 		HudMod.editing = true;
 		// The logo shrinks with the window and goes away before it would push the row off screen.
 		logoW = Math.max(0, Math.min(Math.min(150, width - 40), (height - 90) * 4));

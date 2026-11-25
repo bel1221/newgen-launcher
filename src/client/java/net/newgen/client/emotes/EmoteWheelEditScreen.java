@@ -38,6 +38,8 @@ public class EmoteWheelEditScreen extends Screen {
 
 	@Override
 	protected void init() {
+		// Vanilla's tutorial and other toasts sit where our panels are; they go while our screens are open.
+		minecraft.getToastManager().clear();
 		pw = Math.min(440, width - 40);
 		ph = Math.min(280, height - TOAST_H - 12);
 		px = (width - pw) / 2;
