@@ -44,6 +44,10 @@ public class NewgenClient implements ClientModInitializer {
 		net.newgen.client.mods.controls.ControlsMods.register();
 		net.newgen.client.mods.utility.UtilityMods.register();
 		Mods.load();
+		// Cached menu labels are dropped after every resource reload.
+		net.fabricmc.fabric.api.resource.v1.ResourceLoader.get(net.minecraft.server.packs.PackType.CLIENT_RESOURCES).registerReloader(
+				Identifier.fromNamespaceAndPath(ID, "menu_labels"),
+				(net.minecraft.server.packs.resources.ResourceManagerReloadListener) resources -> net.newgen.client.gui.ModsScreen.clearLabels());
 
 		KeyBindingHelper.registerKeyBinding(OPEN_MODS);
 		ClientTickEvents.END_CLIENT_TICK.register(mc -> {

@@ -193,6 +193,11 @@ public class ModsScreen extends Screen {
 	private static final java.util.Map<String, String> LABELS = new java.util.HashMap<>();
 	private static String labelsLanguage;
 
+	/** Called after every resource reload (F3+T, a pack change): translations may have changed in the same language. */
+	public static void clearLabels() {
+		LABELS.clear();
+	}
+
 	private static String translated(String key, String fallback) {
 		String lang = net.minecraft.client.Minecraft.getInstance().getLanguageManager().getSelected();
 		if (!lang.equals(labelsLanguage)) {

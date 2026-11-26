@@ -210,6 +210,7 @@ public final class VideoBackground {
 		private final java.util.concurrent.atomic.AtomicInteger bandsAlive = new java.util.concurrent.atomic.AtomicInteger();
 		private boolean released;
 		private boolean framesFree;
+		private boolean closed;
 
 		/** The frames are no longer needed (a stopped clip whose texture still covers a restart). */
 		void freeFrames() {
@@ -348,7 +349,10 @@ public final class VideoBackground {
 			if (newest < 0) return;
 			int n = Math.min(newest, (int) ((System.nanoTime() - start) * FPS / 1_000_000_000L));
 			if (n <= shown) return;
-			int[][] set = frames;
+			int[][] set;
+			synchronized (FRAME_POOL) { // the frames may be handed back by a band thread at the same time
+				set = released || framesFree ? null : frames;
+			}
 			if (set == null || System.nanoTime() < skipUploadUntil) return;
 			long t0 = System.nanoTime();
 			MemoryUtil.memIntBuffer(texture.getPixels().getPointer(), W * H).put(set[n % SLOTS]);
@@ -365,6 +369,8 @@ public final class VideoBackground {
 
 		/** Stops decoding now; the texture goes at the start of the next render() (see retired). */
 		void close() {
+			if (closed) return; // once only: a second close must not put its texture in the pool twice
+			closed = true;
 			stopped = true;
 			barrier.reset();
 			retired.add(this);
