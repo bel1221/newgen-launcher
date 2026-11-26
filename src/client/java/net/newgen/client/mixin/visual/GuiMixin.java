@@ -1,6 +1,7 @@
 package net.newgen.client.mixin.visual;
 
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
@@ -33,9 +34,9 @@ public class GuiMixin {
 		if (path.contains("powder_snow") && OverlayMod.I.hidePowderSnow.value) ci.cancel();
 	}
 
-	// Overlays: pumpkin overlay opacity. The texture is the second argument, so the alpha is read after it here.
+	// Overlays: pumpkin overlay opacity (the alpha is the only float argument).
 	@ModifyVariable(method = "renderTextureOverlay", at = @At("HEAD"), argsOnly = true)
-	private float newgen$overlayAlpha(float alpha, GuiGraphics graphics, Identifier texture) {
+	private float newgen$overlayAlpha(float alpha, @Local(argsOnly = true) Identifier texture) {
 		if (OverlayMod.I.enabled && texture.getPath().contains("pumpkin")) return alpha * (float) OverlayMod.I.pumpkinOpacity.get() / 100f;
 		return alpha;
 	}
