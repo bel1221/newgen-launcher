@@ -38,7 +38,8 @@ public class HorseStatsMod extends HudMod {
 		if (jump.value && j != null) {
 			out.add(String.format("Jump: %.1f blocks", -0.1817584952 * j * j * j + 3.689713992 * j * j + 2.128599134 * j - 0.343930367));
 		}
-		if (health.value) out.add(String.format("Health: %.0f / %.0f", horse.getHealth(), horse.getMaxHealth()));
+		// Health only for the horse you ride: another player's horse's health is not yours to read.
+		if (health.value && horse == mc.player.getVehicle()) out.add(String.format("Health: %.0f / %.0f", horse.getHealth(), horse.getMaxHealth()));
 		return out;
 	}
 

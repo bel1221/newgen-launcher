@@ -36,7 +36,6 @@ minimap
 scoreboard
 tab
 titles
-tnt_countdown
 emotes
 waypoints
 animatium
@@ -49,11 +48,8 @@ fov
 freelook
 gui_scale
 hit_color
-hitbox
 hurt_cam
 item_customizer
-light_overlay
-lighting
 menu_blur
 nametag
 nick_hider
@@ -61,7 +57,6 @@ overlay
 particle_changer
 shields
 shiny_pots
-time_changer
 weather_changer
 zoom
 snaplook

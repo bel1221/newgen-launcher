@@ -24,11 +24,4 @@ public class GuiMixin {
 		return false;
 	}
 
-	@Inject(method = "renderTextureOverlay", at = @At("HEAD"), cancellable = true)
-	private void newgen$hideOverlay(GuiGraphics graphics, Identifier texture, float alpha, CallbackInfo ci) {
-		if (!OverlayMod.I.enabled) return;
-		String path = texture.getPath();
-		if (path.contains("pumpkin") && OverlayMod.I.hidePumpkin.value) ci.cancel();
-		if (path.contains("powder_snow") && OverlayMod.I.hidePowderSnow.value) ci.cancel();
-	}
 }

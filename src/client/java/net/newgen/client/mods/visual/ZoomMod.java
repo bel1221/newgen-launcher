@@ -11,7 +11,7 @@ import org.lwjgl.glfw.GLFW;
 public class ZoomMod extends Mod {
 	public static final ZoomMod I = new ZoomMod();
 	private final Setting.Key key = key("key", "Zoom key (hold)", GLFW.GLFW_KEY_C);
-	private final Setting.Num factor = num("factor", "Zoom factor", 4, 1.5, 10, 0.5);
+	private final Setting.Num factor = num("factor", "Zoom factor", 4, 1.5, 4, 0.5) /* at most 4x: fair play */;
 	private final Setting.Bool smooth = bool("smooth", "Smooth zoom", true);
 	private final Setting.Bool cinematic = bool("cinematic", "Cinematic camera while zoomed", false);
 

@@ -24,20 +24,15 @@ public final class VisualMods {
 		Mods.register(CATEGORY, FovMod.I);
 		Mods.register(CATEGORY, GuiScaleMod.I);
 		Mods.register(CATEGORY, HeightLimitMod.I);
-		Mods.register(CATEGORY, HitboxMod.I);
 		Mods.register(CATEGORY, HitColorMod.I);
 		Mods.register(CATEGORY, HurtCamMod.I);
 		Mods.register(CATEGORY, ItemCustomizerMod.I);
-		Mods.register(CATEGORY, LightingMod.I);
-		Mods.register(CATEGORY, LightOverlayMod.I);
 		Mods.register(CATEGORY, MenuBlurMod.I);
 		Mods.register(CATEGORY, NametagMod.I);
 		Mods.register(CATEGORY, OverlayMod.I);
 		Mods.register(CATEGORY, ParticleChangerMod.I);
 		Mods.register(CATEGORY, ShieldsMod.I);
 		Mods.register(CATEGORY, ShinyPotsMod.I);
-		Mods.register(CATEGORY, TimeChangerMod.I);
-		Mods.register(CATEGORY, TntCountdownMod.I);
 		Mods.register(CATEGORY, WeatherChangerMod.I);
 		Mods.register(CATEGORY, ZoomMod.I);
 
@@ -57,8 +52,5 @@ public final class VisualMods {
 		if (mc.level == null || camera == null) return;
 		ChunkBordersMod.I.emit(mc, camera);
 		HeightLimitMod.I.emit(mc, camera);
-		HitboxMod.I.emit(mc, camera, partialTick);
-		LightOverlayMod.I.emit(mc, camera);
-		TntCountdownMod.I.emit(mc, partialTick);
 	}
 }

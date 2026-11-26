@@ -14,7 +14,6 @@ import net.newgen.client.core.Setting;
 
 public class WailaMod extends HudMod {
 	private final Setting.Bool entities = bool("entities", "Show entities", true);
-	private final Setting.Bool health = bool("health", "Show entity health", true);
 
 	private ItemStack icon = ItemStack.EMPTY;
 
@@ -34,9 +33,6 @@ public class WailaMod extends HudMod {
 		}
 		if (entities.value && hit instanceof EntityHitResult e) {
 			String name = e.getEntity().getName().getString();
-			if (health.value && e.getEntity() instanceof LivingEntity living) {
-				return List.of(name, String.format("%.1f / %.1f HP", living.getHealth(), living.getMaxHealth()));
-			}
 			return List.of(name);
 		}
 		return List.of();

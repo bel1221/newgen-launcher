@@ -5,7 +5,7 @@ import net.newgen.client.core.Setting;
 
 public class FovMod extends Mod {
 	public static final FovMod I = new FovMod();
-	public final Setting.Num fov = num("fov", "Field of view", 90, 30, 150, 1);
+	public final Setting.Num fov = num("fov", "Field of view", 90, 30, 110, 1) /* 30-110: fair play */;
 	public final Setting.Bool dynamic = bool("dynamic", "Dynamic FOV (sprint, speed, bow)", false);
 
 	private FovMod() {

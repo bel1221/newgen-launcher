@@ -13,7 +13,6 @@
 		"ItemStackMixin",
 		"LevelMixin",
 		"LevelRendererMixin",
-		"LightTextureMixin",
 		"LivingEntityRendererMixin",
 		"MinecraftMixin",
 		"NameTagStorageMixin",

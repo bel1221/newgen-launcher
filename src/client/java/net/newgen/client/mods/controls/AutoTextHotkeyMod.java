@@ -20,10 +20,16 @@ public class AutoTextHotkeyMod extends Mod {
 		}
 	}
 
+	private long lastSent;
+
 	void tick(Minecraft mc) {
 		for (int i = 0; i < SLOTS; i++) {
 			boolean down = enabled && keys[i].isDown(mc);
-			if (down && !wasDown[i]) ControlsMods.send(mc, texts[i].value);
+			// At most one message a second across all hotkeys, so they cannot be used to spam.
+			if (down && !wasDown[i] && System.currentTimeMillis() - lastSent >= 1000) {
+				lastSent = System.currentTimeMillis();
+				ControlsMods.send(mc, texts[i].value);
+			}
 			wasDown[i] = down;
 		}
 	}
