@@ -16,6 +16,9 @@ use serde::Deserialize;
 use skia_safe::vertices::VertexMode;
 use skia_safe::{BlendMode, Canvas, Data, FilterMode, Image, MipmapMode, Paint, Point, SamplingOptions, Shader, TileMode, Vertices};
 
+/// A projected face: (depth, texture, screen corners, uvs, shade).
+type Face = (f32, usize, [Point; 4], [Point; 4], u8);
+
 pub const DURATION: f32 = 1.9; // seconds
 const COUNT: usize = 18; // weapons per burst, picked at random from the model file
 const SIZE: f32 = 95.; // on-screen size of a weapon, in px
@@ -355,7 +358,7 @@ impl WeaponSet {
     pub fn draw(&self, canvas: &Canvas, items: &[(usize, (f32, f32), V3, f32)]) {
         let light = normalize([0.4, 1., 1.]);
         // Projected faces: (depth, texture, screen corners, uvs, shade)
-        let mut faces: Vec<(f32, usize, [Point; 4], [Point; 4], u8)> = Vec::new();
+        let mut faces: Vec<Face> = Vec::new();
         for &(weapon, (cx, cy), rotation, scale) in items {
             let Some(weapon) = self.weapons.get(weapon) else { continue };
             for q in &weapon.quads {

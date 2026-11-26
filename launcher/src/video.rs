@@ -191,7 +191,7 @@ impl Clip {
                 data = &data[end..];
             }
             if let Ok(Some(yuv)) = self.decoder.decode(&packet) {
-                return Some(convert(&yuv, rgba)?);
+                return convert(&yuv, rgba);
             }
         }
         if !self.flushed_done {

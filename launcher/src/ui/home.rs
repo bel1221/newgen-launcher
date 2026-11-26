@@ -239,7 +239,7 @@ impl Component for Home {
             .child(SiteCards {})
             .child(WhatsNewCard { hidden: log_open || settings_open })
             .maybe_child(log_open.then(|| log_panel(s, lang.text(S::GameLog), lang.text(S::CloseGameLog))))
-            .maybe_child(settings_open.then(|| SettingsPanel { shared: s }))
+            .maybe_child(settings_open.then_some(SettingsPanel { shared: s }))
             .maybe_child(s.crash.read().clone().map(|lines| CrashPanel { shared: s, lines }))
     }
 }

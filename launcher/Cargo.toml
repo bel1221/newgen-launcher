@@ -34,8 +34,6 @@ bytes = "=1.12.1"
 rust-embed = { version = "=8.12.0", features = ["include-exclude", "compression", "debug-embed"] }
 open = { version = "=5.4.4", features = ["shellexecute-on-windows"] }
 url = "=2.5.8"
-anyhow = "=1.0.104"
-thiserror = "=2.0.21"
 tracing = "=0.1.44"
 tracing-subscriber = { version = "=0.3.23", features = ["env-filter", "fmt"] }
 rfd = "=0.17.2"
