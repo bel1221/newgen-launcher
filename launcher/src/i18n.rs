@@ -68,6 +68,7 @@ strings! {
     AlreadyRunning: "The game is already running", "Game đang chạy rồi";
     ModsNotAllowed: "Adding Mods is not Allowed, please remove \"{}\" to continue using Newgen Launcher", "Không được phép thêm mod, vui lòng gỡ \"{}\" để tiếp tục dùng Newgen Launcher";
     ModsMissing: "The launcher mods are missing. Reinstall the launcher.", "Thiếu mod của launcher. Hãy cài lại launcher.";
+    ModsLocked: "Minecraft seems to be running. Close it and press Play again.", "Có vẻ Minecraft đang chạy. Hãy tắt game rồi bấm Chơi lại.";
     CheckingFile: "Checking {}", "Đang kiểm tra {}";
     FilesUpToDate: "Files up to date", "File đã được cập nhật";
     DownloadingJava: "Downloading Java", "Đang tải Java";

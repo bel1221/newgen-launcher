@@ -34,8 +34,9 @@ fn bundled_hashes(bundled_dir: &Path) -> BTreeMap<String, String> {
     hashes
 }
 
-/// Names of everything in the game's mods folder (files and subfolders) that is not a bundled jar
-/// with the same content. A bundled jar swapped for another file under the same name is listed.
+/// Names of everything in the game's mods folder (files and subfolders) that is not a bundled
+/// jar. A file under a bundled jar's name is never listed: [`install_mods`] overwrites it with the
+/// bundled copy, so an old version or a tampered copy is undone instead of blamed on the player.
 pub fn added_mods(bundled_dir: &Path, mods_dir: &Path) -> Vec<String> {
     let Ok(entries) = std::fs::read_dir(mods_dir) else { return Vec::new() };
     let bundled = bundled_hashes(bundled_dir);
@@ -43,11 +44,7 @@ pub fn added_mods(bundled_dir: &Path, mods_dir: &Path) -> Vec<String> {
         .flatten()
         .filter(|entry| {
             let name = entry.file_name().to_string_lossy().into_owned();
-            let same = entry.file_type().is_ok_and(|t| t.is_file())
-                && bundled
-                    .get(&name)
-                    .is_some_and(|hash| sha256(&entry.path()).is_ok_and(|h| &h == hash));
-            !same
+            !(entry.file_type().is_ok_and(|t| t.is_file()) && bundled.contains_key(&name))
         })
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
         .collect();
@@ -55,12 +52,17 @@ pub fn added_mods(bundled_dir: &Path, mods_dir: &Path) -> Vec<String> {
     added
 }
 
-/// Fails with [`ModsError::Added`] when the player added something; otherwise copies in the
-/// bundled jars that are missing. `record_file` remembers what the launcher itself installed, so
-/// a launcher update that changes the bundled mods replaces its own old jars instead of blaming
-/// the player.
+/// Fails with [`ModsError::Added`] when the player added something; otherwise puts the bundled
+/// jars in place, replacing any file under a bundled name whose content differs. `record_file`
+/// remembers what the launcher itself installed, so a launcher update that drops or renames a
+/// bundled jar removes its own old jar instead of blaming the player. A file that can't be
+/// replaced or removed (usually: the game is still running and holds it open) fails with
+/// [`ModsError::Other`], never with `Added`.
 pub fn install_mods(bundled_dir: &Path, mods_dir: &Path, record_file: &Path) -> Result<(), ModsError> {
     let other = |err: std::io::Error| ModsError::Other(err.to_string());
+    let locked = |err: std::io::Error| {
+        ModsError::Other(format!("{} ({err})", crate::i18n::tr(crate::i18n::S::ModsLocked)))
+    };
     let bundled = bundled_hashes(bundled_dir);
     if bundled.is_empty() {
         return Err(ModsError::Other(crate::i18n::tr(crate::i18n::S::ModsMissing).into()));
@@ -75,11 +77,13 @@ pub fn install_mods(bundled_dir: &Path, mods_dir: &Path, record_file: &Path) -> 
         // file_name: the record can never point outside mods
         let Some(base) = Path::new(name).file_name() else { continue };
         let file = mods_dir.join(base);
-        if bundled.get(name) == Some(hash) || !file.is_file() {
+        // A bundled name is replaced below; only dropped/renamed jars need removing here
+        if bundled.contains_key(name) || !file.is_file() {
             continue;
         }
-        if sha256(&file).is_ok_and(|h| &h == hash) {
-            let _ = std::fs::remove_file(&file); // still the launcher's own old jar, untouched
+        // Unreadable: held open by the game; don't let it fall through to "added"
+        if &sha256(&file).map_err(locked)? == hash {
+            std::fs::remove_file(&file).map_err(locked)?; // still the launcher's own old jar
         }
     }
 
@@ -91,13 +95,17 @@ pub fn install_mods(bundled_dir: &Path, mods_dir: &Path, record_file: &Path) -> 
         return Err(ModsError::Added(added));
     }
 
-    for name in bundled.keys() {
+    for (name, hash) in &bundled {
         let dest = mods_dir.join(name);
-        if !dest.exists() {
-            // Via a temporary name, so a half-copied jar never sits under the real one
-            let part = mods_dir.join(format!("{name}.part"));
-            std::fs::copy(bundled_dir.join(name), &part).map_err(other)?;
-            std::fs::rename(&part, &dest).map_err(other)?;
+        if sha256(&dest).is_ok_and(|h| &h == hash) {
+            continue;
+        }
+        // Via a temporary name, so a half-copied jar never sits under the real one
+        let part = mods_dir.join(format!("{name}.part"));
+        std::fs::copy(bundled_dir.join(name), &part).map_err(other)?;
+        if let Err(err) = std::fs::rename(&part, &dest) {
+            let _ = std::fs::remove_file(&part);
+            return Err(locked(err));
         }
     }
     if let Some(parent) = record_file.parent() {
@@ -149,9 +157,10 @@ mod tests {
         assert!(mods_dir.join("cheat.jar").exists()); // never deleted
         fs::remove_file(mods_dir.join("cheat.jar")).unwrap();
 
-        fs::write(mods_dir.join("a.jar"), "not A").unwrap(); // swapped jar
-        assert_eq!(blocked(), ["a.jar"]);
-        assert_eq!(fs::read_to_string(mods_dir.join("a.jar")).unwrap(), "not A"); // not overwritten
+        fs::write(mods_dir.join("a.jar"), "not A").unwrap(); // tampered copy under our name
+        assert!(added_mods(&bundled_dir, &mods_dir).is_empty());
+        assert!(blocked().is_empty());
+        assert_eq!(fs::read_to_string(mods_dir.join("a.jar")).unwrap(), "A"); // replaced
         fs::remove_file(mods_dir.join("a.jar")).unwrap();
 
         fs::create_dir(mods_dir.join("extra")).unwrap(); // extra subfolder
@@ -168,6 +177,59 @@ mod tests {
         assert!(blocked().is_empty());
         assert_eq!(sorted(&mods_dir), ["a.jar", "b-2.jar"]);
 
+        fs::remove_dir_all(&tmp).unwrap();
+    }
+
+    // The reported bug: an old version of our jar, under the bundled name, that the record no
+    // longer matches (or that was never recorded), must be updated, not flagged as added.
+    #[test]
+    fn old_bundled_jar_is_replaced_not_flagged() {
+        let tmp = std::env::temp_dir().join(format!("newgen-mods-old-{}", uuid::Uuid::new_v4()));
+        let (bundled_dir, mods_dir) = (tmp.join("bundled"), tmp.join("mods"));
+        fs::create_dir_all(&bundled_dir).unwrap();
+        fs::create_dir_all(&mods_dir).unwrap();
+        fs::write(bundled_dir.join("newgen-client-1.0.0.jar"), "new").unwrap();
+        fs::write(mods_dir.join("newgen-client-1.0.0.jar"), "old").unwrap();
+        fs::write(mods_dir.join("cheat.jar"), "X").unwrap();
+        // A really added jar still blocks, and nothing is touched yet
+        assert!(matches!(install_mods(&bundled_dir, &mods_dir, &tmp.join("r.json")),
+            Err(ModsError::Added(names)) if names == ["cheat.jar"]));
+        fs::remove_file(mods_dir.join("cheat.jar")).unwrap();
+        assert!(install_mods(&bundled_dir, &mods_dir, &tmp.join("r.json")).is_ok());
+        assert_eq!(fs::read_to_string(mods_dir.join("newgen-client-1.0.0.jar")).unwrap(), "new");
+        assert_eq!(sorted(&mods_dir), ["newgen-client-1.0.0.jar"]);
+        fs::remove_dir_all(&tmp).unwrap();
+    }
+
+    // A jar held open by a running game: Other (the "close Minecraft" message), never Added.
+    #[cfg(windows)]
+    #[test]
+    fn locked_jar_is_other_not_added() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let tmp = std::env::temp_dir().join(format!("newgen-mods-locked-{}", uuid::Uuid::new_v4()));
+        let (bundled_dir, mods_dir, record) = (tmp.join("bundled"), tmp.join("mods"), tmp.join("r.json"));
+        fs::create_dir_all(&bundled_dir).unwrap();
+        fs::create_dir_all(&mods_dir).unwrap();
+        fs::write(bundled_dir.join("a.jar"), "new").unwrap();
+        // Like Java holding a jar: others may read, but not delete or replace (FILE_SHARE_READ)
+        let open_exclusive = |path: &Path| fs::OpenOptions::new().read(true).share_mode(1).open(path).unwrap();
+
+        // Replacing an outdated bundled-name jar fails
+        fs::write(mods_dir.join("a.jar"), "old").unwrap();
+        let hold = open_exclusive(&mods_dir.join("a.jar"));
+        assert!(matches!(install_mods(&bundled_dir, &mods_dir, &record), Err(ModsError::Other(_))));
+        assert!(!mods_dir.join("a.jar.part").exists());
+        drop(hold);
+        assert!(install_mods(&bundled_dir, &mods_dir, &record).is_ok());
+
+        // Removing a recorded jar that the update dropped fails
+        fs::write(&record, r#"{"a.jar":"x","gone.jar":"4b68ab3847feda7d6c62c1fbcbeebfa35eab7351ed5e78f4ddadea5df64b8015"}"#).unwrap(); // sha256("X")
+        fs::write(mods_dir.join("gone.jar"), "X").unwrap();
+        let hold = open_exclusive(&mods_dir.join("gone.jar"));
+        assert!(matches!(install_mods(&bundled_dir, &mods_dir, &record), Err(ModsError::Other(_))));
+        drop(hold);
+        assert!(install_mods(&bundled_dir, &mods_dir, &record).is_ok());
+        assert_eq!(sorted(&mods_dir), ["a.jar"]);
         fs::remove_dir_all(&tmp).unwrap();
     }
 
