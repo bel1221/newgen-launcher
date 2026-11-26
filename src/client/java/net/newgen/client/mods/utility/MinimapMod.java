@@ -30,7 +30,7 @@ public class MinimapMod extends HudMod {
 	private final Setting.Bool waypoints = bool("waypoints", "Show waypoints", true);
 	private final Setting.Color waypointColor = color("waypoint_color", "Waypoint marker colour", 0xFFFFD75E);
 	private final Setting.Bool coordinates = bool("coordinates", "Show coordinates", true);
-	private final Setting.Action export = action("export", "Export map as PNG", "Export", this::exportPng);
+	private final Setting.Action export = action("export", "Export map as PNG", "newgen_client.minimap.export", this::exportPng);
 
 	private final int[] colors = new int[GRID * GRID];
 	private ClientLevel mappedLevel;
