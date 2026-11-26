@@ -277,7 +277,6 @@
 	"newgen_client.choice.square": "Square",
 	"newgen_client.choice.circle": "Circle",
 	"newgen_client.choice.arrow": "Arrow",
-	"newgen_client.choice.none": "None",
 	"newgen_client.toggle_sneak.flying": "[Flying]",
 	"newgen_client.toggle_sneak.flying_boost": "[Flying (%sx boost)]",
 	"newgen_client.toggle_sneak.descending": "[Descending]",
