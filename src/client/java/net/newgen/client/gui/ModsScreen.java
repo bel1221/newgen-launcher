@@ -416,7 +416,7 @@ public class ModsScreen extends Screen {
 	/** After any change from the menu: remember when the mod changed (Recently changed sort) and save. */
 	private void saveChange(Mod mod) {
 		if (mod != null) Mods.touch(mod);
-		saveChange(selected);
+		Mods.save();
 	}
 
 	/** Undo for a change to some mods: their saved entries from before, put back. */
