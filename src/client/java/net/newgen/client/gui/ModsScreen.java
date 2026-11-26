@@ -76,6 +76,12 @@ public class ModsScreen extends Screen {
 		this.parent = parent;
 	}
 
+	/** Opens straight on one mod's options (the HUD editor's "Settings"). */
+	public ModsScreen(Screen parent, Mod open) {
+		this(parent);
+		this.selected = open;
+	}
+
 	@Override
 	protected void init() {
 		// Vanilla's tutorial toast ("Move with W, A, S and D") sits where our panels are; it goes. Other toasts stay.
@@ -285,15 +291,24 @@ public class ModsScreen extends Screen {
 		boolean sections = selected.settings.size() > 6;
 		int cols = sections && full >= 300 ? 2 : 1;
 		int colW = (full - (cols - 1) * COLUMN_GAP) / cols;
-		for (int pass = 0; pass < 2; pass++) {
+		// A HUD element's shared style options (and Apply to all / Copy from) go in their own last section, Style.
+		java.util.Set<Setting> style = new java.util.HashSet<>();
+		for (net.newgen.client.core.HudMod h : new net.newgen.client.core.HudMod[]{selected instanceof net.newgen.client.core.HudMod hm ? hm : null, selected.hud}) {
+			if (h == null) continue;
+			style.addAll(h.style);
+			for (Setting s : selected.settings) if (s instanceof Setting.Action && (s.id.endsWith("apply_all") || s.id.endsWith("copy_from"))) style.add(s);
+		}
+		for (int pass = 0; pass < 3; pass++) {
 			List<Setting> part = new ArrayList<>();
 			for (Setting s : selected.settings) {
 				if (s instanceof Setting.Hidden) continue;
-				if (sections ? s instanceof Setting.Color == (pass == 1) : pass == 0) part.add(s);
+				if (style.contains(s)) {
+					if (pass == 2) part.add(s);
+				} else if (sections ? s instanceof Setting.Color == (pass == 1) : pass == 0) part.add(s);
 			}
 			if (part.isEmpty()) continue;
-			if (sections) {
-				out.add(new Cell(null, Ui.tr(pass == 0 ? "section.general" : "section.colour"), left, y, full));
+			if (sections || pass == 2) {
+				out.add(new Cell(null, Ui.tr(pass == 0 ? "section.general" : pass == 1 ? "section.colour" : "section.style"), left, y, full));
 				y += HEAD_H;
 			}
 			for (int i = 0; i < part.size(); i++) {
@@ -467,6 +482,11 @@ public class ModsScreen extends Screen {
 		int x = cell.x, y = cell.y, cr = x + cell.w, controlX = cr - fieldW(cell.w);
 		if (Ui.inside(mouseX, mouseY, x - 3, y, cell.w + 6, ROW_H)) Ui.round(g, x - 3, y + 1, cell.w + 6, ROW_H - 2, 4, 0x10FFFFFF);
 
+		int extra = extraRow(g, cell, mouseX, mouseY);
+		if (extra >= 0) {
+			Ui.text(g, Ui.fit(settingLabel(setting.name), extra - 6 - x, Ui.UI, false), x, y + 6, Ui.SOFT, Ui.UI);
+			return;
+		}
 		if (setting instanceof Setting.Bool bool) {
 			controlX = cr - PILL_W;
 			// The same switch as on the cards: blue track and knob right when on.
@@ -485,10 +505,13 @@ public class ModsScreen extends Screen {
 			int hx = cr - HEX_W, sx = hx - 5 - SWATCH;
 			controlX = sx - 1;
 			Ui.round(g, sx, y + 5, SWATCH, SWATCH, SWATCH / 2, 0xFF8C8C8C);
-			Ui.round(g, sx, y + 5, SWATCH, SWATCH, SWATCH / 2, color.value);
+			Ui.round(g, sx, y + 5, SWATCH, SWATCH, SWATCH / 2, color.current());
 			Ui.ring(g, sx - 1, y + 4, SWATCH + 2, SWATCH + 2, SWATCH / 2 + 1, 0xC0FFFFFF);
 			field(g, hx, y + 3, HEX_W, color == typing);
-			Ui.text(g, color == typing ? "#" + hex + "_" : String.format("#%08X", color.value), hx + 6, y + 6, Ui.SOFT, Ui.UI);
+			// Swatch (click: the colour picker), hex and opacity; typing edits the full #AARRGGBB.
+			String shown = color == typing ? "#" + hex + "_"
+					: String.format("#%06X  %d%%", color.value & 0xFFFFFF, Math.round((color.value >>> 24) / 2.55f));
+			Ui.text(g, Ui.fit(shown, HEX_W - 10, Ui.UI, false), hx + 5, y + 6, Ui.SOFT, Ui.UI);
 		} else {
 			int w = cr - controlX;
 			boolean active = setting == listening || setting == typing, over = Ui.inside(mouseX, mouseY, controlX, y + 3, w, BUTTON_H);
@@ -647,7 +670,8 @@ public class ModsScreen extends Screen {
 				rowMod = selected;
 				rowFocus = rows().indexOf(setting);
 				int cr = cell.x + cell.w, fieldX = cr - fieldW(cell.w);
-				int swatch = setting instanceof Setting.Choice c0 && c0.id.equals("palette") ? swatchAt(mx, my, cr - fieldW(cell.w), cell.y) : -1;
+				if (left && extraClick(cell, mx, my)) continue;
+				int swatch =setting instanceof Setting.Choice c0 && c0.id.equals("palette") ? swatchAt(mx, my, cr - fieldW(cell.w), cell.y) : -1;
 				if (swatch >= 0) {
 					((Setting.Choice) setting).value = Ui.PALETTES[swatch].name();
 					Mods.save();
@@ -671,11 +695,7 @@ public class ModsScreen extends Screen {
 					typing = color;
 					hex = String.format("%08X", color.value);
 				} else if (setting instanceof Setting.Color color && mx >= cr - HEX_W - 8 - SWATCH) {
-					// Next quick colour; how see-through it is stays as it was.
-					int at = 0;
-					while (at < PALETTE.length && PALETTE[at] != (color.value & 0xFFFFFF)) at++;
-					color.value = color.value & 0xFF000000 | PALETTE[(at + 1) % PALETTE.length];
-					Mods.save();
+					minecraft.setScreen(new ColorPickerScreen(this, color, settingLabel(color.name)));
 				} else if (setting instanceof Setting.Action action && mx >= fieldX) {
 					action.run.run();
 				} else if (setting instanceof Setting.Key key && mx >= fieldX) {
@@ -694,7 +714,13 @@ public class ModsScreen extends Screen {
 
 	@Override
 	public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-		if (dragging == null) return false;
+		if (rangeDrag != null) {
+			double v = rangeDrag.min + (event.x() - rangeX) / rangeW * (rangeDrag.max - rangeDrag.min);
+			if (rangeKnob == 0) rangeDrag.set(Math.min(v, rangeDrag.hi), rangeDrag.hi);
+			else rangeDrag.set(rangeDrag.lo, Math.max(v, rangeDrag.lo));
+			return true;
+		}
+		if (dragging == null) return orderDrag != null;
 		slide(event.x());
 		return true;
 	}
@@ -705,7 +731,219 @@ public class ModsScreen extends Screen {
 			dragging = null;
 			Mods.save();
 		}
+		if (rangeDrag != null) {
+			rangeDrag = null;
+			Mods.save();
+		}
+		if (orderDrag != null) {
+			// Dropped on another pill: the dragged item takes its place.
+			for (int i = 0; i < orderRects.size(); i++) {
+				int[] r = orderRects.get(i);
+				if (Ui.inside(event.x(), event.y(), r[0], r[1], r[2], r[3])) orderDrag.move(orderFrom, i);
+			}
+			orderDrag = null;
+			Mods.save();
+		}
 		return true;
+	}
+
+	// ---- the Wave 1A option types: number box, radio, range, multi-select, order, item/effect pick, file ----
+
+	private Setting.Range rangeDrag;
+	private int rangeKnob;
+	private double rangeX, rangeW;
+	private Setting.Order orderDrag;
+	private int orderFrom;
+	private final List<int[]> orderRects = new ArrayList<>();
+	private String numText = "";
+
+	/** Draws the newer option types; returns where the label must end, or -1 when the row is not one of them. */
+	private int extraRow(GuiGraphics g, Cell cell, int mouseX, int mouseY) {
+		Setting s = cell.setting;
+		int x = cell.x, y = cell.y, cr = x + cell.w, fw = fieldW(cell.w), fx = cr - fw;
+		if (s instanceof Setting.Num num && num.box) {
+			int w = 52, bx = cr - w;
+			field(g, bx, y + 3, w, num == typing);
+			Ui.text(g, num == typing ? numText + "_" : num.text(), bx + 6, y + 6, Ui.TEXT, Ui.UI);
+			return bx;
+		}
+		if (s instanceof Setting.Choice c && c.radio) {
+			int n = c.options.length, w = Math.max(fw, Math.min(cell.w - 60, n * 40)), bx = cr - w, bw = w / n;
+			for (int i = 0; i < n; i++) {
+				boolean on = c.options[i].equals(c.value), over = Ui.inside(mouseX, mouseY, bx + i * bw, y + 3, bw, BUTTON_H);
+				Ui.button(g, bx + i * bw, y + 3, bw - 2, BUTTON_H, choiceLabel(c.options[i]), over, on ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
+			}
+			return bx;
+		}
+		if (s instanceof Setting.Range r) {
+			int sw = sliderW(cell.w), sx = cr - sw;
+			int a = sx + 4 + (int) ((r.lo - r.min) / (r.max - r.min) * (sw - 8)), b = sx + 4 + (int) ((r.hi - r.min) / (r.max - r.min) * (sw - 8));
+			Ui.round(g, sx, y + 9, sw, 3, 1, 0x70000000);
+			Ui.round(g, a, y + 9, b - a, 3, 1, Ui.ACCENT);
+			Ui.round(g, a - 4, y + 6, 8, 8, 4, Ui.ACCENT);
+			Ui.round(g, b - 4, y + 6, 8, 8, 4, Ui.ACCENT);
+			String t = r.text(r.lo) + "-" + r.text(r.hi);
+			int tx = sx - 8 - Ui.width(t, Ui.CAPS);
+			Ui.text(g, t, tx, y + 6, Ui.SOFT, Ui.CAPS);
+			return tx;
+		}
+		if (s instanceof Setting.Multi m) {
+			int px = cr;
+			for (int i = m.options.length - 1; i >= 0; i--) {
+				String label = choiceLabel(m.options[i]);
+				int w = Ui.width(label, Ui.CAPS) + 12;
+				px -= w;
+				boolean over = Ui.inside(mouseX, mouseY, px, y + 3, w, BUTTON_H);
+				Ui.button(g, px, y + 3, w, BUTTON_H, label, over, m.has(m.options[i]) ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
+				if (m.has(m.options[i])) Ui.round(g, px + 3, y + 9, 2, 2, 1, Ui.ACCENT);
+				px -= 3;
+			}
+			return px;
+		}
+		if (s instanceof Setting.Order o) {
+			if (o != orderDrag) orderRects.clear();
+			int px = cr, n = o.items.size();
+			int[][] rects = new int[n][];
+			for (int i = n - 1; i >= 0; i--) {
+				String label = choiceLabel(o.items.get(i));
+				int w = Ui.width(label, Ui.CAPS) + 12;
+				px -= w;
+				rects[i] = new int[]{px, y + 3, w, BUTTON_H};
+				boolean lifted = o == orderDrag && i == orderFrom;
+				Ui.button(g, px, y + 3, w, BUTTON_H, label, Ui.inside(mouseX, mouseY, px, y + 3, w, BUTTON_H), lifted ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
+				px -= 3;
+			}
+			if (o == orderDrag) {
+				orderRects.clear();
+				orderRects.addAll(java.util.Arrays.asList(rects));
+			}
+			return px;
+		}
+		if (s instanceof Setting.Pick p) {
+			boolean over = Ui.inside(mouseX, mouseY, fx, y + 3, fw, BUTTON_H);
+			Ui.round(g, fx, y + 2, fw, 16, Ui.R_SM, over ? Ui.SELECTED : Ui.DARK);
+			Ui.ring(g, fx, y + 2, fw, 16, Ui.R_SM, Ui.LINE);
+			String label = p.value == null || p.value.isEmpty() ? Ui.tr("pick.none") : p.value.replace("minecraft:", "");
+			if (p.kind == Setting.Pick.Kind.ITEM && p.value != null && !p.value.isEmpty()) {
+				var item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.tryParse(p.value));
+				g.pose().pushMatrix();
+				g.pose().translate(fx + 2, y + 3);
+				g.pose().scale(0.875f, 0.875f);
+				g.renderItem(new net.minecraft.world.item.ItemStack(item), 0, 0);
+				g.pose().popMatrix();
+				Ui.text(g, Ui.fit(label, fw - 24, Ui.UI, false), fx + 20, y + 6, Ui.TEXT, Ui.UI);
+			} else {
+				Ui.text(g, Ui.fit(label, fw - 10, Ui.UI, false), fx + 5, y + 6, Ui.TEXT, Ui.UI);
+			}
+			return fx;
+		}
+		if (s instanceof Setting.FilePath f) {
+			int bw = 16, tw = fw - bw - 3;
+			field(g, fx, y + 3, tw, f == typing);
+			String v = f.value == null ? "" : f.value;
+			Ui.text(g, Ui.fit(f == typing ? v + "_" : v, tw - 10, Ui.UI, true), fx + 5, y + 6, Ui.TEXT, Ui.UI);
+			Ui.button(g, cr - bw, y + 3, bw, BUTTON_H, "...", Ui.inside(mouseX, mouseY, cr - bw, y + 3, bw, BUTTON_H), Ui.DARK, Ui.CAPS);
+			return fx;
+		}
+		return -1;
+	}
+
+	/** Clicks on the newer option types; true when the click was theirs. */
+	private boolean extraClick(Cell cell, double mx, double my) {
+		Setting s = cell.setting;
+		int y = cell.y, cr = cell.x + cell.w, fw = fieldW(cell.w), fx = cr - fw;
+		if (s instanceof Setting.Num num && num.box) {
+			if (mx < cr - 52) return false;
+			typing = num;
+			numText = num.text();
+			return true;
+		}
+		if (s instanceof Setting.Choice c && c.radio) {
+			int n = c.options.length, w = Math.max(fw, Math.min(cell.w - 60, n * 40)), bx = cr - w, bw = w / n;
+			if (mx < bx) return false;
+			c.value = c.options[Math.max(0, Math.min(n - 1, (int) ((mx - bx) / bw)))];
+			Mods.save();
+			return true;
+		}
+		if (s instanceof Setting.Range r) {
+			int sw = sliderW(cell.w), sx = cr - sw;
+			if (mx < sx - 4) return false;
+			rangeDrag = r;
+			rangeX = sx + 4;
+			rangeW = sw - 8;
+			double v = r.min + (mx - rangeX) / rangeW * (r.max - r.min);
+			rangeKnob = Math.abs(v - r.lo) <= Math.abs(v - r.hi) ? 0 : 1;
+			return true;
+		}
+		if (s instanceof Setting.Multi m) {
+			int px = cr;
+			for (int i = m.options.length - 1; i >= 0; i--) {
+				int w = Ui.width(choiceLabel(m.options[i]), Ui.CAPS) + 12;
+				px -= w;
+				if (Ui.inside(mx, my, px, y + 3, w, BUTTON_H)) {
+					m.toggle(m.options[i]);
+					Mods.save();
+					return true;
+				}
+				px -= 3;
+			}
+			return false;
+		}
+		if (s instanceof Setting.Order o) {
+			int px = cr;
+			for (int i = o.items.size() - 1; i >= 0; i--) {
+				int w = Ui.width(choiceLabel(o.items.get(i)), Ui.CAPS) + 12;
+				px -= w;
+				if (Ui.inside(mx, my, px, y + 3, w, BUTTON_H)) {
+					orderDrag = o;
+					orderFrom = i;
+					return true;
+				}
+				px -= 3;
+			}
+			return false;
+		}
+		if (s instanceof Setting.Pick p) {
+			if (mx < fx) return false;
+			minecraft.setScreen(new RegistryPickerScreen(this, p));
+			return true;
+		}
+		if (s instanceof Setting.FilePath f) {
+			if (mx >= cr - 16) {
+				browse(f);
+				return true;
+			}
+			if (mx < fx) return false;
+			typing = f;
+			return true;
+		}
+		return false;
+	}
+
+	/** The system's file dialog, on its own thread (it blocks); the chosen path lands in the option. */
+	private static void browse(Setting.FilePath f) {
+		Thread t = new Thread(() -> {
+			String path;
+			try (org.lwjgl.system.MemoryStack stack = org.lwjgl.system.MemoryStack.stackPush()) {
+				org.lwjgl.PointerBuffer patterns = null;
+				if (f.extensions.length > 0) {
+					patterns = stack.mallocPointer(f.extensions.length);
+					for (String e : f.extensions) patterns.put(stack.UTF8(e));
+					patterns.flip();
+				}
+				path = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_openFileDialog(f.name, f.value, patterns, null, false);
+			}
+			if (path != null) {
+				String chosen = path;
+				// Back on the client thread before touching the option and the config.
+				net.minecraft.client.Minecraft.getInstance().execute(() -> {
+					f.value = chosen;
+					Mods.save();
+				});
+			}
+		}, "Newgen file dialog");
+		t.setDaemon(true);
+		t.start();
 	}
 
 	@Override
@@ -718,7 +956,15 @@ public class ModsScreen extends Screen {
 
 	/** Puts typed text into the option being typed into. A colour takes hex digits: 6 (solid) or 8 (#AARRGGBB). */
 	private void type(String added, boolean backspace) {
-		if (typing instanceof Setting.Text text) {
+		if (typing instanceof Setting.Num num) {
+			if (backspace) numText = dropLast(numText);
+			for (char c : added.toCharArray()) if ((Character.isDigit(c) || c == '.' || c == '-') && numText.length() < 12) numText += c;
+			try {
+				num.set(Double.parseDouble(numText));
+			} catch (NumberFormatException e) {
+				// half typed: applies once it parses
+			}
+		} else if (typing instanceof Setting.Text text) {
 			String value = text.value == null ? "" : text.value;
 			if (backspace) value = dropLast(value);
 			for (char c : added.toCharArray()) {
