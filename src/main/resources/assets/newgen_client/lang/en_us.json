@@ -65,7 +65,7 @@
 	"newgen_client.mod.block_outline.name": "Block Outline",
 	"newgen_client.mod.bossbar.description": "Hide, scale or move the boss bars",
 	"newgen_client.mod.bossbar.name": "Bossbar",
-	"newgen_client.mod.chat.description": "Longer chat history and message timestamps",
+	"newgen_client.mod.chat.description": "Timestamps, stacked repeats, mentions, emoji, shortcuts, chat size and peek",
 	"newgen_client.mod.chat.name": "Chat",
 	"newgen_client.mod.chunk_borders.description": "Outlines the chunk you stand in",
 	"newgen_client.mod.chunk_borders.name": "Chunk Borders",
@@ -204,5 +204,6 @@
 	"newgen_client.theme": "Theme",
 	"newgen_client.mod.media_player.name": "Media Player",
 	"newgen_client.mod.media_player.description": "What is playing on your computer (Spotify, YouTube…), with its progress",
-	"newgen_client.media.paused": "Paused"
+	"newgen_client.media.paused": "Paused",
+	"newgen_client.chat.copied": "Message copied"
 }
