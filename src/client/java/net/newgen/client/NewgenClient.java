@@ -35,6 +35,10 @@ public class NewgenClient implements ClientModInitializer {
 		Mods.register(new CoordinatesMod());
 		net.newgen.client.mods.ThemeMod theme = new net.newgen.client.mods.ThemeMod();
 		Mods.register("Visual", theme);
+		// Legacy animations: a curated page over Animatium (a separate bundled mod), only when it is installed.
+		net.newgen.client.mods.visual.AnimatiumMod animatium = net.newgen.client.mods.visual.AnimatiumMod.available()
+				? new net.newgen.client.mods.visual.AnimatiumMod() : null;
+		if (animatium != null) Mods.register("Visual", animatium);
 		net.newgen.client.mods.hud.HudMods.register();
 		net.newgen.client.mods.visual.VisualMods.register();
 		net.newgen.client.mods.controls.ControlsMods.register();
@@ -44,6 +48,7 @@ public class NewgenClient implements ClientModInitializer {
 		KeyBindingHelper.registerKeyBinding(OPEN_MODS);
 		ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			theme.tick();
+			if (animatium != null) animatium.tick();
 			while (OPEN_MODS.consumeClick()) {
 				if (mc.screen == null) mc.setScreen(new HubScreen());
 			}

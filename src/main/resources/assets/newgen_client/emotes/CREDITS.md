@@ -22,3 +22,11 @@ credit kept. Each emote's author is also shown in the game, in Mods > Emotes > E
 
 Animations are played with Player Animation Library (MIT, by Zigy and dima_dencep), nested in this mod's jar.
 No Emotecraft code is included. Files are imported with tools/EmoteImport.java.
+
+# Legacy animations (Animatium)
+
+The "Legacy Animations" page in Mods > Visual controls a curated set of options of **Animatium** by Mixces and lowercasebtw (contributors Tellinq, MicrocontrollersDev, Wyvest):
+- Animatium is a separate mod, bundled as its official unmodified jar (4.4.1+1.21.11, from <https://modrinth.com/mod/vidalia>).
+- The released jar declares GPL-3.0-with-linking-exception; the current source is PolyForm Shield 1.0.0.
+- No Animatium code is included here. Its public config fields are set at runtime.
+- It needs YetAnotherConfigLib (YACL) by isXander, also bundled unmodified.
