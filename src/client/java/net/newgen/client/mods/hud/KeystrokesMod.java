@@ -86,8 +86,8 @@ public class KeystrokesMod extends HudMod {
 			y = 44;
 		}
 		if (showMouse()) {
-			box(g, mc, "lmb", cps.value ? "LMB|" + leftClicks.size() : "LMB", o.keyAttack.isDown(), 0, y, 31, 20);
-			box(g, mc, "rmb", cps.value ? "RMB|" + rightClicks.size() : "RMB", o.keyUse.isDown(), 33, y, 31, 20);
+			box(g, mc, "lmb", cps.value ? net.minecraft.client.resources.language.I18n.get("newgen_client.hud.lmb") + "|" + leftClicks.size() : net.minecraft.client.resources.language.I18n.get("newgen_client.hud.lmb"), o.keyAttack.isDown(), 0, y, 31, 20);
+			box(g, mc, "rmb", cps.value ? net.minecraft.client.resources.language.I18n.get("newgen_client.hud.rmb") + "|" + rightClicks.size() : net.minecraft.client.resources.language.I18n.get("newgen_client.hud.rmb"), o.keyUse.isDown(), 33, y, 31, 20);
 			y += 22;
 		}
 		if (showKeys() && space.value) {

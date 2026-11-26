@@ -83,9 +83,23 @@ public class ModsScreen extends Screen {
 	private boolean cardDragging;
 	private String tip;               // tooltip for what is under the mouse this frame
 
+	/** Where the player was, restored on reopening: search (for 5 minutes), scroll positions and the open mod page. */
+	private static String lastSearch = "";
+	private static long lastSearchAt;
+	private static int lastGridScroll, lastRowScroll;
+	private static String lastSelected;
+
 	public ModsScreen(Screen parent) {
 		super(Component.literal("Newgen Mods"));
 		this.parent = parent;
+		if (System.currentTimeMillis() - lastSearchAt < 5 * 60_000L) search = lastSearch;
+		gridScroll = gridGoal = lastGridScroll;
+		for (Mod mod : Mods.ALL) {
+			if (mod.id.equals(lastSelected)) {
+				selected = mod;
+				rowScroll = rowGoal = lastRowScroll;
+			}
+		}
 	}
 
 	/** Opens straight on one mod's options (the HUD editor's "Settings"). */
@@ -312,15 +326,21 @@ public class ModsScreen extends Screen {
 	/** The mods of the current category and state that match the search text. */
 	private List<Mod> shown() {
 		List<Mod> list = new ArrayList<>();
-		String query = search.toLowerCase();
+		String query = fold(search);
 		for (Mod mod : Mods.ALL) {
 			if (isTheme(mod) || !inTab(mod, tab) || state == 1 && !mod.enabled || state == 2 && mod.enabled) continue;
-			if ((mod.name + " " + mod.description + " " + modName(mod) + " " + modDescription(mod)).toLowerCase().contains(query)) list.add(mod);
+			if (fold(mod.name + " " + mod.description + " " + modName(mod) + " " + modDescription(mod)).contains(query)) list.add(mod);
 		}
 		if (sort == 0) list.sort(java.util.Comparator.comparing(m -> modName(m).toLowerCase()));
 		else if (sort == 1) list.sort(java.util.Comparator.comparingLong(m -> -Mods.changedAt.getOrDefault(m.id, 0L)));
 		else list.sort(java.util.Comparator.comparingInt(Mods::orderOf));
 		return list;
+	}
+
+	/** Lower case without accents (đ as d), so "dong ho" finds "Đồng hồ". */
+	static String fold(String text) {
+		return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replaceAll("\p{M}", "")
+				.replace('đ', 'd').replace('Đ', 'd').toLowerCase(java.util.Locale.ROOT);
 	}
 
 	/** One option found by the search: which mod it belongs to. */
@@ -331,11 +351,11 @@ public class ModsScreen extends Screen {
 	private List<Hit> hits() {
 		List<Hit> out = new ArrayList<>();
 		if (search.isBlank()) return out;
-		String query = search.toLowerCase();
+		String query = fold(search);
 		for (Mod mod : Mods.ALL) {
 			for (Setting s : mod.settings) {
 				if (s instanceof Setting.Hidden) continue;
-				if ((s.name + " " + settingLabel(s.name)).toLowerCase().contains(query)) out.add(new Hit(mod, s));
+				if (fold(s.name + " " + settingLabel(s.name)).contains(query)) out.add(new Hit(mod, s));
 				if (out.size() >= 60) return out;
 			}
 		}
@@ -1509,6 +1529,11 @@ public class ModsScreen extends Screen {
 	@Override
 	public void removed() {
 		saveChange(selected);
+		lastSearch = search;
+		lastSearchAt = System.currentTimeMillis();
+		lastGridScroll = gridGoal;
+		lastRowScroll = rowGoal;
+		lastSelected = selected == null ? null : selected.id;
 	}
 
 	@Override
