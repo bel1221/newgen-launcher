@@ -453,10 +453,15 @@ public class ModsScreen extends Screen {
 		Ui.button(g, tabX(2), headY(), tabW(theme, true), BUTTON_H, theme, Ui.I_PALETTE,
 				Ui.inside(mouseX, mouseY, tabX(2), headY(), tabW(theme, true), BUTTON_H) ? 1f : 0f, themeView() ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
 		String keys = Ui.tr("keys");
-		if (keysX() + tabW(keys, true) < right() - BUTTON_H - 4)
+		if (keysX() + tabW(keys, true) < profilesX() - 4)
 			Ui.button(g, keysX(), headY(), tabW(keys, true), BUTTON_H, keys, Ui.I_KEYBOARD,
 					Ui.inside(mouseX, mouseY, keysX(), headY(), tabW(keys, true), BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 		tip = null;
+		// Profiles and the notifications bell sit left of the close button.
+		Ui.button(g, profilesX(), headY(), BUTTON_H, BUTTON_H, "", Ui.I_USER, Ui.inside(mouseX, mouseY, profilesX(), headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+		if (Ui.inside(mouseX, mouseY, profilesX(), headY(), BUTTON_H, BUTTON_H)) tip = Ui.tr("profiles");
+		Overlay.bell(g, bellX(), headY(), BUTTON_H, mouseX, mouseY);
+		if (Ui.inside(mouseX, mouseY, bellX(), headY(), BUTTON_H, BUTTON_H)) tip = Ui.tr("notes");
 		Ui.button(g, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H, "", Ui.I_CLOSE,
 				Ui.inside(mouseX, mouseY, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 
@@ -597,7 +602,16 @@ public class ModsScreen extends Screen {
 		if (menuMod != null) cardMenu(g, mouseX, mouseY);
 		Overlay.tooltip(g, Overlay.confirming() || menuMod != null ? null : tip, mouseX, mouseY, width, height);
 		Overlay.renderToasts(g, width, height, mouseX, mouseY);
+		Overlay.renderNotes(g, mouseX, mouseY);
 		Overlay.renderConfirm(g, width, height, mouseX, mouseY);
+	}
+
+	private int bellX() {
+		return right() - BUTTON_H * 2 - 4;
+	}
+
+	private int profilesX() {
+		return bellX() - BUTTON_H - 4;
 	}
 
 	// ---- a card's right-click menu ----
@@ -895,6 +909,15 @@ public class ModsScreen extends Screen {
 		boolean left = event.button() == 0;
 		// The overlays come first: the confirm dialog takes every click, then an open card menu, then the toasts.
 		if (Overlay.clickConfirm(mx, my, width, height)) return true;
+		if (Overlay.clickNotes(mx, my)) return true;
+		if (event.button() == 0 && Ui.inside(mx, my, bellX(), headY(), BUTTON_H, BUTTON_H)) {
+			Overlay.toggleNotes(bellX() + BUTTON_H, headY() + BUTTON_H + 4);
+			return true;
+		}
+		if (event.button() == 0 && Ui.inside(mx, my, profilesX(), headY(), BUTTON_H, BUTTON_H)) {
+			minecraft.setScreen(new ProfilesScreen(this));
+			return true;
+		}
 		if (menuMod != null) {
 			if (left) menuClick(mx, my);
 			else menuMod = null;
@@ -930,7 +953,7 @@ public class ModsScreen extends Screen {
 			rowScroll = rowGoal = 0;
 			return true;
 		}
-		if (left && Ui.inside(mx, my, keysX(), headY(), tabW(Ui.tr("keys"), true), BUTTON_H) && keysX() + tabW(Ui.tr("keys"), true) < right() - BUTTON_H - 4) {
+		if (left && Ui.inside(mx, my, keysX(), headY(), tabW(Ui.tr("keys"), true), BUTTON_H) && keysX() + tabW(Ui.tr("keys"), true) < profilesX() - 4) {
 			minecraft.setScreen(new KeybindsScreen(this));
 			return true;
 		}
@@ -1372,6 +1395,10 @@ public class ModsScreen extends Screen {
 	public boolean keyPressed(KeyEvent event) {
 		int key = event.key();
 		if (Overlay.keyConfirm(key)) return true;
+		if (Overlay.notesOpen && key == GLFW.GLFW_KEY_ESCAPE) {
+			Overlay.notesOpen = false;
+			return true;
+		}
 		if (menuMod != null && key == GLFW.GLFW_KEY_ESCAPE) {
 			menuMod = null;
 			return true;
@@ -1508,6 +1535,7 @@ public class ModsScreen extends Screen {
 
 	@Override
 	public void removed() {
+		Overlay.notesOpen = false;
 		saveChange(selected);
 	}
 

@@ -330,6 +330,11 @@ public class ModIcons {
 		MENU.put("undo", p -> p.path(9, 5, 4, 10, 9, 15).path(4, 10, 15, 10).arc(15, 14.5, 4.5, -90, 180));
 		MENU.put("copy", p -> p.rect(8, 8, 12, 13, 2).path(5, 16, 4, 16, 4, 3, 16, 3, 16, 5));
 		MENU.put("sort", p -> p.line(7, 4, 7, 20).head(7, 20, 0, 1).line(17, 20, 17, 4).head(17, 4, 0, -1));
+		MENU.put("bell", p -> p.path(5, 17, 5, 10.5).arc(12, 10.5, 7, 0, 180).path(19, 10.5, 19, 17).line(3, 17, 21, 17).arc(12, 19, 2.5, 180, 180));
+		MENU.put("plus", p -> p.line(12, 4, 12, 20).line(4, 12, 20, 12));
+		MENU.put("more", p -> p.dot(5, 12).dot(12, 12).dot(19, 12));
+		MENU.put("download", p -> p.line(12, 3, 12, 15).head(12, 15, 0, 1).path(4, 16, 4, 20, 20, 20, 20, 16));
+		MENU.put("upload", p -> p.line(12, 15, 12, 3).head(12, 3, 0, -1).path(4, 16, 4, 20, 20, 20, 20, 16));
 	}
 
 	/** Rewrites textures/icons.png: its first 14 tiles as they are, then the MENU glyphs. */
