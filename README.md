@@ -37,7 +37,7 @@ The installer lands in `dist\` (not committed), renamed to `Newgen Launcher Setu
 | `launcher/src/` | The launcher code: `game.rs` (launch, on OneLauncher's core), `sync.rs`, `mods.rs`, `auth.rs`, `status.rs`, `video.rs`, `burst.rs`, `i18n.rs` (English and Vietnamese), `ui/` (screens) |
 | `launcher/assets/` | Fonts (Be Vietnam Pro, JetBrains Mono), icons, theme, NewGen logo, weapon models, website section cards |
 | `launcher/videos/` | Background clips, played in file-name order (`bg-2` before `bg-10`), dissolving into each other. H.264 `.mp4` only. |
-| `launcher/docs/` | UI spec, QA checklist, launcher comparison, in-game menu audit, cosmetics and emotes guides |
+| `launcher/docs/` | UI spec, QA checklist, cosmetics and emotes guides |
 | `docs/reference/` | Reference screenshots (in-game menus, another launcher) |
 
 **Folders on the player's PC:**
