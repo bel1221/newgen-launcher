@@ -316,7 +316,54 @@ public class ModIcons {
 		icon("theme", p -> p.arc(12, 12, 9, 45, 280).path(18.4, 18.4, 15.5, 16, 16.5, 13, 19.5, 12.5, 21, 12).dot(8, 9).dot(12, 6.5).dot(16, 9));
 	}
 
+	/** Menu glyphs added after the first 14 of textures/icons.png (play ... palette), same pen; the order is Ui.I_STAR... */
+	static final Map<String, Consumer<P>> MENU = new LinkedHashMap<>();
+	static final int MENU_BASE = 14;
+
+	static {
+		MENU.put("star", p -> p.shape(12, 2.5, 14.9, 8.6, 21.5, 9.3, 16.6, 13.8, 17.9, 20.4, 12, 17.1, 6.1, 20.4, 7.4, 13.8, 2.5, 9.3, 9.1, 8.6));
+		MENU.put("star_on", p -> p.solid(12, 2.5, 14.9, 8.6, 21.5, 9.3, 16.6, 13.8, 17.9, 20.4, 12, 17.1, 6.1, 20.4, 7.4, 13.8, 2.5, 9.3, 9.1, 8.6)
+				.shape(12, 2.5, 14.9, 8.6, 21.5, 9.3, 16.6, 13.8, 17.9, 20.4, 12, 17.1, 6.1, 20.4, 7.4, 13.8, 2.5, 9.3, 9.1, 8.6));
+		MENU.put("reset", p -> p.arc(12, 12, 8, 120, 270).head(8, 5.1, 1.2, -0.9));
+		MENU.put("keyboard", p -> p.rect(2, 6, 20, 13, 2).dot(6, 10).dot(10, 10).dot(14, 10).dot(18, 10).line(7, 15, 17, 15));
+		MENU.put("hidden", p -> p.path(3, 12, 7, 8, 17, 8, 21, 12, 17, 16, 7, 16, 3, 12).circle(12, 12, 2.5).line(4, 20, 20, 4));
+		MENU.put("undo", p -> p.path(9, 5, 4, 10, 9, 15).path(4, 10, 15, 10).arc(15, 14.5, 4.5, -90, 180));
+		MENU.put("copy", p -> p.rect(8, 8, 12, 13, 2).path(5, 16, 4, 16, 4, 3, 16, 3, 16, 5));
+		MENU.put("sort", p -> p.line(7, 4, 7, 20).head(7, 20, 0, 1).line(17, 20, 17, 4).head(17, 4, 0, -1));
+	}
+
+	/** Rewrites textures/icons.png: its first 14 tiles as they are, then the MENU glyphs. */
+	static void menu() throws Exception {
+		File file = OUT.resolve("../../newgen_client/textures/icons.png").normalize().toFile();
+		file = OUT.resolve("icons.png").toFile();
+		BufferedImage old = ImageIO.read(file);
+		TILE = 64;
+		S = TILE / 24f;
+		BufferedImage out = new BufferedImage((MENU_BASE + MENU.size()) * TILE, TILE, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D o = out.createGraphics();
+		o.drawImage(old.getSubimage(0, 0, MENU_BASE * TILE, TILE), 0, 0, null);
+		o.dispose();
+		int i = MENU_BASE;
+		for (Consumer<P> icon : MENU.values()) {
+			Graphics2D t = out.createGraphics();
+			t.translate(i++ * TILE, 0);
+			t.setClip(0, 0, TILE, TILE);
+			t.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			t.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+			t.setColor(Color.WHITE);
+			t.setStroke(new BasicStroke(2 * S, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+			icon.accept(new P(t));
+			t.dispose();
+		}
+		ImageIO.write(out, "png", file);
+		System.out.println((MENU_BASE + MENU.size()) + " menu glyphs");
+	}
+
 	public static void main(String[] args) throws Exception {
+		if (args.length > 0 && args[0].equals("menu")) {
+			menu();
+			return;
+		}
 		List<String> ids = new ArrayList<>(ICONS.keySet());
 		// One atlas per on-screen size: 16 units (cards) and 14 (headers) at GUI scales 1-8, each drawn at its exact pixel
 		// size, so the game shows every icon 1:1 with no resampling.

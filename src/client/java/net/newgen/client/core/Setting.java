@@ -27,6 +27,20 @@ public abstract class Setting {
 		if (def != null) fromJson(def);
 	}
 
+	/** True when the value differs from its default (the "changed" dot and reset button in the menu). */
+	public boolean changed() {
+		return def != null && !def.equals(toJson());
+	}
+
+	/** The value as saved, and back: for undo. */
+	public JsonElement save() {
+		return toJson();
+	}
+
+	public void load(JsonElement json) {
+		fromJson(json);
+	}
+
 	public static class Bool extends Setting {
 		public boolean value;
 
@@ -157,8 +171,21 @@ public abstract class Setting {
 			return value >= MOUSE && value < MOUSE + 8;
 		}
 
-		/** True while held in game. Always false while a screen is open, so typing in chat never triggers a mod. */
+		/** Toggle mode: a press switches the key on, the next press off (instead of on only while held). */
+		public boolean toggle;
+		private boolean was, latched;
+
+		/** True while held in game (or, in toggle mode, between two presses). Never true from a press while a screen is open,
+		 * so typing in chat never triggers a mod. */
 		public boolean isDown(Minecraft mc) {
+			boolean raw = held(mc);
+			if (!toggle) return raw;
+			if (raw && !was) latched = !latched;
+			was = raw;
+			return latched;
+		}
+
+		private boolean held(Minecraft mc) {
 			if (mc.screen != null) return false;
 			if (isMouse()) return GLFW.glfwGetMouseButton(mc.getWindow().handle(), value - MOUSE) == GLFW.GLFW_PRESS;
 			return value > 0 && InputConstants.isKeyDown(mc.getWindow(), value);
@@ -169,12 +196,24 @@ public abstract class Setting {
 			this.value = value;
 		}
 
+		/** A held key saves as a number (as before); a toggle key as {value, toggle}, so old configs still read. */
 		JsonElement toJson() {
-			return new JsonPrimitive(value);
+			if (!toggle) return new JsonPrimitive(value);
+			com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+			o.addProperty("value", value);
+			o.addProperty("toggle", true);
+			return o;
 		}
 
 		void fromJson(JsonElement json) {
-			value = json.getAsInt();
+			if (json.isJsonObject()) {
+				value = json.getAsJsonObject().get("value").getAsInt();
+				toggle = json.getAsJsonObject().has("toggle") && json.getAsJsonObject().get("toggle").getAsBoolean();
+			} else {
+				value = json.getAsInt();
+				toggle = false;
+			}
+			latched = false;
 		}
 	}
 

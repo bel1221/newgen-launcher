@@ -51,4 +51,28 @@ class SettingJsonTest {
 		m.fromJson(new Setting.Multi("m", "M", new String[]{"Bold", "Italic", "Gone"}, "Italic", "Gone").toJson());
 		assertEquals(List.of("Italic"), List.copyOf(m.selected));
 	}
+
+	@Test
+	void keyToggleModeKeepsOldNumbersReadable() {
+		Setting.Key k = new Setting.Key("zoom", "Zoom", 67);
+		k.fromJson(new JsonPrimitive(70));
+		assertFalse(k.toggle);
+		assertEquals(70, k.value);
+		k.toggle = true;
+		Setting.Key back = new Setting.Key("zoom", "Zoom", 67);
+		back.fromJson(k.toJson());
+		assertTrue(back.toggle);
+		assertEquals(70, back.value);
+	}
+
+	@Test
+	void changedFollowsTheDefault() {
+		Setting.Bool b = new Setting.Bool("a", "A", true);
+		b.def = b.toJson();
+		assertFalse(b.changed());
+		b.value = false;
+		assertTrue(b.changed());
+		b.reset();
+		assertFalse(b.changed());
+	}
 }
