@@ -33,6 +33,16 @@ public final class Mods {
 		ALL.add(mod);
 	}
 
+	/** Every HUD element, on or off (the HUD mods and the indicators of mods). */
+	public static List<HudMod> allHuds() {
+		List<HudMod> out = new ArrayList<>();
+		for (Mod mod : ALL) {
+			if (mod instanceof HudMod hud) out.add(hud);
+			if (mod.hud != null) out.add(mod.hud);
+		}
+		return out;
+	}
+
 	/** Every HUD element that is drawn now: the enabled HUD mods and the indicators of enabled mods. */
 	public static List<HudMod> huds() {
 		List<HudMod> out = new ArrayList<>();

@@ -285,15 +285,24 @@ public class ModsScreen extends Screen {
 		boolean sections = selected.settings.size() > 6;
 		int cols = sections && full >= 300 ? 2 : 1;
 		int colW = (full - (cols - 1) * COLUMN_GAP) / cols;
-		for (int pass = 0; pass < 2; pass++) {
+		// A HUD element's shared style options (and Apply to all / Copy from) go in their own last section, Style.
+		java.util.Set<Setting> style = new java.util.HashSet<>();
+		for (net.newgen.client.core.HudMod h : new net.newgen.client.core.HudMod[]{selected instanceof net.newgen.client.core.HudMod hm ? hm : null, selected.hud}) {
+			if (h == null) continue;
+			style.addAll(h.style);
+			for (Setting s : selected.settings) if (s instanceof Setting.Action && (s.id.endsWith("apply_all") || s.id.endsWith("copy_from"))) style.add(s);
+		}
+		for (int pass = 0; pass < 3; pass++) {
 			List<Setting> part = new ArrayList<>();
 			for (Setting s : selected.settings) {
 				if (s instanceof Setting.Hidden) continue;
-				if (sections ? s instanceof Setting.Color == (pass == 1) : pass == 0) part.add(s);
+				if (style.contains(s)) {
+					if (pass == 2) part.add(s);
+				} else if (sections ? s instanceof Setting.Color == (pass == 1) : pass == 0) part.add(s);
 			}
 			if (part.isEmpty()) continue;
-			if (sections) {
-				out.add(new Cell(null, Ui.tr(pass == 0 ? "section.general" : "section.colour"), left, y, full));
+			if (sections || pass == 2) {
+				out.add(new Cell(null, Ui.tr(pass == 0 ? "section.general" : pass == 1 ? "section.colour" : "section.style"), left, y, full));
 				y += HEAD_H;
 			}
 			for (int i = 0; i < part.size(); i++) {

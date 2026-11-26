@@ -210,5 +210,14 @@
 	"newgen_client.color.chroma": "Chroma",
 	"newgen_client.color.reset": "Reset",
 	"newgen_client.color.done": "Done",
-	"newgen_client.pick.none": "None"
+	"newgen_client.pick.none": "None",
+	"newgen_client.section.style": "Style",
+	"newgen_client.hud.apply_all": "Apply to all HUD",
+	"newgen_client.hud.copy_from": "Copy style from...",
+	"newgen_client.choice.centre": "Centre",
+	"newgen_client.choice.left": "Left",
+	"newgen_client.choice.right": "Right",
+	"newgen_client.choice.bold": "Bold",
+	"newgen_client.choice.italic": "Italic",
+	"newgen_client.choice.underline": "Underline"
 }
