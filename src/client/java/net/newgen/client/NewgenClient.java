@@ -52,6 +52,7 @@ public class NewgenClient implements ClientModInitializer {
 		KeyBindingHelper.registerKeyBinding(OPEN_MODS);
 		ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			theme.tick();
+			Mods.tickToggleKeys(mc);
 			if (animatium != null) animatium.tick();
 			while (OPEN_MODS.consumeClick()) {
 				if (mc.screen == null) mc.setScreen(new HubScreen());

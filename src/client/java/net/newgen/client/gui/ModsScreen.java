@@ -40,14 +40,19 @@ public class ModsScreen extends Screen {
 			0xFFFFFF, 0xAAAAAA, 0x000000, 0xFF5555, 0xFFAA00, 0xFFFF55,
 			0x55FF55, 0x55FFFF, 0x5599FF, 0xAA55FF, 0xFF77CC};
 	/** The categories (Mod.category values) and their icons. */
-	private static final String[] TABS = {"All", "HUD", "Visual", "Controls", "Utility"};
-	private static final int[] TAB_ICONS = {Ui.I_GRID, Ui.I_LAYOUT, Ui.I_EYE, Ui.I_MOUSE, Ui.I_SLIDERS};
+	private static final String[] TABS = {"All", "HUD", "Visual", "Controls", "Utility", "Favourites", "Hidden"};
+	private static final int[] TAB_ICONS = {Ui.I_GRID, Ui.I_LAYOUT, Ui.I_EYE, Ui.I_MOUSE, Ui.I_SLIDERS, Ui.I_STAR, Ui.I_HIDDEN};
+	/** The last two sidebar rows are not categories: starred mods, and the mods put away (they leave every other tab). */
+	private static final int FAVOURITES = 5, HIDDEN = 6, CATEGORIES = 5;
+	/** Card order: A to Z, recently changed first, or the player's own order (drag a card onto another). */
+	private static final String[] SORTS = {"sort.az", "sort.recent", "sort.custom"};
+	private static int sort = 2;
 	/** The state chips over the grid. */
 	private static final String[] STATES = {"state.all", "state.on", "state.off"};
 
 	private static final int TOAST_H = 32, PAD = 8, HEADER = 28, SIDE_W = 92, SIDE_ROW = 16, GAP = 6, ROW_H = 20, HEAD_H = 14;
 	/** A card: icon and name (TOP_H), then the Options strip and the Enabled/Disabled strip (STRIP each). */
-	private static final int TOP_H = 38, STRIP = 14, CARD_H = TOP_H + STRIP * 2;
+	private static final int TOP_H = 38, STRIP = 14, CARD_H = 56, RESULT_H = 14;
 	private static final int PILL_W = 20, SWATCH = 10, HEX_W = 66, BUTTON_H = 14, COLUMN_GAP = 14;
 	/** FAINT is for dividing lines and the scroll track, STRIP_BG under a card's Options strip. */
 	private static final int FAINT = 0x18FFFFFF, STRIP_BG = 0x14000000;
@@ -70,6 +75,13 @@ public class ModsScreen extends Screen {
 	private Setting.Key listening;    // key setting waiting for a key press, if any
 	private Setting typing;           // text or colour setting being typed into, if any
 	private String hex = "";          // the hex digits typed so far, while typing is a colour
+	private int gridGoal, rowGoal;    // where the smooth scroll is heading (gridScroll / rowScroll are what is shown)
+	private Mod menuMod;              // card whose right-click menu is open, if any
+	private int menuX, menuY;
+	private Mod pressMod;             // card pressed and not yet released (a click opens it, a drag in Custom order moves it)
+	private double pressX, pressY;
+	private boolean cardDragging;
+	private String tip;               // tooltip for what is under the mouse this frame
 
 	public ModsScreen(Screen parent) {
 		super(Component.literal("Newgen Mods"));
@@ -80,6 +92,7 @@ public class ModsScreen extends Screen {
 	public ModsScreen(Screen parent, Mod open) {
 		this(parent);
 		this.selected = open;
+		Mods.seen.add(open.id);
 	}
 
 	@Override
@@ -177,8 +190,34 @@ public class ModsScreen extends Screen {
 		return x;
 	}
 
-	private int searchX() {
+	private int sortW() {
+		return Ui.width(Ui.tr(SORTS[sort]), Ui.CAPS) + 30;
+	}
+
+	private int sortX() {
 		return stateX(STATES.length) + 2;
+	}
+
+	private int searchX() {
+		return sortX() + sortW() + 4;
+	}
+
+	/** The sidebar's foot: Edit HUD layout (in a world), and above it All on / All off for the current tab. */
+	private int editY() {
+		return py + ph - PAD - 4 - BUTTON_H;
+	}
+
+	private int bulkY() {
+		return minecraft.level != null ? editY() - BUTTON_H - 4 : editY();
+	}
+
+	private int bulkW() {
+		return (SIDE_W - 12) / 2;
+	}
+
+	/** The header tab after Theme: the Keybinds page. */
+	private int keysX() {
+		return tabX(2) + tabW(Ui.tr("theme"), true) + 4;
 	}
 
 	/** A header tab sized to its label (and its icon, 10 + 5 wide, when it has one). */
@@ -258,11 +297,15 @@ public class ModsScreen extends Screen {
 	}
 
 	private static boolean inTab(Mod mod, int t) {
+		boolean hidden = Mods.hidden.contains(mod.id);
+		if (t == HIDDEN) return hidden;
+		if (hidden) return false;
+		if (t == FAVOURITES) return Mods.favourites.contains(mod.id);
 		return t == 0 || TABS[t].equalsIgnoreCase(mod.category);
 	}
 
 	private static int tabIcon(Mod mod) {
-		for (int t = 1; t < TABS.length; t++) if (TABS[t].equalsIgnoreCase(mod.category)) return TAB_ICONS[t];
+		for (int t = 1; t < CATEGORIES; t++) if (TABS[t].equalsIgnoreCase(mod.category)) return TAB_ICONS[t];
 		return Ui.I_GRID;
 	}
 
@@ -274,7 +317,66 @@ public class ModsScreen extends Screen {
 			if (isTheme(mod) || !inTab(mod, tab) || state == 1 && !mod.enabled || state == 2 && mod.enabled) continue;
 			if ((mod.name + " " + mod.description + " " + modName(mod) + " " + modDescription(mod)).toLowerCase().contains(query)) list.add(mod);
 		}
+		if (sort == 0) list.sort(java.util.Comparator.comparing(m -> modName(m).toLowerCase()));
+		else if (sort == 1) list.sort(java.util.Comparator.comparingLong(m -> -Mods.changedAt.getOrDefault(m.id, 0L)));
+		else list.sort(java.util.Comparator.comparingInt(Mods::orderOf));
 		return list;
+	}
+
+	/** One option found by the search: which mod it belongs to. */
+	private record Hit(Mod mod, Setting setting) {
+	}
+
+	/** Options of every mod (Theme too) whose label matches the search; shown under the cards. */
+	private List<Hit> hits() {
+		List<Hit> out = new ArrayList<>();
+		if (search.isBlank()) return out;
+		String query = search.toLowerCase();
+		for (Mod mod : Mods.ALL) {
+			for (Setting s : mod.settings) {
+				if (s instanceof Setting.Hidden) continue;
+				if ((s.name + " " + settingLabel(s.name)).toLowerCase().contains(query)) out.add(new Hit(mod, s));
+				if (out.size() >= 60) return out;
+			}
+		}
+		return out;
+	}
+
+	/** Top of the option results: under the last row of cards. */
+	private int hitsTop(int cards) {
+		int gridH = cards == 0 ? 0 : (cards + columns - 1) / columns * (CARD_H + GAP);
+		return viewTop() - gridScroll + gridH;
+	}
+
+	/** Opens a mod's options with one option in view and focused (a search result). */
+	private void open(Mod mod, Setting focusOn) {
+		selected = mod;
+		Mods.seen.add(mod.id);
+		rowScroll = rowGoal = 0;
+		if (focusOn == null) return;
+		for (Cell c : cells()) {
+			if (c.setting != focusOn) continue;
+			rowGoal = Math.max(0, c.y - viewTop() - ROW_H * 2);
+			rowScroll = rowGoal;
+		}
+		rowMod = mod;
+		rowFocus = rows().indexOf(focusOn);
+	}
+
+	/** After any change from the menu: remember when the mod changed (Recently changed sort) and save. */
+	private void saveChange(Mod mod) {
+		if (mod != null) Mods.touch(mod);
+		saveChange(selected);
+	}
+
+	/** Undo for a change to some mods: their saved entries from before, put back. */
+	private static Runnable undoFor(List<Mod> mods) {
+		List<com.google.gson.JsonObject> before = new ArrayList<>();
+		for (Mod m : mods) before.add(Mods.write(m));
+		return () -> {
+			for (int i = 0; i < mods.size(); i++) Mods.read(mods.get(i), before.get(i));
+			Mods.save();
+		};
 	}
 
 	/** One thing in the options view: an option (setting) or a section heading (heading), at its place on screen. */
@@ -350,6 +452,11 @@ public class ModsScreen extends Screen {
 		String theme = Ui.tr("theme");
 		Ui.button(g, tabX(2), headY(), tabW(theme, true), BUTTON_H, theme, Ui.I_PALETTE,
 				Ui.inside(mouseX, mouseY, tabX(2), headY(), tabW(theme, true), BUTTON_H) ? 1f : 0f, themeView() ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
+		String keys = Ui.tr("keys");
+		if (keysX() + tabW(keys, true) < right() - BUTTON_H - 4)
+			Ui.button(g, keysX(), headY(), tabW(keys, true), BUTTON_H, keys, Ui.I_KEYBOARD,
+					Ui.inside(mouseX, mouseY, keysX(), headY(), tabW(keys, true), BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+		tip = null;
 		Ui.button(g, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H, "", Ui.I_CLOSE,
 				Ui.inside(mouseX, mouseY, right() - BUTTON_H, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 
@@ -369,9 +476,15 @@ public class ModsScreen extends Screen {
 			String n = String.valueOf(count);
 			Ui.text(g, n, sx + SIDE_W - 7 - Ui.width(n, Ui.UI), y + 5, Ui.DIM, Ui.UI);
 		}
+		// All on / All off for the tab shown (asks first, then offers Undo).
+		if (selected == null) {
+			int bw = bulkW(), by = bulkY();
+			button(g, sx + 4, by, bw, Ui.tr("mods.all_on"), mouseX, mouseY, Ui.DARK);
+			button(g, sx + 8 + bw, by, bw, Ui.tr("mods.all_off"), mouseX, mouseY, Ui.DARK);
+		}
 		// Without a world there is no HUD to arrange.
 		if (minecraft.level != null) {
-			int by = py + ph - PAD - 4 - BUTTON_H;
+			int by = editY();
 			String edit = Ui.tr("hud.edit");
 			Ui.button(g, sx + 4, by, SIDE_W - 8, BUTTON_H, edit, Ui.I_LAYOUT,
 					Ui.inside(mouseX, mouseY, sx + 4, by, SIDE_W - 8, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
@@ -386,25 +499,54 @@ public class ModsScreen extends Screen {
 				Ui.button(g, stateX(i), barY(), stateW(i), BUTTON_H, label, Ui.inside(mouseX, mouseY, stateX(i), barY(), stateW(i), BUTTON_H),
 						i == state ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
 			}
+			Ui.button(g, sortX(), barY(), sortW(), BUTTON_H, Ui.tr(SORTS[sort]), Ui.I_SORT,
+					Ui.inside(mouseX, mouseY, sortX(), barY(), sortW(), BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+			if (Ui.inside(mouseX, mouseY, sortX(), barY(), sortW(), BUTTON_H)) tip = Ui.tr("sort.tip");
 			int fx = searchX(), fw = right() - fx;
 			if (fw >= 40) {
 				field(g, fx, barY(), fw, !search.isEmpty());
 				Ui.glyph(g, Ui.I_SEARCH, fx + 5, barY() + 3, 8, Ui.DIM);
-				if (search.isEmpty()) Ui.text(g, Ui.fit(Ui.tr("search"), fw - 24, Ui.UI, false), fx + 17, barY() + 3, Ui.DIM, Ui.UI);
+				if (search.isEmpty()) Ui.text(g, Ui.fit(Ui.tr("search.all"), fw - 24, Ui.UI, false), fx + 17, barY() + 3, Ui.DIM, Ui.UI);
 				else Ui.text(g, Ui.fit(search + "_", fw - 24, Ui.UI, true), fx + 17, barY() + 3, Ui.TEXT, Ui.UI);
 			}
 
 			List<Mod> list = shown();
+			List<Hit> hits = hits();
 			content = (list.size() + columns - 1) / columns * (CARD_H + GAP) - GAP;
-			gridScroll = limit(gridScroll, content);
+			if (!hits.isEmpty()) content = Math.max(0, content + GAP) + HEAD_H + hits.size() * RESULT_H;
+			gridGoal = limit(gridGoal, content);
+			gridScroll = limit(Overlay.approach(gridScroll, gridGoal), content);
 			if (viewBottom() > viewTop()) g.enableScissor(contentX(), viewTop(), right(), viewBottom());
 			for (int i = 0; i < list.size(); i++) {
 				int y = cardY(i);
 				if (y + CARD_H > viewTop() && y < viewBottom()) card(g, list.get(i), cardX(i), y, hot ? mouseX : -1, mouseY);
 				if (i == focus && y + CARD_H > viewTop() && y < viewBottom()) Ui.ring(g, cardX(i) - 1, y - 1, cardW() + 2, CARD_H + 2, Ui.R_MD + 1, Ui.ACCENT);
 			}
-			if (viewBottom() > viewTop()) g.disableScissor();
-			if (list.isEmpty()) Ui.centered(g, Ui.tr("mods.none"), (contentX() + right()) / 2, viewTop() + 12, Ui.DIM, Ui.UI);
+			if (!hits.isEmpty()) {
+				// Options of every mod that match: "Mod  ›  Option", a click opens that mod with the option in view.
+				int hy = hitsTop(list.size()), x0 = contentX(), x1 = contentRight();
+				String head = Ui.tr("search.options") + "  " + hits.size();
+				Ui.text(g, head, x0, hy + 4, Ui.TEXT, Ui.CAPS);
+				g.fill(x0 + Ui.width(head, Ui.CAPS) + 6, hy + 7, x1, hy + 8, FAINT);
+				hy += HEAD_H;
+				for (Hit h : hits) {
+					if (hy + RESULT_H > viewTop() && hy < viewBottom()) {
+						boolean over = hot && Ui.inside(mouseX, mouseY, x0, hy, x1 - x0, RESULT_H);
+						if (over) Ui.round(g, x0, hy, x1 - x0, RESULT_H, Ui.R_SM, Ui.HOVER);
+						String mod = modName(h.mod);
+						Ui.text(g, Ui.fit(mod, (x1 - x0) / 2, Ui.UI, false), x0 + 5, hy + 4, Ui.DIM, Ui.UI);
+						int ox = x0 + 5 + Math.min(Ui.width(mod, Ui.UI), (x1 - x0) / 2) + 6;
+						Ui.text(g, "›", ox, hy + 4, Ui.DIM, Ui.UI);
+						Ui.text(g, Ui.fit(settingLabel(h.setting.name), x1 - ox - 16, Ui.UI, false), ox + 9, hy + 4, Ui.TEXT, Ui.UI);
+					}
+					hy += RESULT_H;
+				}
+			}
+			if (viewBottom() > viewTop()) {
+				Overlay.fades(g, contentX(), viewTop(), right(), viewBottom(), gridScroll, content - (viewBottom() - viewTop()));
+				g.disableScissor();
+			}
+			if (list.isEmpty() && hits.isEmpty()) Ui.centered(g, Ui.tr("mods.none"), (contentX() + right()) / 2, viewTop() + 12, Ui.DIM, Ui.UI);
 		} else {
 			// The options of one mod: back, its name and its switch; its description under them.
 			int bx = contentX(), by = barY();
@@ -419,8 +561,10 @@ public class ModsScreen extends Screen {
 
 			List<Cell> cells = cells();
 			content = rowsHeight;
-			if (rowScroll != limit(rowScroll, content)) {
-				rowScroll = limit(rowScroll, content);
+			rowGoal = limit(rowGoal, content);
+			int next = limit(Overlay.approach(rowScroll, rowGoal), content);
+			if (rowScroll != next) {
+				rowScroll = next;
 				cells = cells();
 			}
 			if (viewBottom() > viewTop()) g.enableScissor(contentX() - 4, viewTop(), right(), viewBottom());
@@ -435,7 +579,10 @@ public class ModsScreen extends Screen {
 					g.fill(cell.x + Ui.width(cell.heading, Ui.CAPS) + 6, cell.y + 7, cell.x + cell.w, cell.y + 8, FAINT);
 				}
 			}
-			if (viewBottom() > viewTop()) g.disableScissor();
+			if (viewBottom() > viewTop()) {
+				Overlay.fades(g, contentX() - 4, viewTop(), right(), viewBottom(), rowScroll, content - (viewBottom() - viewTop()));
+				g.disableScissor();
+			}
 			if (selected.settings.isEmpty()) Ui.centered(g, Ui.tr("options.none"), (contentX() + right()) / 2, viewTop() + 8, Ui.DIM, Ui.UI);
 			button(g, contentX(), footY(), footW(Ui.tr("reset")), Ui.tr("reset"), mouseX, mouseY, Ui.DARK);
 		}
@@ -447,34 +594,170 @@ public class ModsScreen extends Screen {
 			Ui.round(g, right() - 3, viewTop(), 3, viewH, 1, FAINT);
 			Ui.round(g, right() - 3, y, 3, h, 1, 0x80FFFFFF);
 		}
+		if (menuMod != null) cardMenu(g, mouseX, mouseY);
+		Overlay.tooltip(g, Overlay.confirming() || menuMod != null ? null : tip, mouseX, mouseY, width, height);
+		Overlay.renderToasts(g, width, height, mouseX, mouseY);
+		Overlay.renderConfirm(g, width, height, mouseX, mouseY);
+	}
+
+	// ---- a card's right-click menu ----
+
+	private List<String> menuItems() {
+		List<String> items = new ArrayList<>();
+		if (minecraft.level != null && (menuMod instanceof net.newgen.client.core.HudMod || menuMod.hud != null)) items.add("card.edit_hud");
+		items.add("card.copy_id");
+		items.add(Mods.favourites.contains(menuMod.id) ? "card.unfavourite" : "card.favourite");
+		items.add(Mods.hidden.contains(menuMod.id) ? "card.unhide" : "card.hide");
+		return items;
+	}
+
+	private static final int MENU_W = 130, MENU_ROW = 14;
+
+	private int menuLeft() {
+		return Math.min(menuX, width - MENU_W - 2);
+	}
+
+	private int menuTop() {
+		return Math.min(menuY, height - menuItems().size() * MENU_ROW - 6);
+	}
+
+	private void cardMenu(GuiGraphics g, int mouseX, int mouseY) {
+		g.nextStratum();
+		List<String> items = menuItems();
+		int x = menuLeft(), y = menuTop(), h = items.size() * MENU_ROW + 4;
+		Ui.round(g, x, y, MENU_W, h, Ui.R_SM, Ui.GLASS);
+		Ui.round(g, x, y, MENU_W, h, Ui.R_SM, 0x60000000);
+		Ui.ring(g, x, y, MENU_W, h, Ui.R_SM, Ui.LINE);
+		for (int i = 0; i < items.size(); i++) {
+			int ry = y + 2 + i * MENU_ROW;
+			if (Ui.inside(mouseX, mouseY, x + 2, ry, MENU_W - 4, MENU_ROW)) Ui.round(g, x + 2, ry, MENU_W - 4, MENU_ROW, Ui.R_SM, Ui.HOVER);
+			String item = items.get(i);
+			int icon = switch (item) {
+				case "card.edit_hud" -> Ui.I_LAYOUT;
+				case "card.copy_id" -> Ui.I_COPY;
+				case "card.favourite" -> Ui.I_STAR;
+				case "card.unfavourite" -> Ui.I_STAR_ON;
+				default -> Ui.I_HIDDEN;
+			};
+			Ui.glyph(g, icon, x + 7, ry + 3, 8, Ui.SOFT);
+			Ui.text(g, Ui.tr(item), x + 20, ry + 4, Ui.TEXT, Ui.UI);
+		}
+	}
+
+	private void menuClick(double mx, double my) {
+		List<String> items = menuItems();
+		int x = menuLeft(), y = menuTop();
+		Mod mod = menuMod;
+		menuMod = null;
+		for (int i = 0; i < items.size(); i++) {
+			if (!Ui.inside(mx, my, x + 2, y + 2 + i * MENU_ROW, MENU_W - 4, MENU_ROW)) continue;
+			switch (items.get(i)) {
+				case "card.edit_hud" -> {
+					net.newgen.client.core.HudMod hud = mod instanceof net.newgen.client.core.HudMod h ? h : mod.hud;
+					mod.enabled = true;
+					if (mod.showHud != null) mod.showHud.value = true;
+					saveChange(mod);
+					minecraft.setScreen(new HubScreen(hud));
+				}
+				case "card.copy_id" -> {
+					minecraft.keyboardHandler.setClipboard(mod.id);
+					Overlay.toast(Ui.tr("toast.copied") + " " + mod.id, null);
+				}
+				case "card.favourite", "card.unfavourite" -> {
+					if (!Mods.favourites.remove(mod.id)) Mods.favourites.add(mod.id);
+					saveChange(selected);
+				}
+				default -> {
+					boolean hide = !Mods.hidden.contains(mod.id);
+					if (hide) Mods.hidden.add(mod.id);
+					else Mods.hidden.remove(mod.id);
+					saveChange(selected);
+					Overlay.toast(Ui.trf(hide ? "toast.hidden" : "toast.unhidden", modName(mod)), () -> {
+						if (hide) Mods.hidden.remove(mod.id);
+						else Mods.hidden.add(mod.id);
+						saveChange(selected);
+					});
+				}
+			}
+		}
+	}
+
+	/** All on / All off for every mod in the current tab and state filter: confirm, then an Undo toast. */
+	private void bulk(boolean on) {
+		List<Mod> mods = new ArrayList<>();
+		for (Mod m : shown()) if (m.enabled != on) mods.add(m);
+		if (mods.isEmpty()) return;
+		String tabName = Ui.tr("tab." + TABS[tab].toLowerCase());
+		Overlay.confirm(Ui.trf(on ? "confirm.all_on" : "confirm.all_off", mods.size(), tabName),
+				Ui.tr(on ? "mods.all_on" : "mods.all_off"), () -> {
+					Runnable undo = undoFor(mods);
+					for (Mod m : mods) {
+						m.enabled = on;
+						Mods.touch(m);
+					}
+					saveChange(selected);
+					Overlay.toast(Ui.trf(on ? "toast.all_on" : "toast.all_off", mods.size()), undo);
+				});
+	}
+
+	/** One option back to its default, with Undo. */
+	private void resetOne(Setting s) {
+		com.google.gson.JsonElement before = s.save();
+		Mod mod = selected;
+		s.reset();
+		saveChange(mod);
+		Overlay.toast(Ui.trf("toast.reset_one", settingLabel(s.name)), () -> {
+			s.load(before);
+			saveChange(selected);
+		});
+	}
+
+	/** The tooltip text of an option, when the lang files have one: newgen_client.tip.<mod id>.<option id>. */
+	private static String tipOf(Mod mod, Setting s) {
+		String key = "newgen_client.tip." + mod.id + "." + s.id;
+		return net.minecraft.client.resources.language.I18n.exists(key) ? net.minecraft.client.resources.language.I18n.get(key) : null;
 	}
 
 	/** A card: the category icon and the name, then an Options strip with a gear, then the Enabled / Disabled strip. */
+	/** Where a card's switch sits (centred under the name) and its star (top right). */
+	private int switchX(int x) {
+		return x + (cardW() - PILL_W) / 2;
+	}
+
+	private boolean onSwitch(double mx, double my, int x, int y) {
+		return Ui.inside(mx, my, switchX(x) - 4, y + 38, PILL_W + 8, 16);
+	}
+
+	private boolean onStar(double mx, double my, int x, int y) {
+		return Ui.inside(mx, my, x + cardW() - 15, y + 2, 13, 13);
+	}
+
+	/**
+	 * A card: the mod's icon and name and its switch; a click anywhere else opens its options, right click its menu.
+	 * A star (top right) when starred or hovered; a "New" tag (top left) until its options are first opened.
+	 */
 	private void card(GuiGraphics g, Mod mod, int x, int y, int mouseX, int mouseY) {
-		int w = cardW(), opt = y + TOP_H, status = opt + STRIP;
+		int w = cardW();
+		boolean over = Ui.inside(mouseX, mouseY, x, y, w, CARD_H), dragged = cardDragging && mod == pressMod;
 		Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.CARD);
-		if (Ui.inside(mouseX, mouseY, x, y, w, TOP_H)) Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.HOVER);
-		int ink = mod.enabled ? Ui.TEXT : Ui.DIM;
+		if (mod.enabled) Ui.round(g, x, y, w, CARD_H, Ui.R_MD, 0x08FFFFFF);
+		if (over && !dragged) Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.HOVER);
+		int ink = dragged ? Ui.DIM : mod.enabled ? Ui.TEXT : Ui.DIM;
 		// The mod's own icon, 16 units so its pixels stay whole; the category glyph if it has none.
-		if (!Ui.modIcon(g, mod.id, x + (w - 16) / 2, y + 5, ink)) Ui.glyph(g, tabIcon(mod), x + (w - 14) / 2, y + 7, 14, ink);
-		Ui.centered(g, Ui.fit(modName(mod), w - 10, Ui.CAPS, false), x + w / 2, y + 26, mod.enabled ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
+		if (!Ui.modIcon(g, mod.id, x + (w - 16) / 2, y + 6, ink)) Ui.glyph(g, tabIcon(mod), x + (w - 14) / 2, y + 7, 14, ink);
+		Ui.centered(g, Ui.fit(modName(mod), w - 10, Ui.CAPS, false), x + w / 2, y + 27, mod.enabled ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
+		Ui.toggle(g, switchX(x), y + 41, mod.enabled, onSwitch(mouseX, mouseY, x, y));
 
-		g.fill(x, opt, x + w, status, STRIP_BG);
-		g.fill(x, opt, x + w, opt + 1, FAINT);
-		if (Ui.inside(mouseX, mouseY, x, opt, w, STRIP)) g.fill(x, opt, x + w, status, Ui.HOVER);
-		String options = optionsLabel();
-		int ow = Ui.width(options, Ui.CAPS) + 12, ox = x + (w - ow) / 2;
-		Ui.text(g, options, ox, opt + 4, Ui.SOFT, Ui.CAPS);
-		Ui.glyph(g, Ui.I_GEAR, ox + ow - 8, opt + 3, 8, Ui.SOFT);
-
-		// The strip that closes the card: brighter glass with a small blue dot when on, plain when off; no colour block.
-		if (mod.enabled) Ui.roundBottom(g, x, status, w, STRIP, Ui.R_MD, Ui.SELECTED);
-		if (Ui.inside(mouseX, mouseY, x, status, w, STRIP)) Ui.roundBottom(g, x, status, w, STRIP, Ui.R_MD, Ui.HOVER);
-		String state = Ui.tr(mod.enabled ? "enabled" : "disabled");
-		int sw = Ui.width(state, Ui.CAPS) + (mod.enabled ? 7 : 0), sx = x + (w - sw) / 2;
-		if (mod.enabled) Ui.round(g, sx, status + 5, 4, 4, 2, Ui.ACCENT);
-		Ui.text(g, state, sx + (mod.enabled ? 7 : 0), status + 4, mod.enabled ? Ui.TEXT : Ui.DIM, Ui.CAPS);
-		Ui.ring(g, x, y, w, CARD_H, Ui.R_MD, Ui.LINE);
+		boolean fav = Mods.favourites.contains(mod.id), starHot = onStar(mouseX, mouseY, x, y);
+		if (fav || over) Ui.glyph(g, fav ? Ui.I_STAR_ON : Ui.I_STAR, x + w - 13, y + 4, 9, fav ? Ui.ACCENT : starHot ? Ui.TEXT : Ui.DIM);
+		if (!Mods.seen.contains(mod.id)) {
+			String tag = Ui.tr("mods.new");
+			int tw = Ui.width(tag, Ui.CAPS) + 6;
+			Ui.round(g, x + 4, y + 4, tw, 10, Ui.R_SM, Ui.ACCENT);
+			Ui.text(g, tag, x + 7, y + 6, Ui.INK, Ui.CAPS);
+		}
+		Ui.ring(g, x, y, w, CARD_H, Ui.R_MD, cardDragging && over && !dragged ? Ui.ACCENT : Ui.LINE);
+		if (over && !cardDragging) tip = starHot ? Ui.tr(fav ? "card.unfavourite" : "card.favourite") : modDescription(mod);
 	}
 
 	private void row(GuiGraphics g, Cell cell, int mouseX, int mouseY) {
@@ -484,7 +767,7 @@ public class ModsScreen extends Screen {
 
 		int extra = extraRow(g, cell, mouseX, mouseY);
 		if (extra >= 0) {
-			Ui.text(g, Ui.fit(settingLabel(setting.name), extra - 6 - x, Ui.UI, false), x, y + 6, Ui.SOFT, Ui.UI);
+			label(g, cell, extra, mouseX, mouseY);
 			return;
 		}
 		if (setting instanceof Setting.Bool bool) {
@@ -532,7 +815,37 @@ public class ModsScreen extends Screen {
 				Ui.button(g, controlX, y + 3, w, BUTTON_H, key == listening ? Ui.tr("key.listening") : keyName(key), over, active ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
 			}
 		}
-		Ui.text(g, Ui.fit(settingLabel(setting.name), controlX - 6 - x, Ui.UI, false), x, y + 6, Ui.SOFT, Ui.UI);
+		label(g, cell, controlX, mouseX, mouseY);
+	}
+
+	/** Whether an option shows the changed dot (and can be reset on its own): changed from its default, and not a button. */
+	private static boolean resettable(Setting s) {
+		return !(s instanceof Setting.Action) && s.changed();
+	}
+
+	/**
+	 * An option's label, ending before its control. A changed option has a small accent dot before it, which turns
+	 * into a reset arrow under the mouse (a click resets that one option, with Undo). Resting on the label shows its
+	 * tooltip, when the lang files have one.
+	 */
+	private void label(GuiGraphics g, Cell cell, int end, int mouseX, int mouseY) {
+		Setting s = cell.setting;
+		int x = cell.x, y = cell.y;
+		if (resettable(s)) {
+			if (Ui.inside(mouseX, mouseY, x - 3, y, 11, ROW_H)) {
+				Ui.glyph(g, Ui.I_RESET, x - 1, y + 6, 8, Ui.TEXT);
+				tip = Ui.tr("setting.reset_one");
+			} else {
+				Ui.round(g, x + 1, y + 8, 4, 4, 2, Ui.ACCENT);
+			}
+			x += 10;
+		}
+		String text = Ui.fit(settingLabel(s.name), end - 6 - x, Ui.UI, false);
+		Ui.text(g, text, x, y + 6, Ui.SOFT, Ui.UI);
+		if (Ui.inside(mouseX, mouseY, x, y, Ui.width(text, Ui.UI), ROW_H)) {
+			String t = tipOf(selected, s);
+			if (t != null) tip = t;
+		}
 	}
 
 	/** The palette row's swatches: one dot per preset in its accent colour, the chosen one ringed; returns where they start. */
@@ -580,10 +893,18 @@ public class ModsScreen extends Screen {
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		double mx = event.x(), my = event.y();
 		boolean left = event.button() == 0;
+		// The overlays come first: the confirm dialog takes every click, then an open card menu, then the toasts.
+		if (Overlay.clickConfirm(mx, my, width, height)) return true;
+		if (menuMod != null) {
+			if (left) menuClick(mx, my);
+			else menuMod = null;
+			return true;
+		}
+		if (left && Overlay.clickToast(mx, my, width, height)) return true;
 		if (listening != null && event.button() >= 0 && event.button() < 8) {
 			listening.value = Setting.Key.MOUSE + event.button(); // a click while capturing binds that mouse button
 			listening = null;
-			Mods.save();
+			saveChange(selected);
 			return true;
 		}
 		if (!left && event.button() != 1) return false;
@@ -592,7 +913,7 @@ public class ModsScreen extends Screen {
 		listening = null;
 		if (typing != null) {
 			typing = null;
-			Mods.save(); // clicking away from a text or colour field keeps what was typed
+			saveChange(selected); // clicking away from a text or colour field keeps what was typed
 		}
 
 		// Header and left column work in both views.
@@ -606,7 +927,11 @@ public class ModsScreen extends Screen {
 		}
 		if (left && Ui.inside(mx, my, tabX(2), headY(), tabW(Ui.tr("theme"), true), BUTTON_H)) {
 			selected = themeMod();
-			rowScroll = 0;
+			rowScroll = rowGoal = 0;
+			return true;
+		}
+		if (left && Ui.inside(mx, my, keysX(), headY(), tabW(Ui.tr("keys"), true), BUTTON_H) && keysX() + tabW(Ui.tr("keys"), true) < right() - BUTTON_H - 4) {
+			minecraft.setScreen(new KeybindsScreen(this));
 			return true;
 		}
 		if (left && Ui.inside(mx, my, tabX(1), headY(), tabW(optionsLabel(), true), BUTTON_H)) {
@@ -614,8 +939,16 @@ public class ModsScreen extends Screen {
 			return true;
 		}
 		int sx = px + PAD;
-		if (!themeView() && left && minecraft.level != null && Ui.inside(mx, my, sx + 4, py + ph - PAD - 4 - BUTTON_H, SIDE_W - 8, BUTTON_H)) {
+		if (!themeView() && left && minecraft.level != null && Ui.inside(mx, my, sx + 4, editY(), SIDE_W - 8, BUTTON_H)) {
 			minecraft.setScreen(new HubScreen());
+			return true;
+		}
+		if (selected == null && left && Ui.inside(mx, my, sx + 4, bulkY(), bulkW(), BUTTON_H)) {
+			bulk(true);
+			return true;
+		}
+		if (selected == null && left && Ui.inside(mx, my, sx + 8 + bulkW(), bulkY(), bulkW(), BUTTON_H)) {
+			bulk(false);
 			return true;
 		}
 		for (int t = 0; t < TABS.length && !themeView(); t++) {
@@ -623,19 +956,21 @@ public class ModsScreen extends Screen {
 				tab = t;
 				focus = -1;
 				selected = null;
-				gridScroll = 0;
+				gridScroll = gridGoal = 0;
 				return true;
 			}
 		}
 
 		if (selected == null) {
-			if (!left) return true;
-			for (int i = 0; i < STATES.length; i++) {
-				if (Ui.inside(mx, my, stateX(i), barY(), stateW(i), BUTTON_H)) {
-					state = i;
-					focus = -1;
-					gridScroll = 0;
+			if (left) {
+				for (int i = 0; i < STATES.length; i++) {
+					if (Ui.inside(mx, my, stateX(i), barY(), stateW(i), BUTTON_H)) {
+						state = i;
+						focus = -1;
+						gridScroll = gridGoal = 0;
+					}
 				}
+				if (Ui.inside(mx, my, sortX(), barY(), sortW(), BUTTON_H)) sort = (sort + 1) % SORTS.length;
 			}
 			if (!inView(my)) return true;
 			List<Mod> list = shown();
@@ -643,13 +978,34 @@ public class ModsScreen extends Screen {
 				Mod mod = list.get(i);
 				int x = cardX(i), y = cardY(i);
 				if (!Ui.inside(mx, my, x, y, cardW(), CARD_H)) continue;
-				if (my >= y + TOP_H + STRIP) {
+				if (!left) {
+					menuMod = mod;
+					menuX = (int) mx;
+					menuY = (int) my;
+				} else if (onSwitch(mx, my, x, y)) {
 					mod.enabled = !mod.enabled;
-					Mods.save();
+					Mods.seen.add(mod.id);
+					saveChange(mod);
+				} else if (onStar(mx, my, x, y)) {
+					if (!Mods.favourites.remove(mod.id)) Mods.favourites.add(mod.id);
+					saveChange(selected);
 				} else {
-					selected = mod;
-					rowScroll = 0;
+					// Opens on release, so a press can become a drag (Custom order).
+					pressMod = mod;
+					pressX = mx;
+					pressY = my;
 				}
+				return true;
+			}
+			if (!left) return true;
+			List<Hit> hits = hits();
+			int hy = hitsTop(list.size()) + HEAD_H;
+			for (Hit h : hits) {
+				if (Ui.inside(mx, my, contentX(), hy, contentRight() - contentX(), RESULT_H)) {
+					open(h.mod, h.setting);
+					return true;
+				}
+				hy += RESULT_H;
 			}
 			return true;
 		}
@@ -658,10 +1014,15 @@ public class ModsScreen extends Screen {
 			selected = null;
 		} else if (!themeView() && left && Ui.inside(mx, my, right() - PILL_W - 4, barY(), PILL_W + 4, BUTTON_H)) {
 			selected.enabled = !selected.enabled;
-			Mods.save();
+			saveChange(selected);
 		} else if (left && Ui.inside(mx, my, contentX(), footY(), footW(Ui.tr("reset")), BUTTON_H)) {
-			selected.reset();
-			Mods.save();
+			Mod mod = selected;
+			Overlay.confirm(Ui.trf("confirm.reset", modName(mod)), Ui.tr("reset"), () -> {
+				Runnable undo = undoFor(List.of(mod));
+				mod.reset();
+				saveChange(mod);
+				Overlay.toast(Ui.trf("toast.reset", modName(mod)), undo);
+			});
 		} else if (inView(my)) {
 			for (Cell cell : cells()) {
 				Setting setting = cell.setting;
@@ -670,22 +1031,26 @@ public class ModsScreen extends Screen {
 				rowMod = selected;
 				rowFocus = rows().indexOf(setting);
 				int cr = cell.x + cell.w, fieldX = cr - fieldW(cell.w);
+				if (left && resettable(setting) && mx < cell.x + 8) {
+					resetOne(setting);
+					continue;
+				}
 				if (left && extraClick(cell, mx, my)) continue;
 				int swatch =setting instanceof Setting.Choice c0 && c0.id.equals("palette") ? swatchAt(mx, my, cr - fieldW(cell.w), cell.y) : -1;
 				if (swatch >= 0) {
 					((Setting.Choice) setting).value = Ui.PALETTES[swatch].name();
-					Mods.save();
+					saveChange(selected);
 				} else if (setting instanceof Setting.Choice choice && mx >= fieldX) {
 					// The "<" end or a right click steps back, anywhere else steps forward.
 					int n = choice.options.length, at = 0;
 					while (at < n && !choice.options[at].equals(choice.value)) at++;
 					if (n > 0) choice.value = choice.options[(at + (left && mx >= fieldX + 14 ? 1 : n - 1)) % n];
-					Mods.save();
+					saveChange(selected);
 				} else if (!left) {
 					continue;
 				} else if (setting instanceof Setting.Bool bool && mx >= cr - PILL_W - 4) {
 					bool.value = !bool.value;
-					Mods.save();
+					saveChange(selected);
 				} else if (setting instanceof Setting.Num num && mx >= cr - sliderW(cell.w) - 4) {
 					dragging = num;
 					dragW = sliderW(cell.w) - 8;
@@ -714,6 +1079,11 @@ public class ModsScreen extends Screen {
 
 	@Override
 	public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+		if (pressMod != null) {
+			// In Custom order a press that moves becomes a drag: the card goes where it is dropped.
+			if (sort == 2 && Math.hypot(event.x() - pressX, event.y() - pressY) > 4) cardDragging = true;
+			return true;
+		}
 		if (rangeDrag != null) {
 			double v = rangeDrag.min + (event.x() - rangeX) / rangeW * (rangeDrag.max - rangeDrag.min);
 			if (rangeKnob == 0) rangeDrag.set(Math.min(v, rangeDrag.hi), rangeDrag.hi);
@@ -727,13 +1097,29 @@ public class ModsScreen extends Screen {
 
 	@Override
 	public boolean mouseReleased(MouseButtonEvent event) {
+		if (pressMod != null) {
+			Mod pressed = pressMod;
+			boolean moved = cardDragging;
+			pressMod = null;
+			cardDragging = false;
+			List<Mod> list = shown();
+			for (int i = 0; i < list.size(); i++) {
+				if (!Ui.inside(event.x(), event.y(), cardX(i), cardY(i), cardW(), CARD_H)) continue;
+				if (!moved && list.get(i) == pressed) open(pressed, null);
+				else if (moved && list.get(i) != pressed) {
+					Mods.moveTo(pressed, list.get(i));
+					Mods.save();
+				}
+			}
+			return true;
+		}
 		if (dragging != null) {
 			dragging = null;
-			Mods.save();
+			saveChange(selected);
 		}
 		if (rangeDrag != null) {
 			rangeDrag = null;
-			Mods.save();
+			saveChange(selected);
 		}
 		if (orderDrag != null) {
 			// Dropped on another pill: the dragged item takes its place.
@@ -742,7 +1128,7 @@ public class ModsScreen extends Screen {
 				if (Ui.inside(event.x(), event.y(), r[0], r[1], r[2], r[3])) orderDrag.move(orderFrom, i);
 			}
 			orderDrag = null;
-			Mods.save();
+			saveChange(selected);
 		}
 		return true;
 	}
@@ -862,7 +1248,7 @@ public class ModsScreen extends Screen {
 			int n = c.options.length, w = Math.max(fw, Math.min(cell.w - 60, n * 40)), bx = cr - w, bw = w / n;
 			if (mx < bx) return false;
 			c.value = c.options[Math.max(0, Math.min(n - 1, (int) ((mx - bx) / bw)))];
-			Mods.save();
+			saveChange(selected);
 			return true;
 		}
 		if (s instanceof Setting.Range r) {
@@ -882,7 +1268,7 @@ public class ModsScreen extends Screen {
 				px -= w;
 				if (Ui.inside(mx, my, px, y + 3, w, BUTTON_H)) {
 					m.toggle(m.options[i]);
-					Mods.save();
+					saveChange(selected);
 					return true;
 				}
 				px -= 3;
@@ -949,8 +1335,9 @@ public class ModsScreen extends Screen {
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
 		// render() clamps both values every frame, so no limits are needed here.
-		if (selected == null) gridScroll -= (int) (scrollY * 25);
-		else rowScroll -= (int) (scrollY * ROW_H);
+		if (menuMod != null || Overlay.confirming()) return true;
+		if (selected == null) gridGoal -= (int) (scrollY * 30);
+		else rowGoal -= (int) (scrollY * ROW_H * 1.5);
 		return true;
 	}
 
@@ -984,16 +1371,25 @@ public class ModsScreen extends Screen {
 	@Override
 	public boolean keyPressed(KeyEvent event) {
 		int key = event.key();
+		if (Overlay.keyConfirm(key)) return true;
+		if (menuMod != null && key == GLFW.GLFW_KEY_ESCAPE) {
+			menuMod = null;
+			return true;
+		}
+		if (listening == null && typing == null && key == GLFW.GLFW_KEY_Z && event.hasControlDown()) {
+			Overlay.undoLatest();
+			return true;
+		}
 		if (listening != null) {
 			listening.value = key == GLFW.GLFW_KEY_ESCAPE ? -1 : key; // Esc clears the binding
 			listening = null;
-			Mods.save();
+			saveChange(selected);
 			return true;
 		}
 		if (typing != null) {
 			if (key == GLFW.GLFW_KEY_ESCAPE || key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) {
 				typing = null;
-				Mods.save();
+				saveChange(selected);
 			} else if (key == GLFW.GLFW_KEY_BACKSPACE) {
 				type("", true);
 			} else if (event.isPaste()) {
@@ -1010,16 +1406,15 @@ public class ModsScreen extends Screen {
 				focus = Math.floorMod(focus < 0 ? (event.hasShiftDown() ? -1 : 0) : focus + (event.hasShiftDown() ? -1 : 1), list.size());
 				// Scroll the focused card into view.
 				int y = (focus / columns) * (CARD_H + GAP), viewH = viewBottom() - viewTop();
-				if (y < gridScroll) gridScroll = y;
-				else if (y + CARD_H > gridScroll + viewH) gridScroll = y + CARD_H - viewH;
+				if (y < gridGoal) gridGoal = y;
+				else if (y + CARD_H > gridGoal + viewH) gridGoal = y + CARD_H - viewH;
 			} else if (focus >= 0 && focus < list.size()) {
 				Mod mod = list.get(focus);
 				if (event.hasShiftDown()) {
 					mod.enabled = !mod.enabled;
-					Mods.save();
+					saveChange(mod);
 				} else {
-					selected = mod;
-					rowScroll = 0;
+					open(mod, null);
 				}
 			}
 			return true;
@@ -1081,7 +1476,7 @@ public class ModsScreen extends Screen {
 			hex = String.format("%08X", c.value);
 		} else if (s instanceof Setting.Text && use) typing = s;
 		else return false;
-		Mods.save();
+		saveChange(selected);
 		return true;
 	}
 
@@ -1093,7 +1488,7 @@ public class ModsScreen extends Screen {
 		} else if (selected == null && search.length() < 32) {
 			search += event.codepointAsString();
 			focus = -1;
-			gridScroll = 0;
+			gridScroll = gridGoal = 0;
 		}
 		return true;
 	}
@@ -1107,13 +1502,13 @@ public class ModsScreen extends Screen {
 		// A slider dragged while the screen closes never sees its release: keep its value.
 		dragging = null;
 		typing = null;
-		Mods.save();
+		saveChange(selected);
 		minecraft.setScreen(parent);
 	}
 
 	@Override
 	public void removed() {
-		Mods.save();
+		saveChange(selected);
 	}
 
 	@Override

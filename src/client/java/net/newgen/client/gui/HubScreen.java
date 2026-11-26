@@ -33,6 +33,12 @@ public class HubScreen extends Screen {
 		super(Component.literal("Newgen Client"));
 	}
 
+	/** Opens the editor with one element selected (a mod card's "Edit in HUD editor"). */
+	public HubScreen(HudMod focus) {
+		this();
+		selection.add(focus);
+	}
+
 	@Override
 	protected void init() {
 		// Vanilla's tutorial toast ("Move with W, A, S and D") sits where our panels are; it goes. Other toasts stay.
