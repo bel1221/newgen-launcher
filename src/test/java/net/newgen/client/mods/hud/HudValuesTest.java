@@ -63,4 +63,28 @@ class HudValuesTest {
 		assertTrue(last <= 100 && last >= 99);
 		assertEquals(0, HudValues.marquee(3000, 100, 50, 1000));
 	}
+
+	@Test
+	void pingBars() {
+		assertEquals("|||||", PingMod.bars(40));
+		assertEquals("|||..", PingMod.bars(450));
+		assertEquals("|....", PingMod.bars(2000));
+	}
+
+	@Test
+	void clockDateFormats() {
+		java.time.LocalDate d = java.time.LocalDate.of(2026, 3, 7);
+		assertEquals("07/03/2026", ClockMod.formatDate(d, "dd/MM/yyyy"));
+		assertEquals("2026-03-07", ClockMod.formatDate(d, "yyyy-MM-dd"));
+		assertEquals("Sat 7 Mar", ClockMod.formatDate(d, "EEE d MMM"));
+	}
+
+	/** The lang files must stay valid JSON after keys are appended. */
+	@Test
+	void langFilesParse() throws Exception {
+		for (String lang : new String[] {"en_us", "vi_vn"}) {
+			String text = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/resources/assets/newgen_client/lang/" + lang + ".json"));
+			assertTrue(com.google.gson.JsonParser.parseString(text).isJsonObject(), lang);
+		}
+	}
 }

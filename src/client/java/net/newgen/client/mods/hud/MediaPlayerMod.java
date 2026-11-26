@@ -23,11 +23,20 @@ public class MediaPlayerMod extends HudMod {
 	private final Setting.Key playPause = key("play_pause_key", "Play/pause key", -1);
 	private final Setting.Key nextKey = key("next_key", "Next track key", -1);
 	private final Setting.Key previousKey = key("previous_key", "Previous track key", -1);
+	private final Setting.Bool scrollTitle = bool("scroll_title", "Scroll long titles", true);
+	private final Setting.Color accentColor = color("accent_color", "Accent colour (title)", 0xFFFFFFFF);
 	private final boolean[] wasDown = new boolean[3];
 
 	public MediaPlayerMod() {
 		super("media_player", "Media Player", "What is playing on your computer (Spotify, YouTube…), with its progress", 1f, 0.7f);
 		ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+	}
+
+	/** Before the accent colour existed the title used the text colour. */
+	@Override
+	protected void migrate(com.google.gson.JsonObject saved) {
+		super.migrate(saved);
+		if (!saved.has(accentColor.id)) accentColor.value = textColor.value;
 	}
 
 	private void tick(Minecraft mc) {
@@ -64,24 +73,39 @@ public class MediaPlayerMod extends HudMod {
 		if (track == null) return;
 		int w = (int) boxWidth.get();
 		int y = 0;
-		g.drawString(mc.font, fit(mc, track.title(), w), 0, y, textColor.value, textShadow.value);
+		title(g, mc, track.title(), w);
 		y += 11;
 		if (showArtist.value) {
-			g.drawString(mc.font, fit(mc, track.artist(), w), 0, y, dim(textColor.value), textShadow.value);
+			g.drawString(mc.font, fit(mc, track.artist(), w), 0, y, dim(textColor.current()), textShadow.value);
 			y += 11;
 		}
 		long now = System.currentTimeMillis();
 		long position = track.position(now);
 		if (showProgress.value) {
 			g.fill(0, y, w, y + 2, 0x40FFFFFF);
-			if (track.durationMs() > 0) g.fill(0, y, (int) (w * Math.min(1.0, (double) position / track.durationMs())), y + 2, barColor.value);
+			if (track.durationMs() > 0) g.fill(0, y, (int) (w * Math.min(1.0, (double) position / track.durationMs())), y + 2, barColor.current());
 			y += 6;
 		}
 		if (showTime.value) {
 			String time = track.durationMs() > 0 ? clock(position) + " / " + clock(track.durationMs()) : clock(position);
 			if (!track.playing()) time += " · " + I18n.get("newgen_client.media.paused");
-			g.drawString(mc.font, time, 0, y, dim(textColor.value), textShadow.value);
+			g.drawString(mc.font, time, 0, y, dim(textColor.current()), textShadow.value);
 		}
+	}
+
+	/** The title in the accent colour; too long for the box, it scrolls (or is cut with an ellipsis). */
+	private void title(GuiGraphics g, Minecraft mc, String title, int w) {
+		int color = accentColor.current();
+		int tw = mc.font.width(title);
+		if (tw <= w || !scrollTitle.value) {
+			g.drawString(mc.font, fit(mc, title, w), 0, 0, color, textShadow.value);
+			return;
+		}
+		int gap = 24, offset = HudValues.marquee(System.currentTimeMillis(), tw + gap, 25, 1500);
+		g.enableScissor(0, 0, w, 10);
+		g.drawString(mc.font, title, -offset, 0, color, textShadow.value);
+		g.drawString(mc.font, title, -offset + tw + gap, 0, color, textShadow.value);
+		g.disableScissor();
 	}
 
 	/** The text cut to the box width with an ellipsis. */
