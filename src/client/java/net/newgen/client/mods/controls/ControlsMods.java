@@ -24,6 +24,8 @@ public final class ControlsMods {
 		Mods.register(CATEGORY, hotkeys);
 		Mods.register(CATEGORY, actions);
 		Mods.register(CATEGORY, emotes);
+		// Wave 3 utility 1
+		Mods.register(CATEGORY, new HotbarTweaksMod());
 
 		ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			freelook.tick(mc);

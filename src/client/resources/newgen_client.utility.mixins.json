@@ -9,7 +9,14 @@
 		"ItemStackMixin",
 		"ScreenBackgroundMixin",
 		"ScreenshotMixin",
-		"StringDecomposerMixin"
+		"StringDecomposerMixin",
+		"AbstractContainerScreenMixin",
+		"ContainerDimMixin",
+		"GuiHotbarMixin",
+		"HotbarScrollMixin",
+		"InventoryScaleMixin",
+		"LocalPlayerDropMixin",
+		"MultiPlayerGameModeMixin"
 	],
 	"injectors": { "defaultRequire": 1 }
 }

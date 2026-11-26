@@ -19,5 +19,11 @@ public final class UtilityMods {
 		Mods.register(CATEGORY, new HorseStatsMod());
 		Mods.register(CATEGORY, new WaypointsMod());
 		Mods.register(CATEGORY, new MinimapMod());
+		// Wave 3 utility 1
+		Mods.register(CATEGORY, new DropProtectionMod());
+		Mods.register(CATEGORY, new SlotLockingMod());
+		Mods.register(CATEGORY, new SlotBindingMod());
+		Mods.register(CATEGORY, new InventoryTweaksMod());
+		Mods.register(CATEGORY, new EnchantLabelsMod());
 	}
 }
