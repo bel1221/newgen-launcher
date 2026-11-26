@@ -20,7 +20,7 @@ public class NametagMod extends Mod {
 	public final Setting.Bool hideF1 = bool("hide_f1", "Hide name tags while the HUD is hidden (F1)", false);
 
 	private NametagMod() {
-		super("nametag", "Nametag", "Own name tag in third person and the look of name tags");
+		super("nametag", "Nametag", "Own name tag in third person and name tag background opacity");
 	}
 
 	/** True when name tags must not be drawn at all right now. */

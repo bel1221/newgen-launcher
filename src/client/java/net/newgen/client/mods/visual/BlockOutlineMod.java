@@ -20,7 +20,7 @@ public class BlockOutlineMod extends Mod {
 	public final Setting.Color fillColor = color("fill_color", "Fill colour", 0x3000AAFF);
 
 	private BlockOutlineMod() {
-		super("block_outline", "Block Outline", "Colour, width and fill of the outline around the block you look at");
+		super("block_outline", "Block Outline", "Colour and width of the outline around the block you look at");
 	}
 
 	/** Called once per frame while the level is drawn: the see-through fill of the block looked at. */

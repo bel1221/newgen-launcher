@@ -25,7 +25,7 @@ public class FogMod extends Mod {
 	public final Setting.Color water = color("water_color", "Water fog colour", 0xFF103080);
 
 	private FogMod() {
-		super("fog", "Fog", "Removes fog, or changes its distance and colour");
+		super("fog", "Fog", "Removes fog");
 	}
 
 	/** Changes vanilla's fog for this frame; the colour's alpha is how strongly it replaces vanilla's colour. */
