@@ -1,17 +1,13 @@
 package net.newgen.client.mixin.utility;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.GuiMessage;
-import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.FormattedCharSequence;
 import net.newgen.client.mods.utility.ChatMod;
-import org.joml.Matrix3x2f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -108,40 +104,13 @@ public abstract class ChatComponentMixin implements ChatMod.Lines {
 	@ModifyVariable(method = "render(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IIZ)V", at = @At("HEAD"), argsOnly = true)
 	private ChatComponent.ChatGraphicsAccess newgen$styled(ChatComponent.ChatGraphicsAccess access) {
 		if (!ChatMod.restyles()) return access;
-		int radius = ChatMod.cornerRadius();
-		net.newgen.client.mods.utility.RoundedChatBackground rounded = radius > 0 ? new net.newgen.client.mods.utility.RoundedChatBackground(access::fill, radius) : null;
-		newgen$rounded = rounded;
-		return new ChatComponent.ChatGraphicsAccess() {
-			@Override
-			public void updatePose(Consumer<Matrix3x2f> consumer) {
-				access.updatePose(consumer);
-			}
-
-			@Override
-			public void fill(int x1, int y1, int x2, int y2, int color) {
-				if ((color & 0xFFFFFF) == 0) {
-					if (rounded != null) rounded.add(x1, y1, x2, y2, ChatMod.background(color >>> 24));
-					else access.fill(x1, y1, x2, y2, ChatMod.background(color >>> 24));
-				} else if (!ChatMod.hideScrollbar()) access.fill(x1, y1, x2, y2, color);
-			}
-
-			@Override
-			public boolean handleMessage(int y, float alpha, FormattedCharSequence text) {
-				if (rounded != null) rounded.flush();
-				return access.handleMessage(y, alpha, text);
-			}
-
-			@Override
-			public void handleTag(int x1, int y1, int x2, int y2, float alpha, GuiMessageTag tag) {
-				access.handleTag(x1, y1, x2, y2, alpha, tag);
-			}
-
-			@Override
-			public void handleTagIcon(int x, int y, boolean hovered, GuiMessageTag tag, GuiMessageTag.Icon icon) {
-				access.handleTagIcon(x, y, hovered, tag, icon);
-			}
-		};
+		// One wrapper per chat, pointed at this frame's vanilla access: no allocation per frame.
+		newgen$rounded = newgen$styledAccess.wrap(access, ChatMod.cornerRadius()).panel();
+		return newgen$styledAccess;
 	}
+
+	@org.spongepowered.asm.mixin.Unique
+	private final net.newgen.client.mods.utility.StyledChatAccess newgen$styledAccess = new net.newgen.client.mods.utility.StyledChatAccess();
 
 	/** The message whose line is at screen height y in the open chat, or null (same layout as vanilla's render). */
 	@Override
