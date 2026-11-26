@@ -52,6 +52,10 @@ public class EmotesMod extends Mod {
 	private Level level;
 	private SoundInstance clip;
 	private CameraType before;
+	/** The view the emote switched to; the old one comes back only if the player kept this one (no F5 meanwhile). */
+	private CameraType setView;
+	/** False until attack and use have both been released after the emote started (the wheel click may still be held). */
+	private boolean clicksArmed;
 	private boolean cameraChanged, wasDown;
 
 	public EmotesMod() {
@@ -101,18 +105,19 @@ public class EmotesMod extends Mod {
 		boolean down = key.isDown(mc);
 		if (down && !wasDown) {
 			if (playing != null) stop(mc);
-			else if (!interrupted(mc)) mc.setScreen(new EmoteWheelScreen(this));
+			else if (!interrupted(mc, true)) mc.setScreen(new EmoteWheelScreen(this));
 		}
 		wasDown = down;
 		if (playing == null) return;
 		playedTicks++;
 		PlayerAnimationController c = controller(mc.player);
 		// The controller picks the animation up on its next tick, so "ended" is only read after a moment.
-		if (interrupted(mc) || c == null || playedTicks > 2 && !c.isActive()) stop(mc);
+		if (!clicksArmed && !mc.options.keyAttack.isDown() && !mc.options.keyUse.isDown()) clicksArmed = true;
+		if (interrupted(mc, clicksArmed) || c == null || playedTicks > 2 && !c.isActive()) stop(mc);
 	}
 
 	public void play(Minecraft mc, EmoteLibrary.Emote emote) {
-		if (emote == null || mc.player == null || interrupted(mc)) return;
+		if (emote == null || mc.player == null || interrupted(mc, false)) return;
 		stop(mc);
 		PlayerAnimationController c = controller(mc.player);
 		if (c == null) return;
@@ -123,10 +128,12 @@ public class EmotesMod extends Mod {
 		// must not read it as "press again to stop".
 		wasDown = keyHeld(mc);
 		playedTicks = 0;
+		clicksArmed = !mc.options.keyAttack.isDown() && !mc.options.keyUse.isDown();
 		level = mc.level;
 		if (!FreelookMod.active && !camera.value.equals("Don't change")) {
 			before = mc.options.getCameraType();
-			mc.options.setCameraType(camera.value.equals("Back") ? CameraType.THIRD_PERSON_BACK : CameraType.THIRD_PERSON_FRONT);
+			setView = camera.value.equals("Back") ? CameraType.THIRD_PERSON_BACK : CameraType.THIRD_PERSON_FRONT;
+			mc.options.setCameraType(setView);
 			cameraChanged = true;
 		}
 		if (sound.value && emote.sound() != null && volume.get() > 0) {
@@ -149,7 +156,7 @@ public class EmotesMod extends Mod {
 		}
 		if (clip != null) mc.getSoundManager().stop(clip);
 		clip = null;
-		if (cameraChanged) mc.options.setCameraType(before);
+		if (cameraChanged && mc.options.getCameraType() == setView) mc.options.setCameraType(before);
 		cameraChanged = false;
 	}
 
@@ -163,12 +170,12 @@ public class EmotesMod extends Mod {
 	}
 
 	/** Anything that cancels an emote, or keeps one from starting (see EmoteCancel; moving does not). */
-	private static boolean interrupted(Minecraft mc) {
+	private static boolean interrupted(Minecraft mc, boolean clicksArmed) {
 		LocalPlayer p = mc.player;
 		Options o = mc.options;
 		return EmoteCancel.reason(new EmoteCancel.Signals(o.keyAttack.isDown(), o.keyUse.isDown(), p.hurtTime > 0,
 				o.keyShift.isDown() || p.isShiftKeyDown(), p.getPose() == net.minecraft.world.entity.Pose.SWIMMING || p.isSwimming(),
-				p.isFallFlying(), p.isSleeping(), p.isPassenger(), p.isDeadOrDying(), mc.screen instanceof AbstractContainerScreen<?>)) != null;
+				p.isFallFlying(), p.isSleeping(), p.isPassenger(), p.isDeadOrDying(), mc.screen instanceof AbstractContainerScreen<?>), clicksArmed) != null;
 	}
 
 	// ---- body yaw while standing still (render side only; the real rotation is never touched) ----

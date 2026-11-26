@@ -32,6 +32,14 @@ class EmoteCancelTest {
 	}
 
 	@Test
+	void theWheelClickStillHeldDoesNotCancel() {
+		assertNull(EmoteCancel.reason(only(0), false), "attack held from the wheel click");
+		assertNull(EmoteCancel.reason(only(1), false), "use held from the wheel click");
+		assertEquals(Reason.HURT, EmoteCancel.reason(only(2), false), "other triggers still count");
+		assertEquals(Reason.ATTACK, EmoteCancel.reason(only(0), true), "after a release, attack cancels again");
+	}
+
+	@Test
 	void deathWinsOverEverythingElse() {
 		assertEquals(Reason.DEATH, EmoteCancel.reason(new Signals(true, true, true, true, true, true, true, true, true, true)));
 	}

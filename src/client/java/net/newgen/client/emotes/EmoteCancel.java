@@ -25,6 +25,15 @@ public final class EmoteCancel {
 
 	/** The reason to cancel, or null to keep playing. */
 	public static Reason reason(Signals s) {
+		return reason(s, true);
+	}
+
+	/**
+	 * As reason(s), but with clicksArmed false the attack and use buttons are ignored: the click that picked the emote on
+	 * the wheel may still be held when the emote starts. They count again once both have been released.
+	 */
+	public static Reason reason(Signals s, boolean clicksArmed) {
+		if (!clicksArmed) s = new Signals(false, false, s.hurt(), s.sneak(), s.crawlOrSwim(), s.gliding(), s.sleeping(), s.riding(), s.dead(), s.containerOpen());
 		if (s.dead()) return Reason.DEATH;
 		if (s.hurt()) return Reason.HURT;
 		if (s.attack()) return Reason.ATTACK;
