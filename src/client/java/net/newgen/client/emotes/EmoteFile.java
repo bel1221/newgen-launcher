@@ -3,6 +3,8 @@ package net.newgen.client.emotes;
 import java.io.IOException;
 
 import com.zigythebird.playeranimcore.animation.Animation;
+import com.zigythebird.playeranimcore.animation.ExtraAnimationData;
+import com.zigythebird.playeranimcore.animation.keyframe.BoneAnimation;
 import com.zigythebird.playeranimcore.network.AnimationBinary;
 import com.zigythebird.playeranimcore.network.LegacyAnimationBinary;
 import io.netty.buffer.ByteBuf;
@@ -39,6 +41,20 @@ public final class EmoteFile {
 			buf.readerIndex(pos + size);
 		}
 		if (animation == null) throw new IOException("no animation in emote file");
+		return withoutBends(animation);
+	}
+
+	/**
+	 * Removes the elbow, knee and waist bends. Player Animation Library decodes them but does not draw a bent limb
+	 * itself (that takes a separate renderer we do not ship), while it still moves the head and arms as if the torso
+	 * bent ("apply bend to other bones"). The result was a torso and legs drawn straight with the head and arms
+	 * placed for a bend that never showed: the head came off the body and squats sank between rigid legs. Without
+	 * bends every part stays joined.
+	 */
+	static Animation withoutBends(Animation animation) {
+		animation.data().put(ExtraAnimationData.APPLY_BEND_TO_OTHER_BONES_KEY, false);
+		for (BoneAnimation bone : animation.boneAnimations().values()) bone.bendKeyFrames().clear();
+		animation.boneAnimations().values().removeIf(bone -> !bone.hasKeyframes());
 		return animation;
 	}
 }

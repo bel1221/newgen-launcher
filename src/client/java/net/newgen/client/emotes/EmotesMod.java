@@ -41,6 +41,9 @@ public class EmotesMod extends Mod {
 	private final Setting.Hidden wheel = new Setting.Hidden("wheel",
 			"hello,hug,blow_kiss,floss,take_the_l,get_the_griddy,macarena,rat_dance_1_2");
 
+	/** The local player's entity id while an emote plays, else -1; the cape, armor and elytra layers skip that player. */
+	private static volatile int emotingEntity = -1;
+
 	private EmoteLibrary.Emote playing;
 	private int playedTicks;
 	private Level level;
@@ -112,6 +115,7 @@ public class EmotesMod extends Mod {
 		if (c == null) return;
 		c.triggerAnimation(emote.animation());
 		playing = emote;
+		emotingEntity = mc.player.getId();
 		// The wheel key may still be held (an emote picked with 1-8 or Enter): that is not a new press, so the next tick
 		// must not read it as "press again to stop".
 		wasDown = keyHeld(mc);
@@ -133,6 +137,7 @@ public class EmotesMod extends Mod {
 	public void stop(Minecraft mc) {
 		if (playing == null) return;
 		playing = null;
+		emotingEntity = -1;
 		if (mc.player != null) {
 			PlayerAnimationController c = controller(mc.player);
 			if (c != null) c.stop();
@@ -141,6 +146,11 @@ public class EmotesMod extends Mod {
 		clip = null;
 		if (cameraChanged) mc.options.setCameraType(before);
 		cameraChanged = false;
+	}
+
+	/** Whether this render state is the local player playing an emote: its cape, armor and elytra are not drawn. */
+	public static boolean hidesGear(net.minecraft.client.renderer.entity.state.EntityRenderState state) {
+		return emotingEntity != -1 && state instanceof net.minecraft.client.renderer.entity.state.AvatarRenderState avatar && avatar.id == emotingEntity;
 	}
 
 	private static PlayerAnimationController controller(LocalPlayer player) {
