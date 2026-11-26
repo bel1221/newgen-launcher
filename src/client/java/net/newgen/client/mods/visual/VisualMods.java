@@ -43,6 +43,7 @@ public final class VisualMods {
 
 		ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			ZoomMod.I.tick(mc);
+			TimeChangerMod.I.tick(mc);
 			GuiScaleMod.I.tick(mc);
 			HitColorMod.I.tick(mc);
 		});
@@ -58,6 +59,7 @@ public final class VisualMods {
 		ChunkBordersMod.I.emit(mc, camera);
 		HeightLimitMod.I.emit(mc, camera);
 		HitboxMod.I.emit(mc, camera, partialTick);
+		BlockOutlineMod.I.emit(mc);
 		LightOverlayMod.I.emit(mc, camera);
 		TntCountdownMod.I.emit(mc, partialTick);
 	}
