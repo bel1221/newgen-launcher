@@ -45,6 +45,30 @@ public final class PauseRestyle {
 		ours.add(new Ui.Btn(left, y, half, 20, Ui.tr("mods"), Ui.I_GRID, Ui.PRIMARY, Ui.CAPS, () -> mc.setScreen(new ModsScreen(screen))));
 		ours.add(new Ui.Btn(right - half, y, half, 20, Ui.tr("hud.edit"), Ui.I_LAYOUT, Ui.DARK, Ui.CAPS, () -> mc.setScreen(new HubScreen())));
 		widgets.addAll(ours);
+		// The glass panel behind the column: index 0 of Fabric's button list is placed before the first button in
+		// the screen's draw order, so it is drawn after the blur and under every button.
+		widgets.add(0, new Panel(left - 10, top - 10, right - left + 20, y + 20 + 10 - (top - 10)));
 	}
 
+	/** The glass panel behind the buttons: takes no clicks, no focus, no narration. */
+	private static final class Panel extends AbstractWidget {
+		Panel(int x, int y, int w, int h) {
+			super(x, y, w, h, net.minecraft.network.chat.Component.empty());
+			active = false;
+		}
+
+		@Override
+		protected void renderWidget(net.minecraft.client.gui.GuiGraphics g, int mouseX, int mouseY, float delta) {
+			Ui.panel(g, getX(), getY(), getWidth(), getHeight());
+		}
+
+		@Override
+		public boolean isMouseOver(double mouseX, double mouseY) {
+			return false;
+		}
+
+		@Override
+		protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput output) {
+		}
+	}
 }

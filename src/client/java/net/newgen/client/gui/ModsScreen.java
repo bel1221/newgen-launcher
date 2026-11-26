@@ -50,7 +50,9 @@ public class ModsScreen extends Screen {
 	/** The state chips over the grid. */
 	private static final String[] STATES = {"state.all", "state.on", "state.off"};
 
-	private static final int TOAST_H = 32, PAD = 8, HEADER = 28, SIDE_W = 92, SIDE_ROW = 16, GAP = 6, ROW_H = 20, HEAD_H = 14;
+	private static final int TOAST_H = 32, PAD = 8, HEADER = 28, SIDE_W = 92, SIDE_ROW = 16, GAP = 6, HEAD_H = 14;
+	/** An option row: a 22-unit slot (room between switches), its contents laid out in the middle 20 (ROW_IN). */
+	private static final int ROW_H = 22, ROW_IN = 20;
 	/** A card: icon and name (TOP_H), then the Options strip and the Enabled/Disabled strip (STRIP each). */
 	private static final int TOP_H = 38, STRIP = 14, CARD_H = 56, RESULT_H = 14;
 	private static final int PILL_W = 20, SWATCH = 10, HEX_W = 66, BUTTON_H = 14, COLUMN_GAP = 14;
@@ -433,7 +435,7 @@ public class ModsScreen extends Screen {
 				y += HEAD_H;
 			}
 			for (int i = 0; i < part.size(); i++) {
-				out.add(new Cell(part.get(i), null, left + (i % cols) * (colW + COLUMN_GAP), y + (i / cols) * ROW_H, colW));
+				out.add(new Cell(part.get(i), null, left + (i % cols) * (colW + COLUMN_GAP), y + (i / cols) * ROW_H + 1, colW));
 			}
 			y += (part.size() + cols - 1) / cols * ROW_H;
 		}
@@ -603,7 +605,7 @@ public class ModsScreen extends Screen {
 				if (cell.setting != null) {
 					row(g, cell, hot ? mouseX : -1, mouseY);
 					if (rowMod == selected && rowFocus >= 0 && rowFocus < rows().size() && rows().get(rowFocus) == cell.setting)
-						Ui.ring(g, cell.x - 3, cell.y + 1, cell.w + 6, ROW_H - 2, Ui.R_SM, Ui.ACCENT);
+						Ui.ring(g, cell.x - 3, cell.y + 1, cell.w + 6, ROW_IN - 2, Ui.R_SM, Ui.ACCENT);
 				} else {
 					Ui.text(g, cell.heading, cell.x, cell.y + 4, Ui.TEXT, Ui.CAPS);
 					g.fill(cell.x + Ui.width(cell.heading, Ui.CAPS) + 6, cell.y + 7, cell.x + cell.w, cell.y + 8, FAINT);
@@ -872,7 +874,7 @@ public class ModsScreen extends Screen {
 	private void row(GuiGraphics g, Cell cell, int mouseX, int mouseY) {
 		Setting setting = cell.setting;
 		int x = cell.x, y = cell.y, cr = x + cell.w, controlX = cr - fieldW(cell.w);
-		if (Ui.inside(mouseX, mouseY, x - 3, y, cell.w + 6, ROW_H)) Ui.round(g, x - 3, y + 1, cell.w + 6, ROW_H - 2, 4, 0x10FFFFFF);
+		if (Ui.inside(mouseX, mouseY, x - 3, y, cell.w + 6, ROW_IN)) Ui.round(g, x - 3, y + 1, cell.w + 6, ROW_IN - 2, 4, 0x10FFFFFF);
 
 		int extra = extraRow(g, cell, mouseX, mouseY);
 		if (extra >= 0) {
@@ -882,7 +884,7 @@ public class ModsScreen extends Screen {
 		if (setting instanceof Setting.Bool bool) {
 			controlX = cr - PILL_W;
 			// The same switch as on the cards: blue track and knob right when on.
-			Ui.toggle(g, controlX, y + 5, bool.value, Ui.inside(mouseX, mouseY, controlX - 4, y, PILL_W + 4, ROW_H));
+			Ui.toggle(g, controlX, y + 5, bool.value, Ui.inside(mouseX, mouseY, controlX - 4, y, PILL_W + 4, ROW_IN));
 		} else if (setting instanceof Setting.Num num && stepper(num)) {
 			// A range of six values or fewer is a stepper, like a choice: ‹ 2 ›.
 			int sw = sliderW(cell.w), sx = cr - sw;
@@ -949,7 +951,7 @@ public class ModsScreen extends Screen {
 		Setting s = cell.setting;
 		int x = cell.x, y = cell.y;
 		if (resettable(s)) {
-			if (Ui.inside(mouseX, mouseY, x - 3, y, 11, ROW_H)) {
+			if (Ui.inside(mouseX, mouseY, x - 3, y, 11, ROW_IN)) {
 				Ui.glyph(g, Ui.I_RESET, x - 1, y + 6, 8, Ui.TEXT);
 				tip = Ui.tr("setting.reset_one");
 			} else {
@@ -959,7 +961,7 @@ public class ModsScreen extends Screen {
 		}
 		String text = Ui.fit(settingLabel(s.name), end - 6 - x, Ui.UI, false);
 		Ui.text(g, text, x, y + 6, Ui.SOFT, Ui.UI);
-		if (Ui.inside(mouseX, mouseY, x, y, Ui.width(text, Ui.UI), ROW_H)) {
+		if (Ui.inside(mouseX, mouseY, x, y, Ui.width(text, Ui.UI), ROW_IN)) {
 			String t = tipOf(selected, s);
 			if (t != null) tip = t;
 		}
@@ -975,7 +977,7 @@ public class ModsScreen extends Screen {
 	private int swatches(GuiGraphics g, Setting.Choice choice, int controlX, int y, int mouseX, int mouseY) {
 		int x0 = swatchesX(controlX);
 		for (int k = 0; k < Ui.PALETTES.length; k++) {
-			int sx = x0 + k * (SWATCH_D + SWATCH_GAP), sy = y + (ROW_H - SWATCH_D) / 2;
+			int sx = x0 + k * (SWATCH_D + SWATCH_GAP), sy = y + (ROW_IN - SWATCH_D) / 2;
 			boolean chosen = Ui.PALETTES[k].name().equals(choice.value), over = Ui.inside(mouseX, mouseY, sx - 1, sy - 1, SWATCH_D + 2, SWATCH_D + 2);
 			Ui.round(g, sx, sy, SWATCH_D, SWATCH_D, SWATCH_D / 2, Ui.PALETTES[k].accent());
 			if (chosen || over) Ui.ring(g, sx - 2, sy - 2, SWATCH_D + 4, SWATCH_D + 4, SWATCH_D / 2 + 2, chosen ? 0xE6FFFFFF : 0x66FFFFFF);
@@ -985,7 +987,7 @@ public class ModsScreen extends Screen {
 
 	/** The preset under the mouse on the palette row, or -1. */
 	private int swatchAt(double mx, double my, int controlX, int rowY) {
-		int x0 = swatchesX(controlX), sy = rowY + (ROW_H - SWATCH_D) / 2;
+		int x0 = swatchesX(controlX), sy = rowY + (ROW_IN - SWATCH_D) / 2;
 		for (int k = 0; k < Ui.PALETTES.length; k++) {
 			int sx = x0 + k * (SWATCH_D + SWATCH_GAP);
 			if (Ui.inside(mx, my, sx - 2, sy - 2, SWATCH_D + 4, SWATCH_D + 4)) return k;
@@ -1158,7 +1160,7 @@ public class ModsScreen extends Screen {
 		} else if (inView(my)) {
 			for (Cell cell : cells()) {
 				Setting setting = cell.setting;
-				if (setting == null || !Ui.inside(mx, my, cell.x, cell.y, cell.w, ROW_H)) continue;
+				if (setting == null || !Ui.inside(mx, my, cell.x, cell.y, cell.w, ROW_IN)) continue;
 				// The keyboard focus follows the mouse, so Enter acts on the row just clicked.
 				rowMod = selected;
 				rowFocus = rows().indexOf(setting);
