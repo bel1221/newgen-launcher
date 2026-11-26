@@ -108,7 +108,9 @@ public class AnimatiumMod extends Mod {
 					// a read-only folder: the reset repeats next launch, the only cost
 				}
 			}
+			net.newgen.client.mods.visual.AnimatiumGuard.strip(net.minecraft.client.Minecraft.getInstance());
 			for (Link link : links) unsaved |= apply(link);
+			unsaved |= offOthers();
 			long now = System.currentTimeMillis();
 			if (unsaved && now - lastSave >= 1000) {
 				lastSave = now;
@@ -153,7 +155,19 @@ public class AnimatiumMod extends Mod {
 	}
 
 	/** Every boolean in every Animatium category off and every enum to VANILLA (or OFF): vanilla Minecraft. */
+	/** Every Animatium option that is not one of ours is held at its off value on every tick: presets, commands or a
+	 * hand-edited file cannot turn them on. */
+	private boolean offOthers() throws ReflectiveOperationException {
+		java.util.Set<String> ours = new java.util.HashSet<>();
+		for (Link link : links) ours.add(link.category + "." + link.field);
+		return allOff(ours);
+	}
+
 	private boolean allOff() throws ReflectiveOperationException {
+		return allOff(java.util.Set.of());
+	}
+
+	private boolean allOff(java.util.Set<String> skip) throws ReflectiveOperationException {
 		boolean changed = false;
 		for (Field cf : config.getClass().getFields()) {
 			if (java.lang.reflect.Modifier.isStatic(cf.getModifiers())) continue;
@@ -163,6 +177,7 @@ public class AnimatiumMod extends Mod {
 				if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
 				Object off = f.getType() == boolean.class ? Boolean.FALSE
 						: f.getType().isEnum() ? enumConstant(f.getType(), "VANILLA", "OFF") : null;
+				if (skip.contains(cf.getName() + "." + f.getName())) continue;
 				if (off != null && !off.equals(f.get(category))) {
 					f.set(category, off);
 					changed = true;
