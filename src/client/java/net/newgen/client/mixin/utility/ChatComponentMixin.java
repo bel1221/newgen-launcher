@@ -82,6 +82,22 @@ public abstract class ChatComponentMixin implements ChatMod.Lines {
 		return vanilla || ChatMod.peeking();
 	}
 
+	/** Fade time: a line fades 200 ticks after its time, so its time is moved by the difference to the chosen one. */
+	@org.spongepowered.asm.mixin.injection.ModifyArg(method = "addMessageToDisplayQueue(Lnet/minecraft/client/GuiMessage;)V",
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/GuiMessage$Line;<init>(ILnet/minecraft/util/FormattedCharSequence;Lnet/minecraft/client/GuiMessageTag;Z)V"), index = 0)
+	private int newgen$fadeTime(int addedTime) {
+		return addedTime + ChatMod.fadeShift();
+	}
+
+	@org.spongepowered.asm.mixin.Unique private net.newgen.client.mods.utility.RoundedChatBackground newgen$rounded;
+
+	/** Draws the rounded background (if any) when nothing else did, at the end of the chat's drawing. */
+	@org.spongepowered.asm.mixin.injection.Inject(method = "render(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IIZ)V", at = @At("TAIL"))
+	private void newgen$flushRounded(ChatComponent.ChatGraphicsAccess access, int height, int ticks, boolean focused, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+		if (newgen$rounded != null) newgen$rounded.flush();
+		newgen$rounded = null;
+	}
+
 	/** Moves the chat up (and slides it in for a moment after a new message), for drawing and clicking alike. */
 	@ModifyVariable(method = "render(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IIZ)V", at = @At("HEAD"), argsOnly = true, ordinal = 0)
 	private int newgen$offset(int screenHeight) {
@@ -92,6 +108,9 @@ public abstract class ChatComponentMixin implements ChatMod.Lines {
 	@ModifyVariable(method = "render(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IIZ)V", at = @At("HEAD"), argsOnly = true)
 	private ChatComponent.ChatGraphicsAccess newgen$styled(ChatComponent.ChatGraphicsAccess access) {
 		if (!ChatMod.restyles()) return access;
+		int radius = ChatMod.cornerRadius();
+		net.newgen.client.mods.utility.RoundedChatBackground rounded = radius > 0 ? new net.newgen.client.mods.utility.RoundedChatBackground(access::fill, radius) : null;
+		newgen$rounded = rounded;
 		return new ChatComponent.ChatGraphicsAccess() {
 			@Override
 			public void updatePose(Consumer<Matrix3x2f> consumer) {
@@ -100,12 +119,15 @@ public abstract class ChatComponentMixin implements ChatMod.Lines {
 
 			@Override
 			public void fill(int x1, int y1, int x2, int y2, int color) {
-				if ((color & 0xFFFFFF) == 0) access.fill(x1, y1, x2, y2, ChatMod.background(color >>> 24));
-				else if (!ChatMod.hideScrollbar()) access.fill(x1, y1, x2, y2, color);
+				if ((color & 0xFFFFFF) == 0) {
+					if (rounded != null) rounded.add(x1, y1, x2, y2, ChatMod.background(color >>> 24));
+					else access.fill(x1, y1, x2, y2, ChatMod.background(color >>> 24));
+				} else if (!ChatMod.hideScrollbar()) access.fill(x1, y1, x2, y2, color);
 			}
 
 			@Override
 			public boolean handleMessage(int y, float alpha, FormattedCharSequence text) {
+				if (rounded != null) rounded.flush();
 				return access.handleMessage(y, alpha, text);
 			}
 
@@ -134,7 +156,8 @@ public abstract class ChatComponentMixin implements ChatMod.Lines {
 		int index = k + chatScrollbarPos;
 		if (k >= getLinesPerPage() || index >= trimmedMessages.size()) return null;
 		GuiMessage.Line line = trimmedMessages.get(index);
-		for (GuiMessage message : allMessages) if (message.addedTime() == line.addedTime()) return message;
+		for (GuiMessage message : allMessages)
+			if (message.addedTime() == line.addedTime() || message.addedTime() + ChatMod.fadeShift() == line.addedTime()) return message;
 		return null;
 	}
 

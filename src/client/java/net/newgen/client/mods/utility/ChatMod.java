@@ -61,6 +61,9 @@ public class ChatMod extends Mod {
 	private final Setting.Bool customBackground = bool("custom_background", "Custom background colour", false);
 	private final Setting.Color backgroundColor = color("background_color", "Background colour", 0x80000000);
 	private final Setting.Bool noScrollbar = bool("no_scrollbar", "Hide the scrollbar", false);
+	private final Setting.Num fadeSeconds = num("fade_seconds", "Fade after (seconds)", 10, 1, 60, 1);
+	private final Setting.Bool rounded = bool("rounded", "Rounded corners", false);
+	private final Setting.Num radius = num("radius", "Corner radius", 3, 1, 6, 1);
 	private final Setting.Bool smooth = bool("smooth", "Slide new messages in", true);
 	private final Setting.Num moveUp = num("move_up", "Move chat up (pixels)", 0, 0, 200, 2);
 	// Keys
@@ -210,7 +213,7 @@ public class ChatMod extends Mod {
 	/** Whether the chat's drawing is restyled (background colour or no scrollbar). */
 	public static boolean restyles() {
 		ChatMod m = on();
-		return m != null && (m.customBackground.value || m.noScrollbar.value);
+		return m != null && (m.customBackground.value || m.noScrollbar.value || m.rounded.value);
 	}
 
 	/** The background colour for a vanilla background fill of the given alpha (vanilla's opacity and fading apply). */
@@ -230,6 +233,18 @@ public class ChatMod extends Mod {
 	public static boolean copyAndDelete() {
 		ChatMod m = on();
 		return m != null && m.copyDelete.value;
+	}
+
+	/** Ticks to add to a line's time so it fades after the chosen time instead of vanilla's 10 s (200 ticks). */
+	public static int fadeShift() {
+		ChatMod m = on();
+		return m == null ? 0 : (int) m.fadeSeconds.get() * 20 - 200;
+	}
+
+	/** Corner radius of the chat background in pixels, 0 = square (vanilla). */
+	public static int cornerRadius() {
+		ChatMod m = on();
+		return m != null && m.rounded.value ? (int) m.radius.get() : 0;
 	}
 
 	public static boolean hideScrollbar() {
