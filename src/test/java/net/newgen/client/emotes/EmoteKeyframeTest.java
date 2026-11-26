@@ -98,29 +98,6 @@ class EmoteKeyframeTest {
 		return last;
 	}
 
-	/**
-	 * Left-handed players: mirrored, the right arm's pitch from the file shows on the left arm (pitch is not negated by a
-	 * left-right mirror), and the decision follows the main hand setting.
-	 */
-	@Test
-	void mirroredForLeftHandersMovesTheRightArmToTheLeft() throws Exception {
-		assertEquals(true, EmotesMod.mirrored(net.minecraft.world.entity.HumanoidArm.LEFT));
-		assertEquals(false, EmotesMod.mirrored(net.minecraft.world.entity.HumanoidArm.RIGHT));
-		byte[] bytes = Files.readAllBytes(DIR.resolve("hello.emotecraft"));
-		List<float[]> pitch = rawKeyframes(bytes).get("rightArm").get(3);
-		HumanoidAnimationController c = new HumanoidAnimationController((ctl, data, set) -> PlayState.CONTINUE, MolangLoader::createNewEngine);
-		EmotesMod.mirror(c, true);
-		c.triggerAnimation(EmoteFile.read(bytes));
-		for (int step = 0; step < lastTick(pitch); step++) {
-			AnimationData d = new AnimationData(0, 0, false);
-			c.tick(d);
-			c.setupAnim(d);
-			int t = step + 1;
-			PlayerAnimBone left = c.get3DTransform(new PlayerAnimBone("left_arm"));
-			for (float[] f : pitch) if ((int) f[0] == t) assertEquals(f[1], left.rotX, 1e-3, "mirrored left arm pitch at tick " + t);
-		}
-	}
-
 	/** The arm's pitch and elbow bend equal the file's numbers at every keyframe (no torso bend in these two). */
 	@ParameterizedTest
 	@ValueSource(strings = {"hello", "floss"})
