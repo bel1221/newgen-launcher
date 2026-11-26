@@ -14,9 +14,9 @@ day_counter
 playtime
 cooldowns
 potion_effects
+nametag
 shiny_pots
 potion_counter
-nametag
 nick_hider
 fps
 cps
