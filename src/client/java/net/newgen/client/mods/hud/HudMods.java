@@ -59,5 +59,18 @@ public final class HudMods {
 		Mods.register(CATEGORY, new TotemCounterMod());
 		Mods.register(CATEGORY, new ViewAnglesMod());
 		Mods.register(CATEGORY, new WailaMod());
+		// Wave 3 HUD 1
+		Mods.register(CATEGORY, new SpeedMod());
+		Mods.register(CATEGORY, new TpsMod());
+		Mods.register(CATEGORY, new PlayerPreviewMod());
+		Mods.register(CATEGORY, new PlayerHeadMod());
+		Mods.register(CATEGORY, new BatteryMod());
+		Mods.register(CATEGORY, new FacingMod());
+		Mods.register(CATEGORY, new AnalogClockMod());
+		Mods.register(CATEGORY, new CustomTextMod());
+		Mods.register(CATEGORY, new CustomImageMod());
+		Mods.register(CATEGORY, new ShapeMod());
+		Mods.register(CATEGORY, new BiomeMod());
+		Mods.register(CATEGORY, new BlockAboveMod());
 	}
 }
