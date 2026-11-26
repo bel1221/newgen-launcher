@@ -27,9 +27,15 @@ public final class ErrorCard {
 	private ErrorCard() {
 	}
 
-	/** The connect screen calls this every frame: it knows the server being tried. */
+	/** The connect screen calls this every frame: it knows the server being tried. Only real multiplayer servers. */
 	public static void remember(Minecraft mc) {
-		if (mc.getCurrentServer() != null) last = mc.getCurrentServer();
+		ServerData s = mc.getCurrentServer();
+		if (s != null && retryable(s.ip, s.isLan(), mc.isLocalServer())) last = s;
+	}
+
+	/** Try again may only ever rejoin a remote multiplayer server: never a LAN game or the integrated (single-player) one. */
+	static boolean retryable(String ip, boolean lan, boolean local) {
+		return ip != null && !ip.isBlank() && !lan && !local;
 	}
 
 	public static void attach(Minecraft mc, Screen screen, int width, int height) {
@@ -37,10 +43,17 @@ public final class ErrorCard {
 		List<String> all = Overlay.wrap(reason(screen), CW - 24), lines = all.subList(0, Math.min(8, all.size())); // at most 8 lines
 		int h = cardH(lines), y = (height - h) / 2 + h + 8;
 		List<AbstractWidget> buttons = Screens.getButtons(screen);
-		if (last != null) {
+		if (last != null && retryable(last.ip, last.isLan(), false)) {
 			ServerData server = last;
-			buttons.add(0, new Ui.Btn(0, 0, 150, 20, Ui.tr("error.retry"), Ui.I_PLAY, Ui.PRIMARY, Ui.CAPS, () -> ConnectScreen.startConnecting(
-					new NewgenTitleScreen(), mc, ServerAddress.parseString(server.ip), server, false, null)));
+			// Mouse click only: keyboard focus starts on the first widget, so a stray Enter must never rejoin.
+			// Added after the screen's own Back button, so the initial focus stays on Back.
+			buttons.add(new Ui.Btn(0, 0, 150, 20, Ui.tr("error.retry"), Ui.I_PLAY, Ui.PRIMARY, Ui.CAPS, () -> ConnectScreen.startConnecting(
+					new NewgenTitleScreen(), mc, ServerAddress.parseString(server.ip), server, false, null)) {
+				@Override
+				public void onPress(net.minecraft.client.input.InputWithModifiers input) {
+					if (input instanceof net.minecraft.client.input.MouseButtonEvent) super.onPress(input);
+				}
+			});
 		}
 		for (AbstractWidget w : buttons) {
 			if (!(w instanceof net.minecraft.client.gui.components.AbstractButton)) continue; // text stays under the card
