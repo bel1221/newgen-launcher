@@ -82,6 +82,7 @@ public class ModsScreen extends Screen {
 	private double pressX, pressY;
 	private boolean cardDragging;
 	private String tip;               // tooltip for what is under the mouse this frame
+	private boolean swallowSpace;
 
 	public ModsScreen(Screen parent) {
 		super(Component.literal("Newgen Mods"));
@@ -1559,6 +1560,17 @@ public class ModsScreen extends Screen {
 			return true; // while typing, no key may close the menu
 		}
 		// Keyboard: Tab / Shift+Tab move between the cards, Enter opens the focused card's options, Shift+Enter turns it on or off.
+		// Space turns the focused card on or off (only while the search is empty: there it types a space).
+		if (selected == null && key == GLFW.GLFW_KEY_SPACE && focus >= 0 && search.isEmpty()) {
+			List<Mod> list = shown();
+			if (focus < list.size()) {
+				Mod mod = list.get(focus);
+				mod.enabled = !mod.enabled;
+				saveChange(mod);
+				swallowSpace = true;
+			}
+			return true;
+		}
 		// Arrows move the focus inside the grid: left / right one card, up / down one row.
 		if (selected == null && (Ui.horizontal(key) != 0 || Ui.vertical(key) != 0)) {
 			List<Mod> list = shown();
@@ -1661,6 +1673,10 @@ public class ModsScreen extends Screen {
 
 	@Override
 	public boolean charTyped(CharacterEvent event) {
+		if (swallowSpace) {
+			swallowSpace = false; // the Space that just switched a card is not search text
+			if (" ".equals(event.codepointAsString())) return true;
+		}
 		if (!event.isAllowedChatCharacter() || listening != null) return false;
 		if (typing != null) {
 			type(event.codepointAsString(), false);

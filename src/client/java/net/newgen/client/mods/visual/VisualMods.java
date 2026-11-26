@@ -40,11 +40,21 @@ public final class VisualMods {
 		Mods.register(CATEGORY, TntCountdownMod.I);
 		Mods.register(CATEGORY, WeatherChangerMod.I);
 		Mods.register(CATEGORY, ZoomMod.I);
+		// Wave 3 (all off until turned on)
+		Mods.register(CATEGORY, CleanViewMod.I);
+		Mods.register(CATEGORY, DroppedItemsMod.I);
+		Mods.register(CATEGORY, EntityDistanceMod.I);
+		Mods.register(CATEGORY, GlintColorizerMod.I);
+		Mods.register(CATEGORY, MountViewMod.I);
+		Mods.register(CATEGORY, NaturalCapesMod.I);
+		Mods.register(CATEGORY, NoBobbingMod.I);
+		Mods.register(CATEGORY, NumericalEnchantsMod.I);
 
 		ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			ZoomMod.I.tick(mc);
 			GuiScaleMod.I.tick(mc);
 			HitColorMod.I.tick(mc);
+			GlintColorizerMod.I.tick(mc);
 		});
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("newgen_client", "visual"),
 				(graphics, delta) -> DamageTintMod.I.render(graphics, Minecraft.getInstance()));

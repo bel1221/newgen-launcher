@@ -1,0 +1,15 @@
+{
+	"required": false,
+	"package": "net.newgen.client.mixin.visual2",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"AvatarCapeMixin",
+		"EnchantmentNameMixin",
+		"EnergySwirlLayerMixin",
+		"EntityRenderDispatcherMixin",
+		"GameRendererViewMixin",
+		"ItemEntityRendererMixin",
+		"LivingEntityEffectsMixin"
+	],
+	"injectors": { "defaultRequire": 0 }
+}
