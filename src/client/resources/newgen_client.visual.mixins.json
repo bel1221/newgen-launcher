@@ -5,6 +5,7 @@
 	"client": [
 		"AbstractClientPlayerMixin",
 		"AnimatiumScreenMixin",
+		"OptionsAccessor",
 		"ClientLevelMixin",
 		"DebugRendererMixin",
 		"EmoteCapeLayerMixin",
