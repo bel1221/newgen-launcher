@@ -18,7 +18,7 @@ public class ComboMod extends HudMod {
 	protected List<String> lines(Minecraft mc) {
 		Combat.comboTimeout = (long) timeout.get() * 1000;
 		Combat.update(mc);
-		if (Combat.combo == 0) return hideZero.value ? List.of() : List.of("No combo");
+		if (Combat.combo == 0) return hideZero.value ? List.of() : List.of(net.minecraft.client.resources.language.I18n.get("newgen_client.hud.combo.none"));
 		return List.of(Combat.combo + " Combo");
 	}
 }

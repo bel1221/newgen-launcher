@@ -13,6 +13,6 @@ public class DayCounterMod extends HudMod {
 	@Override
 	protected List<String> lines(Minecraft mc) {
 		if (mc.level == null) return List.of();
-		return List.of("Day " + (mc.level.getDayTime() / 24000 + 1));
+		return List.of(net.minecraft.client.resources.language.I18n.get("newgen_client.hud.day_counter.text", mc.level.getDayTime() / 24000 + 1));
 	}
 }

@@ -30,7 +30,7 @@ public class HeightLimitMod extends HudMod {
 	@Override
 	protected List<String> lines(Minecraft mc) {
 		if (mc.player == null || mc.level == null) return List.of();
-		return List.of("Height limit: " + (limit(mc) - mc.player.getBlockY()));
+		return List.of(net.minecraft.client.resources.language.I18n.get("newgen_client.hud.height_limit.text", limit(mc) - mc.player.getBlockY()));
 	}
 
 	/** Called once per frame while the level is drawn. */

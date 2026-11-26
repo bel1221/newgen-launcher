@@ -13,6 +13,6 @@ public class SaturationMod extends HudMod {
 	@Override
 	protected List<String> lines(Minecraft mc) {
 		if (mc.player == null) return List.of();
-		return List.of(String.format("Saturation: %.1f", mc.player.getFoodData().getSaturationLevel()));
+		return List.of(net.minecraft.client.resources.language.I18n.get("newgen_client.hud.saturation.text", String.format(java.util.Locale.ROOT, "%.1f", mc.player.getFoodData().getSaturationLevel())));
 	}
 }

@@ -23,7 +23,7 @@ public class PackDisplayMod extends HudMod {
 			if (pack.getId().equals("vanilla") || pack.getId().startsWith("fabric")) continue;
 			names.add(pack.getTitle().getString());
 		}
-		if (names.isEmpty()) return List.of("Default pack");
+		if (names.isEmpty()) return List.of(net.minecraft.client.resources.language.I18n.get("newgen_client.hud.pack_display.default"));
 		// The last selected pack is the one on top.
 		return all.value ? names.reversed() : List.of(names.getLast());
 	}

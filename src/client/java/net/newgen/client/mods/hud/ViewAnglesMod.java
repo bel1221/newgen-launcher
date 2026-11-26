@@ -17,8 +17,8 @@ public class ViewAnglesMod extends HudMod {
 	@Override
 	protected List<String> lines(Minecraft mc) {
 		if (mc.player == null) return List.of();
-		String yaw = String.format("Yaw: %.1f", Mth.wrapDegrees(mc.player.getYRot()));
-		String pitch = String.format("Pitch: %.1f", mc.player.getXRot());
+		String yaw = net.minecraft.client.resources.language.I18n.get("newgen_client.hud.view_angles.yaw", String.format(java.util.Locale.ROOT, "%.1f", Mth.wrapDegrees(mc.player.getYRot())));
+		String pitch = net.minecraft.client.resources.language.I18n.get("newgen_client.hud.view_angles.pitch", String.format(java.util.Locale.ROOT, "%.1f", mc.player.getXRot()));
 		return singleLine.value ? List.of(yaw + "  " + pitch) : List.of(yaw, pitch);
 	}
 }

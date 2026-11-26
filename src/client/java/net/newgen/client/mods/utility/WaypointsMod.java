@@ -101,7 +101,7 @@ public class WaypointsMod extends Mod {
 			if (nearest != null) {
 				list.remove(nearest);
 				save();
-				mc.player.displayClientMessage(Component.literal("Removed waypoint " + nearest.name), true);
+				mc.player.displayClientMessage(Component.translatable("newgen_client.waypoints.removed", nearest.name), true);
 			}
 		}
 	}
@@ -114,7 +114,7 @@ public class WaypointsMod extends Mod {
 		w.z = mc.player.getZ();
 		all.computeIfAbsent(worldKey(mc), k -> new ArrayList<>()).add(w);
 		save();
-		mc.player.displayClientMessage(Component.literal("Added waypoint " + name), true);
+		mc.player.displayClientMessage(Component.translatable("newgen_client.waypoints.added", name), true);
 	}
 
 	private void render(GuiGraphics g) {

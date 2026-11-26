@@ -13,6 +13,6 @@ public class PvpInfoMod extends HudMod {
 	@Override
 	protected List<String> lines(Minecraft mc) {
 		Combat.update(mc);
-		return List.of("Hits: " + Combat.hitsDealt, "Taken: " + Combat.hitsTaken, "Best combo: " + Combat.bestCombo);
+		return List.of(net.minecraft.client.resources.language.I18n.get("newgen_client.hud.pvp_info.hits", Combat.hitsDealt), net.minecraft.client.resources.language.I18n.get("newgen_client.hud.pvp_info.taken", Combat.hitsTaken), net.minecraft.client.resources.language.I18n.get("newgen_client.hud.pvp_info.best", Combat.bestCombo));
 	}
 }

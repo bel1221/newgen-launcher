@@ -17,6 +17,6 @@ public class AttackIndicatorMod extends HudMod {
 	protected List<String> lines(Minecraft mc) {
 		if (mc.player == null) return List.of();
 		int charge = Math.round(mc.player.getAttackStrengthScale(0f) * 100);
-		return charge >= 100 && hideFull.value ? List.of() : List.of("Attack: " + charge + "%");
+		return charge >= 100 && hideFull.value ? List.of() : List.of(net.minecraft.client.resources.language.I18n.get("newgen_client.hud.attack_indicator.text", charge));
 	}
 }

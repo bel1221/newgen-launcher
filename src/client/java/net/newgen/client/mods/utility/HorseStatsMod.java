@@ -38,7 +38,7 @@ public class HorseStatsMod extends HudMod {
 		if (jump.value && j != null) {
 			out.add(String.format("Jump: %.1f blocks", -0.1817584952 * j * j * j + 3.689713992 * j * j + 2.128599134 * j - 0.343930367));
 		}
-		if (health.value) out.add(String.format("Health: %.0f / %.0f", horse.getHealth(), horse.getMaxHealth()));
+		if (health.value) out.add(net.minecraft.client.resources.language.I18n.get("newgen_client.hud.horse_stats.health", String.format(java.util.Locale.ROOT, "%.0f / %.0f", horse.getHealth(), horse.getMaxHealth())));
 		return out;
 	}
 

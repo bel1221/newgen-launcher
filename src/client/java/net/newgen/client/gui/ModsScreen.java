@@ -55,7 +55,7 @@ public class ModsScreen extends Screen {
 	private static final int ROW_H = 22, ROW_IN = 20;
 	/** A card: icon and name (TOP_H), then the Options strip and the Enabled/Disabled strip (STRIP each). */
 	private static final int TOP_H = 38, STRIP = 14, CARD_H = 56, RESULT_H = 14;
-	private static final int PILL_W = 20, SWATCH = 10, HEX_W = 66, BUTTON_H = 14, COLUMN_GAP = 14;
+	private static final int PILL_W = 20, SWATCH = 10, HEX_W = 80, BUTTON_H = 14, COLUMN_GAP = 14;
 	/** FAINT is for dividing lines and the scroll track, STRIP_BG under a card's Options strip. */
 	private static final int FAINT = 0x18FFFFFF, STRIP_BG = 0x14000000;
 
@@ -197,7 +197,7 @@ public class ModsScreen extends Screen {
 
 	/** Sidebar rows: 16 high, squeezed (down to 11) when a small window leaves less room above All on / All off. */
 	private int sideRow() {
-		return Math.max(11, Math.min(SIDE_ROW, (bulkY() - 4 - barY()) / TABS.length - 2));
+		return Math.max(11, Math.min(SIDE_ROW, (bulkTop() - 4 - barY()) / TABS.length - 2));
 	}
 
 	/** The "NewGen" word after the mark: dropped when the header is too narrow for it and every tab (big GUI scale). */
@@ -241,8 +241,21 @@ public class ModsScreen extends Screen {
 		return minecraft.level != null ? editY() - BUTTON_H - 4 : editY();
 	}
 
-	private int bulkW() {
-		return (SIDE_W - 12) / 2;
+	/** All on / All off: side by side when both labels fit half the column (EN), else one above the other (VI). */
+	private boolean bulkStacked() {
+		return Math.max(Ui.width(Ui.tr("mods.all_on"), Ui.CAPS), Ui.width(Ui.tr("mods.all_off"), Ui.CAPS)) + 12 > (SIDE_W - 12) / 2;
+	}
+
+	/** {x, y, w} of All on (i = 0) and All off (i = 1). */
+	private int[] bulkRect(int i) {
+		int sx = px + PAD;
+		if (bulkStacked()) return new int[]{sx + 4, bulkY() - (1 - i) * (BUTTON_H + 4), SIDE_W - 8};
+		int w = (SIDE_W - 12) / 2;
+		return new int[]{sx + 4 + i * (w + 4), bulkY(), w};
+	}
+
+	private int bulkTop() {
+		return bulkRect(0)[1];
 	}
 
 	/** The header tab after Theme: the Keybinds page. */
@@ -466,10 +479,12 @@ public class ModsScreen extends Screen {
 				out.add(new Cell(null, Ui.tr(pass == 0 ? "section.general" : pass == 1 ? "section.colour" : "section.style"), left, y, full));
 				y += HEAD_H;
 			}
+			// The Colour section is one column: its rows carry a label, a swatch and a code, and need the width.
+			int c = pass == 1 ? 1 : cols, cw = pass == 1 ? full : colW;
 			for (int i = 0; i < part.size(); i++) {
-				out.add(new Cell(part.get(i), null, left + (i % cols) * (colW + COLUMN_GAP), y + (i / cols) * ROW_H + 1, colW));
+				out.add(new Cell(part.get(i), null, left + (i % c) * (cw + COLUMN_GAP), y + (i / c) * ROW_H + 1, cw));
 			}
-			y += (part.size() + cols - 1) / cols * ROW_H;
+			y += (part.size() + c - 1) / c * ROW_H;
 		}
 		rowsHeight = y - top;
 		return out;
@@ -536,9 +551,9 @@ public class ModsScreen extends Screen {
 		}
 		// All on / All off for the tab shown (asks first, then offers Undo).
 		if (selected == null) {
-			int bw = bulkW(), by = bulkY();
-			button(g, sx + 4, by, bw, Ui.tr("mods.all_on"), mouseX, mouseY, Ui.DARK);
-			button(g, sx + 8 + bw, by, bw, Ui.tr("mods.all_off"), mouseX, mouseY, Ui.DARK);
+			int[] on = bulkRect(0), off = bulkRect(1);
+			button(g, on[0], on[1], on[2], Ui.tr("mods.all_on"), mouseX, mouseY, Ui.DARK);
+			button(g, off[0], off[1], off[2], Ui.tr("mods.all_off"), mouseX, mouseY, Ui.DARK);
 		}
 		// Without a world there is no HUD to arrange.
 		if (minecraft.level != null) {
@@ -990,7 +1005,7 @@ public class ModsScreen extends Screen {
 			field(g, hx, y + 3, HEX_W, color == typing);
 			// Swatch (click: the colour picker), hex and opacity; typing edits the full #AARRGGBB.
 			String shown = color == typing ? "#" + hex + "_"
-					: String.format("#%06X  %d%%", color.value & 0xFFFFFF, Math.round((color.value >>> 24) / 2.55f));
+					: String.format("#%06X %d%%", color.value & 0xFFFFFF, Math.round((color.value >>> 24) / 2.55f));
 			Ui.text(g, Ui.fit(shown, HEX_W - 10, Ui.UI, false), hx + 5, y + 6, Ui.SOFT, Ui.UI);
 		} else {
 			int w = cr - controlX;
@@ -1149,11 +1164,11 @@ public class ModsScreen extends Screen {
 			minecraft.setScreen(new HubScreen());
 			return true;
 		}
-		if (selected == null && left && Ui.inside(mx, my, sx + 4, bulkY(), bulkW(), BUTTON_H)) {
+		if (selected == null && left && Ui.inside(mx, my, bulkRect(0)[0], bulkRect(0)[1], bulkRect(0)[2], BUTTON_H)) {
 			bulk(true);
 			return true;
 		}
-		if (selected == null && left && Ui.inside(mx, my, sx + 8 + bulkW(), bulkY(), bulkW(), BUTTON_H)) {
+		if (selected == null && left && Ui.inside(mx, my, bulkRect(1)[0], bulkRect(1)[1], bulkRect(1)[2], BUTTON_H)) {
 			bulk(false);
 			return true;
 		}

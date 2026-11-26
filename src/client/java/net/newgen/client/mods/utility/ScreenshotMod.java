@@ -38,9 +38,9 @@ public class ScreenshotMod extends Mod {
 			}
 			String path = file.getAbsolutePath();
 			MutableComponent buttons = Component.empty()
-					.append(button("[Open folder]", "Open the screenshots folder", new ClickEvent.OpenFile(file.getAbsoluteFile().getParentFile())))
+					.append(button("open", new ClickEvent.OpenFile(file.getAbsoluteFile().getParentFile())))
 					.append(" ")
-					.append(button("[Copy path]", "Copy the file path", new ClickEvent.CopyToClipboard(path)));
+					.append(button("copy", new ClickEvent.CopyToClipboard(path)));
 			if (m.compact.value) {
 				// One short line: "Screenshot: <name>" with the name clickable, then the buttons.
 				MutableComponent line = Component.translatable("newgen_client.screenshot.compact", Component.literal(file.getName())
@@ -59,9 +59,10 @@ public class ScreenshotMod extends Mod {
 		};
 	}
 
-	private static MutableComponent button(String label, String hint, ClickEvent click) {
-		return Component.literal(label).withStyle(s -> s.withColor(ChatFormatting.AQUA)
-				.withClickEvent(click).withHoverEvent(new HoverEvent.ShowText(Component.literal(hint))));
+	/** A chat button, "[Open folder]" or "[Copy path]" in the game's language, with its hover hint. */
+	private static MutableComponent button(String which, ClickEvent click) {
+		return Component.translatable("newgen_client.screenshot." + which).withStyle(s -> s.withColor(ChatFormatting.AQUA)
+				.withClickEvent(click).withHoverEvent(new HoverEvent.ShowText(Component.translatable("newgen_client.screenshot." + which + ".hint"))));
 	}
 
 	/** The success message carries the file as a click event on its file-name argument. */

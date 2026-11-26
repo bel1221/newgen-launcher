@@ -23,7 +23,8 @@ public final class PauseRestyle {
 		if (!(screen instanceof PauseScreen)) return;
 		List<AbstractWidget> widgets = Screens.getButtons(screen);
 		List<Button> vanilla = new ArrayList<>();
-		for (AbstractWidget w : widgets) if (w.getClass() == Button.class && w.visible) vanilla.add((Button) w);
+		// Vanilla builds its buttons as Button.Plain (a subclass): every Button that is not ours is redrawn as ours.
+		for (AbstractWidget w : widgets) if (w instanceof Button && !(w instanceof Ui.Btn) && w.visible) vanilla.add((Button) w);
 		if (vanilla.isEmpty()) return; // the menu without buttons (F3+Esc)
 		int left = Integer.MAX_VALUE, right = Integer.MIN_VALUE, top = Integer.MAX_VALUE, bottom = Integer.MIN_VALUE;
 		for (Button b : vanilla) {
@@ -42,8 +43,8 @@ public final class PauseRestyle {
 		}
 		// Ours under the column (above it is the menu title): NewGen mods and Edit HUD, side by side.
 		int half = (right - left - 4) / 2, y = Math.min(bottom + 4, height - 24);
-		ours.add(new Ui.Btn(left, y, half, 20, Ui.tr("mods"), Ui.I_GRID, Ui.PRIMARY, Ui.CAPS, () -> mc.setScreen(new ModsScreen(screen))));
-		ours.add(new Ui.Btn(right - half, y, half, 20, Ui.tr("hud.edit"), Ui.I_LAYOUT, Ui.DARK, Ui.CAPS, () -> mc.setScreen(new HubScreen())));
+		ours.add(new Ui.Btn(left, y, half, 20, Ui.tr("pause.mods"), Ui.I_GRID, Ui.PRIMARY, Ui.CAPS, () -> mc.setScreen(new ModsScreen(screen))));
+		ours.add(new Ui.Btn(right - half, y, half, 20, Ui.tr("pause.edit_hud"), Ui.I_LAYOUT, Ui.DARK, Ui.CAPS, () -> mc.setScreen(new HubScreen())));
 		widgets.addAll(ours);
 		// The glass panel behind the column: index 0 of Fabric's button list is placed before the first button in
 		// the screen's draw order, so it is drawn after the blur and under every button.

@@ -43,6 +43,7 @@ public final class ErrorCard {
 					new NewgenTitleScreen(), mc, ServerAddress.parseString(server.ip), server, false, null)));
 		}
 		for (AbstractWidget w : buttons) {
+			if (!(w instanceof net.minecraft.client.gui.components.AbstractButton)) continue; // text stays under the card
 			w.setPosition((width - w.getWidth()) / 2, y);
 			y += w.getHeight() + 4;
 		}
@@ -77,6 +78,7 @@ public final class ErrorCard {
 		Ui.icon(g, x + 12, y + 12, 14);
 		Ui.text(g, Ui.fit(s.getTitle().getString(), CW - 44, Ui.TITLE, false), x + 32, y + 15, Ui.TEXT, Ui.TITLE);
 		for (int i = 0; i < lines.size(); i++) Ui.text(g, lines.get(i), x + 12, y + 34 + i * 10, Ui.SOFT, Ui.UI);
-		for (AbstractWidget w : Screens.getButtons(s)) w.render(g, mouseX, mouseY, delta);
+		// Only the buttons come back on top: the screen's own text widgets stay under the card (it says the same).
+		for (AbstractWidget w : Screens.getButtons(s)) if (w instanceof net.minecraft.client.gui.components.AbstractButton) w.render(g, mouseX, mouseY, delta);
 	}
 }

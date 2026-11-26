@@ -30,10 +30,10 @@ public class MemoryMod extends ValueHud {
 		String percent = used * 100 / max + "%";
 		String m = percentOnly.value ? "Percent" : mode.value;
 		return switch (m) {
-			case "Percent" -> "Mem: " + percent;
-			case "Used" -> "Mem: " + (used >> 20) + " MB";
+			case "Percent" -> net.minecraft.client.resources.language.I18n.get("newgen_client.hud.memory.prefix") + " " + percent;
+			case "Used" -> net.minecraft.client.resources.language.I18n.get("newgen_client.hud.memory.prefix") + " " + (used >> 20) + " MB";
 			case "Free" -> "Free: " + ((max - used) >> 20) + " MB";
-			default -> "Mem: " + (used >> 20) + " / " + (max >> 20) + " MB (" + percent + ")";
+			default -> net.minecraft.client.resources.language.I18n.get("newgen_client.hud.memory.prefix") + " " + (used >> 20) + " / " + (max >> 20) + " MB (" + percent + ")";
 		};
 	}
 }

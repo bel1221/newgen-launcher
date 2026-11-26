@@ -36,6 +36,7 @@ public final class LoadingCard {
 		int y = (height - CH) / 2 + CH + 8;
 		// The screen's buttons go under the card, centred.
 		for (AbstractWidget w : Screens.getButtons(screen)) {
+			if (!(w instanceof net.minecraft.client.gui.components.AbstractButton)) continue; // text stays where vanilla put it, under our card
 			w.setPosition((width - w.getWidth()) / 2, y);
 			y += w.getHeight() + 4;
 		}
@@ -83,6 +84,7 @@ public final class LoadingCard {
 			int a = Math.round(80 + 175 * k);
 			Ui.round(g, x + CW - 30 + i * 7, y + 18, 4, 4, 2, a << 24 | Ui.ACCENT & 0xFFFFFF);
 		}
-		for (AbstractWidget w : Screens.getButtons(s)) w.render(g, mouseX, mouseY, delta);
+		// Only the buttons come back on top: the screen's own text widgets stay under the card (it says the same).
+		for (AbstractWidget w : Screens.getButtons(s)) if (w instanceof net.minecraft.client.gui.components.AbstractButton) w.render(g, mouseX, mouseY, delta);
 	}
 }
