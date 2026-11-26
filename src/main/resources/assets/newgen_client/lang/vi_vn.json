@@ -381,5 +381,15 @@
 	"newgen_client.mod.animatium.name": "Hoạt ảnh cổ điển",
 	"newgen_client.mod.animatium.description": "Hoạt ảnh người chơi và vật phẩm kiểu 1.7 / 1.8 (Animatium)",
 	"newgen_client.choice.vanilla": "Gốc",
-	"newgen_client.choice.off": "Tắt"
+	"newgen_client.choice.off": "Tắt",
+	"newgen_client.mod.media_player.name": "Trình phát nhạc",
+	"newgen_client.mod.media_player.description": "Bài đang phát trên máy tính của bạn (Spotify, YouTube…), kèm tiến độ",
+	"newgen_client.media.paused": "Tạm dừng",
+	"newgen_client.setting.show_artist": "Hiện nghệ sĩ",
+	"newgen_client.setting.show_progress_bar": "Hiện thanh tiến độ",
+	"newgen_client.setting.show_time": "Hiện thời gian",
+	"newgen_client.setting.progress_bar_colour": "Màu thanh tiến độ",
+	"newgen_client.setting.play_pause_key": "Phím phát/tạm dừng",
+	"newgen_client.setting.next_track_key": "Phím bài tiếp theo",
+	"newgen_client.setting.previous_track_key": "Phím bài trước"
 }

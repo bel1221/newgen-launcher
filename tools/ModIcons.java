@@ -260,6 +260,8 @@ public class ModIcons {
 		icon("item_tracker", p -> p.rect(7, 3, 8, 8, 0).path(3, 14, 3, 19, 21, 19, 21, 14).line(11, 11.5, 11, 15.5).head(11, 15.5, 0, 1).path(19, 4, 19, 8).path(17, 6, 21, 6));
 		icon("memory", p -> p.rect(4, 4, 11, 11, 1.5).fill(7, 7, 5, 5, 1).line(2, 7, 4, 7).line(2, 12, 4, 12).line(15, 7, 17, 7).line(7, 2, 7, 4).line(12, 2, 12, 4).tag("MB"));
 		icon("momentum", p -> p.path(7, 2, 7, 10, 12, 11, 15, 13, 15, 15.5, 4, 15.5, 4, 2, 7, 2).line(0.5, 6, 2.5, 6).line(0.5, 10, 2.5, 10).tag("m/s"));
+		// Media Player: two beamed eighth notes
+		icon("media_player", p -> p.disc(7, 17.5, 2.75).disc(17, 15.5, 2.75).line(9.5, 17.5, 9.5, 5.5).line(19.5, 15.5, 19.5, 3.5).line(9.5, 5.5, 19.5, 3.5));
 		icon("pack_display", p -> p.rect(6, 2, 16, 16, 2).rect(2, 6, 16, 16, 2).path(5, 19, 9, 14, 12, 17, 13.5, 15.5, 15, 19));
 		icon("ping", p -> p.fill(3, 15, 2.5, 5, 1).fill(8, 11, 2.5, 9, 1).rect(13, 7, 2.5, 13, 1).rect(18, 3, 2.5, 17, 1));
 		icon("pvp_info", p -> p.sword(4, 20, 19, 5).sword(20, 20, 5, 5));

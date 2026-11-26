@@ -42,6 +42,7 @@ public final class HudMods {
 		Mods.register(CATEGORY, new ItemTrackerMod());
 		Mods.register(CATEGORY, new KeystrokesMod());
 		Mods.register(CATEGORY, LOCATOR_BAR);
+		Mods.register(CATEGORY, new MediaPlayerMod());
 		Mods.register(CATEGORY, new MemoryMod());
 		Mods.register(CATEGORY, new MomentumMod());
 		Mods.register(CATEGORY, new PackDisplayMod());

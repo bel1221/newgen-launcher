@@ -31,6 +31,7 @@ item_counter
 item_tracker
 memory
 momentum
+media_player
 pack_display
 ping
 pvp_info
