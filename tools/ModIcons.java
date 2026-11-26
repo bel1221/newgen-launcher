@@ -158,7 +158,6 @@ public class ModIcons {
 		icon("light_overlay", p -> p.fill(7, 6, 2, 9).disc(5, 1, 6, 6).line(1, 3, 2, 3).line(13, 3, 14, 3).line(3, 0, 4, 1).line(12, 0, 11, 1));
 		icon("lighting", p -> p.oval(3, 0, 10, 10).line(6, 10, 6, 12).line(9, 10, 9, 12).line(6, 13, 9, 13).line(7, 15, 8, 15).line(6, 4, 8, 7).line(10, 4, 8, 7));
 		icon("menu_blur", p -> { for (int y = 0; y < 16; y += 2) for (int x = (y / 2) % 2; x < 16; x += 2) p.dot(x, y); p.rect(3, 3, 10, 10); });
-		icon("mob_size", p -> p.rect(0, 5, 7, 7).dot(2, 7).dot(4, 7).rect(8, 0, 8, 12).fill(10, 3, 2, 2).fill(13, 3, 2, 2).fill(11, 6, 3, 3).line(0, 15, 15, 15));
 		icon("nametag", p -> p.poly(3, 3, 15, 3, 15, 12, 3, 12, 0, 8).disc(3, 6, 3, 3).line(8, 6, 13, 6).line(8, 9, 12, 9));
 		icon("nick_hider", p -> p.poly(3, 3, 15, 3, 15, 12, 3, 12, 0, 8).line(7, 7, 13, 7).line(1, 15, 15, 0));
 		icon("overlay", p -> p.rect(1, 3, 14, 10).poly(8, 6, 10, 9, 9, 11, 7, 11, 6, 9).dot(8, 9));

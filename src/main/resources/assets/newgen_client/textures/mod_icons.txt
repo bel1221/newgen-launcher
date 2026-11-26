@@ -55,7 +55,6 @@ item_customizer
 light_overlay
 lighting
 menu_blur
-mob_size
 nametag
 nick_hider
 overlay

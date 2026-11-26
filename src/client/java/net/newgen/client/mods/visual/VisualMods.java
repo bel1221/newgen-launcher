@@ -31,7 +31,6 @@ public final class VisualMods {
 		Mods.register(CATEGORY, LightingMod.I);
 		Mods.register(CATEGORY, LightOverlayMod.I);
 		Mods.register(CATEGORY, MenuBlurMod.I);
-		Mods.register(CATEGORY, MobSizeMod.I);
 		Mods.register(CATEGORY, NametagMod.I);
 		Mods.register(CATEGORY, OverlayMod.I);
 		Mods.register(CATEGORY, ParticleChangerMod.I);

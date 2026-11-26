@@ -133,8 +133,6 @@
 	"newgen_client.mod.menu_blur.name": "Menu Blur",
 	"newgen_client.mod.minimap.description": "Top-down map of the surface around you",
 	"newgen_client.mod.minimap.name": "Minimap",
-	"newgen_client.mod.mob_size.description": "Draws players and mobs bigger or smaller (looks only, hitboxes stay)",
-	"newgen_client.mod.mob_size.name": "Mob Size",
 	"newgen_client.mod.momentum.description": "Your speed in blocks per second",
 	"newgen_client.mod.momentum.name": "Momentum",
 	"newgen_client.mod.nametag.description": "Own name tag in third person and name tag background opacity",
