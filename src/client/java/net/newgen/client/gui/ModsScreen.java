@@ -288,6 +288,11 @@ public class ModsScreen extends Screen {
 		return Math.min(110, w / 2);
 	}
 
+	/** A number with six values or fewer (and no typing box) is shown as a stepper instead of a slider. */
+	private static boolean stepper(Setting.Num num) {
+		return !num.box && (num.max - num.min) / num.step <= 5.0001;
+	}
+
 	private static int sliderW(int w) {
 		return Math.min(80, w / 3);
 	}
@@ -551,7 +556,11 @@ public class ModsScreen extends Screen {
 				Overlay.fades(g, contentX(), viewTop(), right(), viewBottom(), gridScroll, content - (viewBottom() - viewTop()));
 				g.disableScissor();
 			}
-			if (list.isEmpty() && hits.isEmpty()) Ui.centered(g, Ui.tr("mods.none"), (contentX() + right()) / 2, viewTop() + 12, Ui.DIM, Ui.UI);
+			if (list.isEmpty() && hits.isEmpty()) {
+				// An empty result says what to do next.
+				Ui.centered(g, search.isEmpty() ? Ui.tr("mods.none") : Ui.trf("mods.none_query", search), (contentX() + right()) / 2, viewTop() + 12, Ui.SOFT, Ui.UI);
+				Ui.centered(g, Ui.tr(search.isEmpty() ? "mods.none.tab" : "mods.none.hint"), (contentX() + right()) / 2, viewTop() + 26, Ui.DIM, Ui.UI);
+			}
 		} else {
 			// The options of one mod: back, its name and its switch; its description under them.
 			int bx = contentX(), by = barY();
@@ -590,6 +599,11 @@ public class ModsScreen extends Screen {
 			}
 			if (selected.settings.isEmpty()) Ui.centered(g, Ui.tr("options.none"), (contentX() + right()) / 2, viewTop() + 8, Ui.DIM, Ui.UI);
 			button(g, contentX(), footY(), footW(Ui.tr("reset")), Ui.tr("reset"), mouseX, mouseY, Ui.DARK);
+			if (canEditHud()) {
+				String edit = Ui.tr("card.edit_hud");
+				int ew = footW(edit) + 14, ex = contentX() + footW(Ui.tr("reset")) + 6;
+				Ui.button(g, ex, footY(), ew, BUTTON_H, edit, Ui.I_LAYOUT, Ui.inside(mouseX, mouseY, ex, footY(), ew, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+			}
 		}
 
 		int viewH = viewBottom() - viewTop(), max = content - viewH;
@@ -658,6 +672,21 @@ public class ModsScreen extends Screen {
 		}
 	}
 
+	/** A HUD mod's page (in a world) has "Edit in HUD editor" next to Reset. */
+	private boolean canEditHud() {
+		return selected != null && !themeView() && minecraft.level != null && (selected instanceof net.newgen.client.core.HudMod || selected.hud != null);
+	}
+
+	/** Opens the HUD editor with the mod's element selected (turned on first, or it would not be there). */
+	private void editInHud(Mod mod) {
+		menuMod = null;
+		net.newgen.client.core.HudMod hud = mod instanceof net.newgen.client.core.HudMod h ? h : mod.hud;
+		mod.enabled = true;
+		if (mod.showHud != null) mod.showHud.value = true;
+		saveChange(mod);
+		minecraft.setScreen(new HubScreen(hud));
+	}
+
 	private void menuClick(double mx, double my) {
 		List<String> items = menuItems();
 		int x = menuLeft(), y = menuTop();
@@ -666,13 +695,7 @@ public class ModsScreen extends Screen {
 		for (int i = 0; i < items.size(); i++) {
 			if (!Ui.inside(mx, my, x + 2, y + 2 + i * MENU_ROW, MENU_W - 4, MENU_ROW)) continue;
 			switch (items.get(i)) {
-				case "card.edit_hud" -> {
-					net.newgen.client.core.HudMod hud = mod instanceof net.newgen.client.core.HudMod h ? h : mod.hud;
-					mod.enabled = true;
-					if (mod.showHud != null) mod.showHud.value = true;
-					saveChange(mod);
-					minecraft.setScreen(new HubScreen(hud));
-				}
+				case "card.edit_hud" -> editInHud(mod);
 				case "card.copy_id" -> {
 					minecraft.keyboardHandler.setClipboard(mod.id);
 					Overlay.toast(Ui.tr("toast.copied") + " " + mod.id, null);
@@ -788,6 +811,14 @@ public class ModsScreen extends Screen {
 			controlX = cr - PILL_W;
 			// The same switch as on the cards: blue track and knob right when on.
 			Ui.toggle(g, controlX, y + 5, bool.value, Ui.inside(mouseX, mouseY, controlX - 4, y, PILL_W + 4, ROW_H));
+		} else if (setting instanceof Setting.Num num && stepper(num)) {
+			// A range of six values or fewer is a stepper, like a choice: ‹ 2 ›.
+			int sw = sliderW(cell.w), sx = cr - sw;
+			if (Ui.inside(mouseX, mouseY, sx, y + 3, sw, BUTTON_H)) Ui.round(g, sx, y + 3, sw, BUTTON_H, 4, Ui.HOVER);
+			Ui.text(g, "‹", sx + 5, y + 6, Ui.SOFT, Ui.TITLE);
+			Ui.text(g, "›", cr - 5 - Ui.width("›", Ui.TITLE), y + 6, Ui.SOFT, Ui.TITLE);
+			Ui.centered(g, num.text(), sx + sw / 2, y + 6, Ui.TEXT, Ui.UI);
+			controlX = sx;
 		} else if (setting instanceof Setting.Num num) {
 			// The knob's centre runs from 4 pixels inside one end of the track to 4 inside the other (see the click).
 			int sw = sliderW(cell.w), sx = cr - sw;
@@ -1046,6 +1077,8 @@ public class ModsScreen extends Screen {
 				saveChange(mod);
 				Overlay.toast(Ui.trf("toast.reset", modName(mod)), undo);
 			});
+		} else if (left && canEditHud() && Ui.inside(mx, my, contentX() + footW(Ui.tr("reset")) + 6, footY(), footW(Ui.tr("card.edit_hud")) + 14, BUTTON_H)) {
+			editInHud(selected);
 		} else if (inView(my)) {
 			for (Cell cell : cells()) {
 				Setting setting = cell.setting;
@@ -1059,6 +1092,27 @@ public class ModsScreen extends Screen {
 					continue;
 				}
 				if (left && extraClick(cell, mx, my)) continue;
+				if (!left && setting instanceof Setting.Color color && mx >= cr - HEX_W - 8 - SWATCH) {
+					// Right click: on the swatch copies the colour, on the code pastes one (with Undo).
+					if (mx < cr - HEX_W) {
+						minecraft.keyboardHandler.setClipboard(String.format("#%08X", color.value));
+						Overlay.toast(Ui.trf("toast.colour_copied", String.format("#%06X", color.value & 0xFFFFFF)), null);
+					} else {
+						int before = color.value;
+						typing = color;
+						hex = "";
+						type(minecraft.keyboardHandler.getClipboard().trim(), false);
+						typing = null;
+						if (color.value != before) {
+							saveChange(selected);
+							Overlay.toast(Ui.tr("toast.colour_pasted"), () -> {
+								color.value = before;
+								Mods.save();
+							});
+						}
+					}
+					continue;
+				}
 				int swatch =setting instanceof Setting.Choice c0 && c0.id.equals("palette") ? swatchAt(mx, my, cr - fieldW(cell.w), cell.y) : -1;
 				if (swatch >= 0) {
 					((Setting.Choice) setting).value = Ui.PALETTES[swatch].name();
@@ -1073,6 +1127,10 @@ public class ModsScreen extends Screen {
 					continue;
 				} else if (setting instanceof Setting.Bool bool && mx >= cr - PILL_W - 4) {
 					bool.value = !bool.value;
+					saveChange(selected);
+				} else if (setting instanceof Setting.Num num && stepper(num) && mx >= cr - sliderW(cell.w) - 4) {
+					// "‹" half steps down, the rest up.
+					num.set(num.get() + (mx < cr - sliderW(cell.w) / 2 ? -num.step : num.step));
 					saveChange(selected);
 				} else if (setting instanceof Setting.Num num && mx >= cr - sliderW(cell.w) - 4) {
 					dragging = num;
@@ -1448,6 +1506,14 @@ public class ModsScreen extends Screen {
 		}
 		// Keyboard in the options view: Tab / Shift+Tab or Up / Down move between options, Enter or Space uses one (switch,
 		// key, button, text), Left / Right change sliders, choices (the palette too) and switches.
+		// Page Up / Down a view at a time, Home / End to the ends (the render clamps).
+		int page = viewBottom() - viewTop() - ROW_H;
+		int jump = key == GLFW.GLFW_KEY_PAGE_DOWN ? page : key == GLFW.GLFW_KEY_PAGE_UP ? -page : key == GLFW.GLFW_KEY_END ? 1 << 20 : key == GLFW.GLFW_KEY_HOME ? -(1 << 20) : 0;
+		if (jump != 0) {
+			if (selected == null) gridGoal += jump;
+			else rowGoal += jump;
+			return true;
+		}
 		if (selected != null && rowKeys(key, event.hasShiftDown())) return true;
 		if (key == GLFW.GLFW_KEY_ESCAPE && selected != null) {
 			selected = null; // Esc in the options view goes back to the grid first

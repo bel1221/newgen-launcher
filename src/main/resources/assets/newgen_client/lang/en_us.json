@@ -331,5 +331,10 @@
 	"newgen_client.choice.custom": "Custom",
 	"newgen_client.choice.off": "Off",
 	"newgen_client.choice.pulse": "Pulse",
-	"newgen_client.choice.shift": "Shift"
+	"newgen_client.choice.shift": "Shift",
+	"newgen_client.mods.none_query": "No mods or options match \"%s\"",
+	"newgen_client.mods.none.hint": "Try a shorter word, or Backspace to clear the search",
+	"newgen_client.mods.none.tab": "Star a mod or hide one from its right-click menu to fill this tab",
+	"newgen_client.toast.colour_copied": "Copied %s (right click a colour code to paste it)",
+	"newgen_client.toast.colour_pasted": "Colour pasted",
 }

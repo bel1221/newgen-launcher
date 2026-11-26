@@ -533,5 +533,10 @@
 	"newgen_client.setting.custom_buttons": "Màu nút riêng",
 	"newgen_client.choice.custom": "Tùy chỉnh",
 	"newgen_client.choice.pulse": "Nhịp thở",
-	"newgen_client.choice.shift": "Đổi sắc"
+	"newgen_client.choice.shift": "Đổi sắc",
+	"newgen_client.mods.none_query": "Không có mod hay tùy chọn nào khớp \"%s\"",
+	"newgen_client.mods.none.hint": "Thử từ ngắn hơn, hoặc nhấn Backspace để xóa ô tìm",
+	"newgen_client.mods.none.tab": "Gắn sao hoặc ẩn một mod từ menu chuột phải để thêm vào thẻ này",
+	"newgen_client.toast.colour_copied": "Đã sao chép %s (chuột phải vào mã màu để dán)",
+	"newgen_client.toast.colour_pasted": "Đã dán màu",
 }
