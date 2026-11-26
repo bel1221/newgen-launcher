@@ -359,6 +359,16 @@ public class ModIcons {
 		System.out.println((MENU_BASE + MENU.size()) + " menu glyphs");
 	}
 
+	static {
+		// Wave 3 utility 1
+		icon("drop_protection", p -> p.shape(12, 2.5, 20, 5.5, 20, 11.5, 12, 21.5, 4, 11.5, 4, 5.5).line(12, 7, 12, 15).head(12, 15, 0, 1));
+		icon("slot_locking", p -> p.rect(5, 11, 14, 10, 2).path(8, 11, 8, 7).arc(12, 7, 4, 0, 180).path(16, 7, 16, 11).dot(12, 16));
+		icon("slot_binding", p -> p.rect(2, 2, 8, 8, 1.5).rect(14, 14, 8, 8, 1.5).path(10, 6, 18, 6, 18, 14).head(18, 14, 0, 1));
+		icon("hotbar_tweaks", p -> p.rect(2, 11, 20, 8, 1.5).line(8.7, 11, 8.7, 19).line(15.3, 11, 15.3, 19).line(6, 5, 18, 5).head(18, 5, 1, 0).head(6, 5, -1, 0));
+		icon("inventory_tweaks", p -> p.rect(3, 3, 18, 18, 2).line(3, 9, 21, 9).line(9, 9, 9, 21).line(15, 9, 15, 21).line(9, 15, 21, 15));
+		icon("enchant_labels", p -> p.sword(4, 20, 17, 7).tag("V"));
+	}
+
 	public static void main(String[] args) throws Exception {
 		if (args.length > 0 && args[0].equals("menu")) {
 			menu();
