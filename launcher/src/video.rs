@@ -380,19 +380,18 @@ mod tests {
 
     /// The bundled clips are High profile with B-frames: every sample must come out as a frame
     /// (with per-decode flushing OpenH264 failed after ~9 frames and the clip cut to the next).
+    /// Every bundled clip, so a re-encode that the decoder cannot read fails here, not on a player's PC.
     #[test]
     fn bundled_clip_decodes_every_frame() {
-        let path = Path::new("videos/bg-01.mp4");
-        if !path.exists() {
-            return;
+        for path in super::list_videos(Path::new("videos")) {
+            let mut clip = Clip::open(&path, Instant::now()).unwrap();
+            let mut rgba = Vec::new();
+            let mut frames = 0;
+            while clip.decode_next(&mut rgba).is_some() {
+                frames += 1;
+            }
+            assert_eq!(frames, clip.samples, "{}", path.display());
         }
-        let mut clip = Clip::open(path, Instant::now()).unwrap();
-        let mut rgba = Vec::new();
-        let mut frames = 0;
-        while clip.decode_next(&mut rgba).is_some() {
-            frames += 1;
-        }
-        assert_eq!(frames, clip.samples);
     }
 
     #[test]
