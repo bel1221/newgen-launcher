@@ -41,7 +41,7 @@ public class NameTagStorageMixin {
 
 	// Two (or three) tags are made per name: each gets the same colours. One injector, because the remapper
 	// left the second copy of this target string unmapped and the game crashed (Scanned 0 targets).
-	@ModifyArgs(method = "add", at = @At(value = "NEW", target = "Lnet/minecraft/client/renderer/SubmitNodeStorage$NameTagSubmit;<init>(Lorg/joml/Matrix4f;FFLnet/minecraft/network/chat/Component;IIID)V"), require = 1, allow = 3)
+	@ModifyArgs(method = "add", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeStorage$NameTagSubmit;<init>(Lorg/joml/Matrix4f;FFLnet/minecraft/network/chat/Component;IIID)V"), require = 1, allow = 3)
 	private void newgen$colors(Args args) {
 		args.set(5, NametagMod.I.text(args.<Integer>get(5)));
 		args.set(6, NametagMod.I.background(args.<Integer>get(6)));

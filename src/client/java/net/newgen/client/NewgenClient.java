@@ -29,6 +29,13 @@ public class NewgenClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		// Release check (-Dnewgen.mixinAudit=true): force-load every mixin target so a broken injector fails
+		// here, in a test launch, instead of mid-game on a player's PC. Then quit.
+		if (Boolean.getBoolean("newgen.mixinAudit")) {
+			org.spongepowered.asm.mixin.MixinEnvironment.getCurrentEnvironment().audit();
+			System.out.println("[newgen] MIXIN AUDIT DONE");
+			Runtime.getRuntime().halt(0);
+		}
 		// To add a mod: write a class in the "mods" package and register it here.
 		Mods.register(new CpsMod());
 		Mods.register(new FpsMod());
