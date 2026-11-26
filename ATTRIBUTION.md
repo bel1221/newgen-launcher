@@ -20,7 +20,7 @@ Polyfrost's branding (logos, background art) is **not** used or included.
 - [Freya](https://github.com/marc2332/freya) (MIT) for the UI, [OpenH264](https://github.com/cisco/openh264) (BSD-2) for background video decoding, and the other crates listed in `launcher/Cargo.lock` under their own licences.
 
 ## Client mod content
-The `newgen-client` mod bundles Player Animation Library (MIT) and JCodec (BSD), and emote files by their credited authors (see `CREDITS.md` in the mod's resources).
+The `newgen-client` mod bundles Player Animation Library (MIT), Bendable Cuboids 2.0.1+mc.1.21.11 (MIT, by KosmX and Zigy, <https://github.com/PlayerAnimationLibrary/BendableCuboids>; draws the emote bends) and JCodec (BSD), and emote files by their credited authors (see `CREDITS.md` in the mod's resources).
 
 ## Bundled mods (unmodified jars in `mods/`)
 - **Animatium** 4.4.1+1.21.11 by Mixces and lowercasebtw (contributors Tellinq, MicrocontrollersDev, Wyvest).
