@@ -23,8 +23,6 @@ import net.newgen.client.core.Mods;
 public class HubScreen extends Screen {
 	private static final int ROW_H = 20, MODS_W = 110, GAP = 4;
 
-	private HudMod dragging;
-	private double grabX, grabY; // where inside the element the mouse grabbed it
 	private int logoW, top, hintY;
 	private boolean opened; // init runs again on resize; the open sound plays once
 	private static final int HINT_H = 13;

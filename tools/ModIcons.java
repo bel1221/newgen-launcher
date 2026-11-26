@@ -242,8 +242,6 @@ public class ModIcons {
 		icon("nametag", p -> p.path(9, 6, 21, 6, 21, 18, 9, 18, 3, 12, 9, 6).circle(8.5, 12, 1.2).path(7.5, 11, 4, 7.5, 2.5, 4));
 		icon("shiny_pots", p -> p.bottle(10).path(19, 3, 19, 9).path(16, 6, 22, 6));
 		icon("potion_counter", p -> p.bottle(9).tag("×3"));
-		icon("potion_effects", p -> p.bottle(12).dot(10.5, 16).dot(14, 13.5));
-		icon("nametag", p -> p.path(9, 6, 21, 6, 21, 18, 9, 18, 3, 12, 9, 6).circle(8.5, 12, 1.2).path(7.5, 11, 4, 7.5, 2.5, 4));
 		icon("nick_hider", p -> p.path(9, 6, 21, 6, 21, 18, 9, 18, 3, 12, 9, 6).circle(8.5, 12, 1.2).line(5, 21, 21, 3));
 
 		// ---- HUD
