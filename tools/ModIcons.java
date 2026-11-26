@@ -32,8 +32,9 @@ import javax.imageio.ImageIO;
  */
 public class ModIcons {
 	static final Path OUT = Path.of("src/main/resources/assets/newgen_client/textures");
-	static final int TILE = 64;
-	static final float S = TILE / 24f;
+	/** The tile being drawn (pixels) and its scale from design units; one atlas per on-screen size. */
+	static int TILE = 64;
+	static float S = TILE / 24f;
 	static final Map<String, Consumer<P>> ICONS = new LinkedHashMap<>();
 
 	/** The pen, in design units (0..24). */
@@ -192,7 +193,7 @@ public class ModIcons {
 		icon("ping", p -> p.fill(3, 15, 2.5, 5, 1).fill(8, 11, 2.5, 9, 1).rect(13, 7, 2.5, 13, 1).rect(18, 3, 2.5, 17, 1));
 		icon("pvp_info", p -> p.sword(4, 20, 19, 5).sword(20, 20, 5, 5));
 		icon("reach_display", p -> p.sword(3, 9, 21, 9).line(3, 16, 21, 16).line(3, 14, 3, 18).line(21, 14, 21, 18));
-		icon("saturation", p -> p.circle(14.5, 9.5, 6.5).path(10, 14, 5.5, 18.5).circle(4.5, 19.5, 1.8).path(19.5, 16, 18, 19, 19.5, 21, 21, 19, 19.5, 16));
+		icon("saturation", p -> p.shape(9.5, 14.5, 9, 9.5, 11.5, 5, 16, 3.5, 20, 6, 20.5, 10.5, 17, 14, 12.5, 15).line(10.5, 13.5, 6, 18).circle(4.8, 17.2, 1.4).circle(6.8, 19.2, 1.4));
 		icon("server_address", p -> p.rect(6, 2, 12, 20, 2).line(9, 7, 15, 7).line(9, 11, 15, 11).line(9, 15, 15, 15).dot(12, 19));
 		icon("totem_counter", p -> p.rect(5, 2, 8, 7, 1).dot(7.5, 5).dot(10.5, 5).path(5, 11, 2, 11).path(13, 11, 16, 11).path(5, 9.5, 5, 13, 6, 21, 12, 21, 13, 13, 13, 9.5).disc(19.5, 19.5, 1.6));
 		icon("view_angles", p -> p.path(2, 15, 6, 11, 12, 11, 16, 15, 12, 19, 6, 19, 2, 15).dot(9, 15).arc(9, 15, 12, 20, 70).line(19.5, 10.5, 21, 9));
@@ -202,7 +203,7 @@ public class ModIcons {
 		icon("horse_stats", p -> p.path(8, 21, 8, 13, 4.5, 10, 8, 3, 14.5, 4, 19, 10, 17.5, 12.5, 13, 9.5, 14, 21));
 
 		// ---- Visual
-		icon("animatium", p -> p.sword(5, 19, 17, 7).arc(5, 19, 13, 20, 18).arc(5, 19, 13, 45, 18).arc(5, 19, 13, 70, 15));
+		icon("animatium", p -> p.line(6, 18, 19, 5).line(5, 14, 10, 19).line(6, 18, 3.5, 20.5).dot(3, 21).arc(6, 18, 15, 52, 10).arc(6, 18, 15, 67, 10).arc(6, 18, 15, 82, 8));
 		icon("block_outline", p -> p.path(3, 8, 3, 3, 8, 3).path(16, 3, 21, 3, 21, 8).path(21, 16, 21, 21, 16, 21).path(8, 21, 3, 21, 3, 16));
 		icon("chunk_borders", p -> { for (int k = 0; k < 4; k++) { double o = 3 + k * 4.5; p.line(o, 3, o + 2, 3).line(o, 21, o + 2, 21).line(3, o, 3, o + 2).line(21, o, 21, o + 2); }
 			p.line(12, 7, 12, 17).line(7, 12, 17, 12); });
@@ -215,8 +216,8 @@ public class ModIcons {
 			p.line(4, 5, 4, 8).line(4, 11, 4, 14).line(4, 17, 4, 20).line(20, 5, 20, 8).line(20, 11, 20, 14).line(20, 17, 20, 20)
 					.circle(12, 7, 2.5).path(12, 10, 12, 15).path(8.5, 12, 15.5, 12).path(12, 15, 9.5, 19.5).path(12, 15, 14.5, 19.5); });
 		icon("hurt_cam", p -> p.rect(5, 7, 14, 12, 2).circle(12, 13, 3).path(9, 7, 10, 4.5, 14, 4.5, 15, 7).line(2, 10, 2, 16).line(22, 10, 22, 16));
-		icon("item_customizer", p -> p.line(9, 3, 9, 20).line(6, 6, 12, 6).rect(5, 10, 9, 6, 2).line(7.5, 10, 7.5, 12).line(10.5, 10, 10.5, 12)
-				.line(15, 19, 21, 19).head(15, 19, -1, 0).head(21, 19, 1, 0));
+		icon("item_customizer", p -> p.line(10, 2, 10, 21).line(7, 5.5, 13, 5.5).rect(5, 10, 10, 7, 2).arc(6.8, 10, 1.3, 0, 180).arc(9.4, 10, 1.3, 0, 180).arc(12, 10, 1.3, 0, 180)
+				.line(16, 20, 22, 20).head(16, 20, -1, 0).head(22, 20, 1, 0));
 		icon("light_overlay", p -> p.rect(3, 8, 18, 13, 0).line(8, 11.5, 16, 17.5).line(16, 11.5, 8, 17.5));
 		icon("lighting", p -> p.circle(12, 12, 4.5).line(12, 2, 12, 4.5).line(12, 19.5, 12, 22).line(2, 12, 4.5, 12).line(19.5, 12, 22, 12)
 				.line(4.9, 4.9, 6.7, 6.7).line(17.3, 17.3, 19.1, 19.1).line(19.1, 4.9, 17.3, 6.7).line(4.9, 19.1, 6.7, 17.3));
@@ -247,6 +248,21 @@ public class ModIcons {
 
 	public static void main(String[] args) throws Exception {
 		List<String> ids = new ArrayList<>(ICONS.keySet());
+		// One atlas per on-screen size: 16 units (cards) and 14 (headers) at GUI scales 1-4, each drawn at its exact pixel
+		// size, so the game shows every icon 1:1 with no resampling.
+		for (int unit : new int[]{16, 14}) for (int scale = 1; scale <= 4; scale++) write(ids, unit * scale);
+		Files.write(OUT.resolve("mod_icons.txt"), ids);
+		System.out.println(ids.size() + " icons");
+		if (args.length > 0) { TILE = 64; S = TILE / 24f; ImageIO.write(draw(ids), "png", new File(args[0])); }
+	}
+
+	static void write(List<String> ids, int tile) throws Exception {
+		TILE = tile;
+		S = TILE / 24f;
+		ImageIO.write(draw(ids), "png", OUT.resolve("mod_icons_" + tile + ".png").toFile());
+	}
+
+	static BufferedImage draw(List<String> ids) {
 		int cols = 16, rows = (ids.size() + cols - 1) / cols;
 		BufferedImage atlas = new BufferedImage(cols * TILE, rows * TILE, BufferedImage.TYPE_INT_ARGB);
 		for (int i = 0; i < ids.size(); i++) {
@@ -260,9 +276,6 @@ public class ModIcons {
 			ICONS.get(ids.get(i)).accept(new P(t));
 			t.dispose();
 		}
-		ImageIO.write(atlas, "png", OUT.resolve("mod_icons.png").toFile());
-		Files.write(OUT.resolve("mod_icons.txt"), ids);
-		System.out.println(ids.size() + " icons");
-		if (args.length > 0) ImageIO.write(atlas, "png", new File(args[0]));
+		return atlas;
 	}
 }

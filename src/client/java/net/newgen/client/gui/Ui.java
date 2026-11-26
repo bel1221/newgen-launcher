@@ -230,8 +230,7 @@ public final class Ui {
 	private static final int ICON_COUNT = 14;
 
 	/** The mod icons: smooth white line icons drawn by tools/ModIcons.java on a 24 grid, 64 px tiles, 16 a row in
-	 * textures/mod_icons.png (sampled smoothly, see .mcmeta), ids in mod_icons.txt; the same system as the menu glyphs. */
-	private static final Identifier MOD_ICONS = Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/mod_icons.png");
+	 * textures/mod_icons_<px>.png (one per on-screen pixel size), ids in mod_icons.txt; the same system as the menu glyphs. */
 	private static java.util.Map<String, Integer> modIconIndex;
 
 	/** Draws a mod's icon; false (nothing drawn) when it has none, so the caller can fall back. */
@@ -252,8 +251,11 @@ public final class Ui {
 		}
 		Integer i = modIconIndex.get(id);
 		if (i == null) return false;
-		int rows = (modIconIndex.size() + 15) / 16;
-		g.blit(RenderPipelines.GUI_TEXTURED, MOD_ICONS, x, y, (i % 16) * 64, (i / 16) * 64, size, size, 64, 64, 1024, rows * 64, color);
+		// Each size (16, 14) has an atlas per GUI scale 1-4, drawn at exactly size x scale pixels: shown 1:1, never resampled.
+		int scale = Math.max(1, Math.min(4, Minecraft.getInstance().getWindow().getGuiScale()));
+		int unit = size >= 15 ? 16 : 14, tile = unit * scale, rows = (modIconIndex.size() + 15) / 16;
+		Identifier atlas = Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/mod_icons_" + tile + ".png");
+		g.blit(RenderPipelines.GUI_TEXTURED, atlas, x, y, (i % 16) * tile, (i / 16) * tile, unit, unit, tile, tile, 16 * tile, rows * tile, color);
 		return true;
 	}
 
