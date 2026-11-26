@@ -61,9 +61,11 @@ public class ColorPickerScreen extends Screen {
 
 	@Override
 	protected void init() {
-		// 260x150 fits every window Minecraft allows at its GUI scale (the smallest is about 320x180 units); clamped anyway.
-		px = Math.max(2, (width - PW) / 2);
-		py = Math.max(2, (height - PH) / 2);
+		// On a window smaller than the picker (a high GUI scale) the whole picker is drawn smaller, never cut off:
+		// layout runs in units of 1/s, drawing is scaled by s and the mouse divided by s.
+		s = Math.min(1f, Math.min((width - 4) / (float) PW, (height - 4) / (float) PH));
+		px = Math.max(2, Math.round((width / s - PW) / 2));
+		py = Math.max(2, Math.round((height / s - PH) / 2));
 	}
 
 	private int sqX() {
@@ -93,8 +95,18 @@ public class ColorPickerScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
-		super.render(g, mouseX, mouseY, delta);
+	public void render(GuiGraphics g, int rawX, int rawY, float delta) {
+		super.render(g, rawX, rawY, delta);
+		int mouseX = (int) (rawX / s), mouseY = (int) (rawY / s);
+		g.pose().pushMatrix();
+		g.pose().scale(s, s);
+		drawPicker(g, mouseX, mouseY);
+		g.pose().popMatrix();
+	}
+
+	private float s = 1f;
+
+	private void drawPicker(GuiGraphics g, int mouseX, int mouseY) {
 		Ui.panel(g, px, py, PW, PH);
 		Ui.text(g, Ui.fit(title, PW - 40, Ui.UI, false), px + PAD, py + 8, Ui.TEXT, Ui.TITLE);
 		closeButton(g, mouseX, mouseY);
@@ -169,7 +181,7 @@ public class ColorPickerScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-		double mx = event.x(), my = event.y();
+		double mx = event.x() / s, my = event.y() / s;
 		typing = false;
 		int y0 = sqY(), sx = sideX(), w = px + PW - PAD - sx;
 		if (Ui.inside(mx, my, px + PW - PAD - 14, py + 6, 14, 14) || Ui.inside(mx, my, px + PW - PAD - 60, py + PH - PAD - 14, 60, 14)) {
@@ -204,7 +216,7 @@ public class ColorPickerScreen extends Screen {
 
 	@Override
 	public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-		drag(event.x(), event.y());
+		drag(event.x() / s, event.y() / s);
 		return true;
 	}
 
