@@ -45,6 +45,16 @@ public final class Mods {
 
 	/** Every HUD element that is drawn now: the enabled HUD mods and the indicators of enabled mods. */
 	public static List<HudMod> huds() {
+		// Built once a tick (a toggle shows within a tick), not every frame.
+		if (hudsTick == HudMod.ticks && huds != null) return huds;
+		hudsTick = HudMod.ticks;
+		return huds = List.copyOf(collectHuds());
+	}
+
+	private static List<HudMod> huds;
+	private static int hudsTick = -1;
+
+	private static List<HudMod> collectHuds() {
 		List<HudMod> out = new ArrayList<>();
 		for (Mod mod : ALL) {
 			if (!mod.enabled) continue;

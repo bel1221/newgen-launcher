@@ -156,23 +156,49 @@ public abstract class HudMod extends Mod {
 		return out;
 	}
 
-	public void render(GuiGraphics g, Minecraft mc) {
-		int[] custom = size(mc);
-		List<String> raw = custom == null ? lines(mc) : List.of();
-		List<ItemStack> icons = custom == null ? icons(mc) : List.of();
-		if (custom == null && raw.isEmpty()) {
-			if (!editing) return;
-			raw = List.of(name);
+	/** Client ticks so far (NewgenClient counts them); the text of an element is rebuilt at most once a tick. */
+	public static int ticks;
+
+	// The text built at cachedTick: lines, icons, each line's width and the widest. Rebuilt once a tick, or when
+	// the HUD editor opens or closes; between ticks every frame only draws them.
+	private int cachedTick = -1;
+	private boolean cachedEditing;
+	private List<net.minecraft.network.chat.Component> cachedLines = List.of();
+	private List<ItemStack> cachedIcons = List.of();
+	private int[] cachedWidths = new int[0];
+	private int cachedTextWidth;
+
+	private void rebuild(Minecraft mc) {
+		cachedTick = ticks;
+		cachedEditing = editing;
+		List<String> raw = lines(mc);
+		List<ItemStack> icons = icons(mc);
+		if (raw.isEmpty()) {
+			raw = editing ? List.of(name) : List.of();
 			icons = List.of();
 		}
-		List<net.minecraft.network.chat.Component> lines = new java.util.ArrayList<>();
+		List<net.minecraft.network.chat.Component> lines = new java.util.ArrayList<>(raw.size());
 		for (String line : raw) lines.add(styled(line));
+		int[] widths = new int[lines.size()];
+		int widest = 0;
+		for (int i = 0; i < widths.length; i++) widest = Math.max(widest, widths[i] = mc.font.width(lines.get(i)));
+		cachedLines = lines;
+		cachedIcons = icons;
+		cachedWidths = widths;
+		cachedTextWidth = widest;
+	}
+
+	public void render(GuiGraphics g, Minecraft mc) {
+		int[] custom = size(mc);
+		if (custom == null && (cachedTick != ticks || cachedEditing != editing)) rebuild(mc);
+		List<net.minecraft.network.chat.Component> lines = custom == null ? cachedLines : List.of();
+		List<ItemStack> icons = custom == null ? cachedIcons : List.of();
+		if (custom == null && lines.isEmpty()) return;
 		int pad = (int) padding.get();
 		int row = icons.isEmpty() ? 10 : 18;
 		int iconWidth = icons.isEmpty() ? 0 : 20;
 
-		int textWidth = 0;
-		for (var line : lines) textWidth = Math.max(textWidth, mc.font.width(line));
+		int textWidth = custom == null ? cachedTextWidth : 0;
 		int w = (custom != null ? custom[0] : iconWidth + textWidth) + pad * 2;
 		int h = (custom != null ? custom[1] : lines.size() * row - (icons.isEmpty() ? 1 : 2)) + pad * 2;
 		if (staticWidth.get() > 0) w = (int) staticWidth.get();
@@ -204,7 +230,7 @@ public abstract class HudMod extends Mod {
 		boolean customShadow = textShadow.value && (shadow >>> 24) != 0;
 		for (int i = 0; i < lines.size(); i++) {
 			if (i < icons.size() && !icons.get(i).isEmpty()) g.renderItem(icons.get(i), pad, pad + i * row);
-			int lw = mc.font.width(lines.get(i)), area = w - pad * 2 - iconWidth;
+			int lw = cachedWidths[i], area = w - pad * 2 - iconWidth;
 			int lx = pad + iconWidth + switch (align.value) {
 				case "Centre" -> (area - lw) / 2;
 				case "Right" -> area - lw;
