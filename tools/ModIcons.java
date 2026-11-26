@@ -373,6 +373,8 @@ public class ModIcons {
 		icon("shape", p -> p.rect(3, 3, 10, 10, 0).circle(16, 16, 5));
 		icon("biome", p -> p.path(2, 20, 9, 8, 13, 14, 16, 10, 22, 20, 2, 20).line(7.3, 11, 10.5, 11.5));
 		icon("block_above", p -> p.rect(5, 2, 14, 6, 0).circle(12, 18, 3.5).line(12, 13, 12, 10).head(12, 10, 0, -1));
+	}
+
 	static {
 		// ---- Wave 3 HUD 2
 		icon("chunk_counter", p -> p.rect(3, 3, 18, 18, 0).line(9, 3, 9, 21).line(15, 3, 15, 21).line(3, 9, 21, 9).line(3, 15, 21, 15).fill(9, 9, 6, 6, 0));
@@ -387,6 +389,19 @@ public class ModIcons {
 		icon("hotbar_keys", p -> p.rect(2, 12, 20, 8, 1).line(8.7, 12, 8.7, 20).line(15.3, 12, 15.3, 20).text(4, 3, 3, 5, 1.4, "1").text(10.5, 3, 3, 5, 1.4, "2").text(17, 3, 3, 5, 1.4, "3"));
 		icon("elytra_crosshair", p -> p.circle(12, 12, 5).line(12, 2, 12, 5).line(12, 19, 12, 22).line(2, 12, 5, 12).line(19, 12, 22, 12).dot(12, 12));
 		icon("styled_subtitles", p -> p.screen().fill(9, 13, 11, 4, 1).line(5, 10, 9, 10));
+	}
+
+	// Wave 3 vanilla HUD
+	static {
+		icon("hotbar", p -> p.rect(2, 9, 20, 6, 1).line(7, 9, 7, 15).line(12, 9, 12, 15).line(17, 9, 17, 15));
+		icon("health_bar", p -> p.path(12, 20, 4, 12, 3.5, 8, 6, 5, 9, 5, 12, 8, 15, 5, 18, 5, 20.5, 8, 20, 12, 12, 20));
+		icon("hunger_bar", p -> p.circle(14.5, 9.5, 6).line(10.3, 13.7, 5, 19).line(3, 17, 7, 21));
+		icon("armor_bar", p -> p.path(7, 3, 3, 6, 5, 11, 7, 10, 7, 21, 17, 21, 17, 10, 19, 11, 21, 6, 17, 3, 14, 5, 10, 5, 7, 3));
+		icon("air_bar", p -> p.circle(8, 15, 4).circle(16, 7.5, 3.5).circle(17.5, 17.5, 2));
+		icon("xp_bar", p -> p.circle(12, 7, 3.5).rect(2, 15, 20, 5, 2.5).fill(2, 15, 11, 5, 2.5));
+		icon("held_item_name", p -> p.line(6, 4, 18, 4).line(8, 8, 16, 8).rect(2, 13, 20, 8, 2));
+		icon("mount_health", p -> p.path(12, 15, 6, 9, 6, 5.5, 9, 4, 12, 6.5, 15, 4, 18, 5.5, 18, 9, 12, 15).path(3, 21, 7, 18, 17, 18, 21, 21));
+		icon("effect_icons", p -> p.rect(2, 2, 9, 9, 2).rect(13, 2, 9, 9, 2).line(6.5, 4.5, 6.5, 8.5).line(4.5, 6.5, 8.5, 6.5).line(15, 6.5, 20, 6.5).rect(2, 13, 9, 9, 2));
 	}
 
 	public static void main(String[] args) throws Exception {

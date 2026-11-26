@@ -50,6 +50,10 @@ final class SystemMedia {
 	}
 
 	private static volatile Track current;
+	// Wave 3 vanilla HUD: album art of the current track, decoded on the reader thread.
+	private static volatile Art art;
+	private static String artKey = "";
+	private static int artTries;
 	private static volatile boolean wanted;
 	private static Thread thread;
 	private static final BlockingQueue<Command> COMMANDS = new LinkedBlockingQueue<>();
@@ -68,7 +72,11 @@ final class SystemMedia {
 	/** Reads while the HUD is on, stops (and lets the thread end) when it is off. */
 	static synchronized void setActive(boolean on) {
 		wanted = on;
-		if (!on) current = null;
+		if (!on) {
+			current = null;
+			art = null;
+			artKey = "";
+		}
 		if (on && (thread == null || !thread.isAlive()) && isWindows()) {
 			thread = new Thread(SystemMedia::run, "newgen-media");
 			thread.setDaemon(true);
@@ -161,6 +169,11 @@ final class SystemMedia {
 				if (props != null) {
 					title = hstring(props, 6); // Title
 					artist = hstring(props, 9); // Artist
+					try {
+						readArt(props, title + "|" + artist);
+					} catch (Throwable t) {
+						art = null; // no art is fine; never stop the reader for it
+					}
 					release(props);
 				}
 			}
@@ -179,6 +192,162 @@ final class SystemMedia {
 		} finally {
 			release(session);
 		}
+	}
+
+	// ---- album art (Wave 3 vanilla HUD) ----
+
+	/** Album art scaled to fit {@link #ART_SIDE}, as ARGB pixels row by row. A new object for each new picture. */
+	record Art(int width, int height, int[] argb) {
+	}
+
+	static final int ART_SIDE = 64;
+	private static final int MAX_ART_BYTES = 8 * 1024 * 1024;
+
+	static Art art() {
+		return art;
+	}
+
+	/** Reads the thumbnail once per track (a few tries: players often set it a moment after the title). */
+	private static void readArt(Pointer props, String key) {
+		if (!key.equals(artKey)) {
+			artKey = key;
+			artTries = 0;
+			art = null;
+		}
+		if (art != null || artTries >= 3) return;
+		artTries++;
+		Pointer ref = out(props, 15); // IGlobalSystemMediaTransportControlsSessionMediaProperties.Thumbnail
+		if (ref == null) return;
+		try {
+			byte[] bytes = readStream(ref);
+			if (bytes != null) art = decode(bytes, ART_SIDE);
+		} finally {
+			release(ref);
+		}
+	}
+
+	private static final Memory RANDOM_ACCESS_STREAM = guid("905a0fe1-bc53-11df-8c49-001e4fc686da");
+	private static final Memory INPUT_STREAM = guid("905a0fe2-bc53-11df-8c49-001e4fc686da");
+	private static final Memory BUFFER_BYTE_ACCESS = guid("905a0fef-bc53-11df-8c49-001e4fc686da");
+	private static final Memory BUFFER_FACTORY = guid("71af914d-c10f-484b-bc50-14bc623b3a27");
+
+	/** IRandomAccessStreamReference.OpenReadAsync, then the whole stream through IInputStream.ReadAsync into a Buffer. */
+	private static byte[] readStream(Pointer ref) {
+		Pointer op = out(ref, 6); // OpenReadAsync
+		Pointer stream = await(op, 2000);
+		release(op);
+		if (stream == null) return null;
+		Pointer random = null, input = null, buffer = null;
+		try {
+			random = query(stream, RANDOM_ACCESS_STREAM);
+			input = query(stream, INPUT_STREAM);
+			if (random == null || input == null) return null;
+			long size = int64(random, 6); // get_Size
+			if (size <= 0 || size > MAX_ART_BYTES) return null;
+			buffer = newBuffer((int) size);
+			if (buffer == null) return null;
+			java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream((int) size);
+			while (out.size() < size) {
+				PointerByReference readOp = new PointerByReference();
+				// ReadAsync(buffer, count, InputStreamOptions.None, out operation)
+				if (call(input, 6, buffer, (int) size - out.size(), 0, readOp) < 0) return null;
+				Pointer result = await(readOp.getValue(), 3000, 10); // IAsyncOperationWithProgress<IBuffer, UInt32>
+				release(readOp.getValue());
+				if (result == null) return null;
+				try {
+					byte[] chunk = bytes(result);
+					if (chunk == null || chunk.length == 0) break;
+					out.write(chunk, 0, chunk.length);
+				} finally {
+					release(result);
+				}
+			}
+			return out.toByteArray();
+		} finally {
+			release(buffer);
+			release(input);
+			release(random);
+			release(stream);
+		}
+	}
+
+	/** A new Windows.Storage.Streams.Buffer of this capacity. */
+	private static Pointer newBuffer(int capacity) {
+		PointerByReference name = new PointerByReference();
+		String cls = "Windows.Storage.Streams.Buffer";
+		if (Combase.INSTANCE.WindowsCreateString(new WString(cls), cls.length(), name) < 0) return null;
+		try {
+			PointerByReference factory = new PointerByReference();
+			if (Combase.INSTANCE.RoGetActivationFactory(name.getValue(), BUFFER_FACTORY, factory) < 0) return null;
+			try {
+				PointerByReference buffer = new PointerByReference();
+				return call(factory.getValue(), 6, capacity, buffer) < 0 ? null : buffer.getValue(); // IBufferFactory.Create
+			} finally {
+				release(factory.getValue());
+			}
+		} finally {
+			Combase.INSTANCE.WindowsDeleteString(name.getValue());
+		}
+	}
+
+	/** The filled bytes of an IBuffer: its Length, copied out through IBufferByteAccess. */
+	private static byte[] bytes(Pointer buffer) {
+		int length = int32(buffer, 7); // IBuffer.get_Length
+		if (length <= 0) return new byte[0];
+		Pointer access = query(buffer, BUFFER_BYTE_ACCESS);
+		if (access == null) return null;
+		try {
+			PointerByReference data = new PointerByReference();
+			if (call(access, 3, data) < 0 || data.getValue() == null) return null; // IBufferByteAccess.Buffer
+			return data.getValue().getByteArray(0, length);
+		} finally {
+			release(access);
+		}
+	}
+
+	private static Pointer query(Pointer object, Memory iid) {
+		PointerByReference result = new PointerByReference();
+		return call(object, 0, iid, result) < 0 ? null : result.getValue();
+	}
+
+	/**
+	 * Decodes PNG, JPEG, BMP or GIF bytes with the game's own stb_image (no AWT) and scales the picture down to fit
+	 * side × side. Null when the bytes are not an image stb can read.
+	 */
+	static Art decode(byte[] bytes, int side) {
+		java.nio.ByteBuffer data = org.lwjgl.system.MemoryUtil.memAlloc(bytes.length);
+		try (org.lwjgl.system.MemoryStack stack = org.lwjgl.system.MemoryStack.stackPush()) {
+			data.put(bytes).flip();
+			java.nio.IntBuffer w = stack.mallocInt(1), h = stack.mallocInt(1), comp = stack.mallocInt(1);
+			java.nio.ByteBuffer pixels = org.lwjgl.stb.STBImage.stbi_load_from_memory(data, w, h, comp, 4);
+			if (pixels == null) return null;
+			try {
+				return scale(w.get(0), h.get(0), (x, y) -> {
+					int i = (y * w.get(0) + x) * 4;
+					int r = pixels.get(i) & 0xFF, g = pixels.get(i + 1) & 0xFF, b = pixels.get(i + 2) & 0xFF, a = pixels.get(i + 3) & 0xFF;
+					return a << 24 | r << 16 | g << 8 | b;
+				}, side);
+			} finally {
+				org.lwjgl.stb.STBImage.stbi_image_free(pixels);
+			}
+		} finally {
+			org.lwjgl.system.MemoryUtil.memFree(data);
+		}
+	}
+
+	interface Pixels {
+		int argb(int x, int y);
+	}
+
+	/** Nearest-neighbour scale of a w × h picture to fit side × side (never larger), keeping its shape. */
+	static Art scale(int w, int h, Pixels source, int side) {
+		if (w <= 0 || h <= 0) return null;
+		double s = Math.min(1.0, (double) side / Math.max(w, h));
+		int ow = Math.max(1, (int) Math.round(w * s)), oh = Math.max(1, (int) Math.round(h * s));
+		int[] out = new int[ow * oh];
+		for (int y = 0; y < oh; y++)
+			for (int x = 0; x < ow; x++) out[y * ow + x] = source.argb(Math.min(w - 1, x * w / ow), Math.min(h - 1, y * h / oh));
+		return new Art(ow, oh, out);
 	}
 
 	// ---- COM / WinRT plumbing ----
@@ -255,6 +424,11 @@ final class SystemMedia {
 
 	/** Waits for an IAsyncOperation to complete (via IAsyncInfo.Status) and returns GetResults(), or null. */
 	private static Pointer await(Pointer operation, long timeoutMs) {
+		return await(operation, timeoutMs, 8); // IAsyncOperation<T>.GetResults
+	}
+
+	/** As above, with the slot of GetResults (10 for IAsyncOperationWithProgress). */
+	private static Pointer await(Pointer operation, long timeoutMs, int resultsSlot) {
 		if (operation == null) return null;
 		PointerByReference infoRef = new PointerByReference();
 		if (call(operation, 0, ASYNC_INFO, infoRef) < 0) return null; // QueryInterface
@@ -273,6 +447,6 @@ final class SystemMedia {
 		} finally {
 			release(info);
 		}
-		return out(operation, 8); // IAsyncOperation<T>.GetResults
+		return out(operation, resultsSlot);
 	}
 }

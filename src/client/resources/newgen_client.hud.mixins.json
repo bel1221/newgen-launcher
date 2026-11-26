@@ -5,6 +5,7 @@
 	"client": [
 		"BossHealthOverlayMixin",
 		"DebugScreenOverlayMixin",
+		"ExperienceBarRendererMixin",
 		"GuiMixin",
 		"PlayerTabOverlayMixin",
 		"ClientLevelTimeMixin",

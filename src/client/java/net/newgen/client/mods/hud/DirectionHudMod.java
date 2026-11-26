@@ -18,6 +18,9 @@ public class DirectionHudMod extends HudMod {
 	private final Setting.Bool ticks = bool("ticks", "Tick marks", true);
 	private final Setting.Bool fadeEdges = bool("fade_edges", "Fade at the edges", true);
 	private final Setting.Bool headings = bool("headings", "Heading numbers on the strip", false);
+	// Wave 3 vanilla HUD: markers for the Waypoints mod.
+	private final Setting.Bool showWaypoints = bool("show_waypoints", "Show waypoints", true);
+	private final Setting.Color waypointColor = color("waypoint_color", "Waypoint marker colour", 0xFFFFD75E);
 
 	public DirectionHudMod() {
 		super("direction_hud", "Direction HUD", "Compass strip showing where you face", 0.5f, 0.02f);
@@ -60,6 +63,7 @@ public class DirectionHudMod extends HudMod {
 				g.fill(center, 10, center + 1, 10 + h, HudValues.fade(minorColor.current(), alpha));
 			}
 		}
+		if (showWaypoints.value) drawWaypoints(g, mc, yaw, width);
 		if (ticks.value) g.fill(width / 2, 9, width / 2 + 1, 13, textColor.current()); // where you face
 		if (degrees.value) {
 			// Compass bearing: north = 0, east = 90.
@@ -71,5 +75,28 @@ public class DirectionHudMod extends HudMod {
 	private void centered(GuiGraphics g, Minecraft mc, String text, int center, int y, int color) {
 		if ((color >>> 24) < 5) return; // fully faded: the font would draw it opaque
 		g.drawString(mc.font, text, center - mc.font.width(text) / 2, y, color, textShadow.value);
+	}
+
+	// Wave 3 vanilla HUD
+	/** A small diamond at each waypoint's bearing on the strip (on the tick row, or the letter row without ticks). */
+	private void drawWaypoints(GuiGraphics g, Minecraft mc, float yaw, int width) {
+		net.newgen.client.mods.utility.WaypointsMod waypoints = net.newgen.client.mods.utility.WaypointsMod.INSTANCE;
+		if (waypoints == null) return;
+		int cy = ticks.value ? 11 : 4;
+		for (net.newgen.client.mods.utility.WaypointsMod.Waypoint w : waypoints.current(mc)) {
+			float off = Mth.wrapDegrees(yawTo(w.x - mc.player.getX(), w.z - mc.player.getZ()) - yaw);
+			if (Math.abs(off) > 85) continue;
+			int cx = width / 2 + Math.round(off * width / 180f);
+			int color = HudValues.fade(waypointColor.current(), fadeEdges.value ? Math.min(1, (85 - Math.abs(off)) / 30.0) : 1);
+			for (int i = -2; i <= 2; i++) {
+				int h = 2 - Math.abs(i);
+				g.fill(cx - h, cy + i, cx + h + 1, cy + i + 1, color);
+			}
+		}
+	}
+
+	/** Minecraft yaw (0 = south, 90 = west) that faces a point dx, dz blocks away. */
+	static float yawTo(double dx, double dz) {
+		return (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90);
 	}
 }
