@@ -539,4 +539,11 @@
 	"newgen_client.mods.none.tab": "Gắn sao hoặc ẩn một mod từ menu chuột phải để thêm vào thẻ này",
 	"newgen_client.toast.colour_copied": "Đã sao chép %s (chuột phải vào mã màu để dán)",
 	"newgen_client.toast.colour_pasted": "Đã dán màu",
+	"newgen_client.hub.chip.drag": "Kéo · di chuyển",
+	"newgen_client.hub.chip.scroll": "Lăn · đổi cỡ",
+	"newgen_client.hub.chip.menu": "Chuột phải · menu",
+	"newgen_client.theme.preview.tip": "Nhấp để dùng bảng màu này",
+	"newgen_client.loading.world": "Đang tải thế giới",
+	"newgen_client.loading.wait": "Chờ một chút",
+	"newgen_client.title.connecting": "Đang kết nối...",
 }

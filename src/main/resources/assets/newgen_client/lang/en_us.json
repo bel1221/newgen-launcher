@@ -337,4 +337,11 @@
 	"newgen_client.mods.none.tab": "Star a mod or hide one from its right-click menu to fill this tab",
 	"newgen_client.toast.colour_copied": "Copied %s (right click a colour code to paste it)",
 	"newgen_client.toast.colour_pasted": "Colour pasted",
+	"newgen_client.hub.chip.drag": "Drag · move",
+	"newgen_client.hub.chip.scroll": "Scroll · size",
+	"newgen_client.hub.chip.menu": "Right click · menu",
+	"newgen_client.theme.preview.tip": "Click to use this palette",
+	"newgen_client.loading.world": "Loading the world",
+	"newgen_client.loading.wait": "Just a moment",
+	"newgen_client.title.connecting": "Connecting...",
 }

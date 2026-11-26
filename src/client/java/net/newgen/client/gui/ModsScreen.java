@@ -176,8 +176,19 @@ public class ModsScreen extends Screen {
 		return viewTop() - gridScroll + (i / columns) * (CARD_H + GAP);
 	}
 
+	/** Sidebar rows: 16 high, squeezed (down to 11) when a small window leaves less room above All on / All off. */
+	private int sideRow() {
+		return Math.max(11, Math.min(SIDE_ROW, (bulkY() - 4 - barY()) / TABS.length - 2));
+	}
+
+	/** The "NewGen" word after the mark: dropped when the header is too narrow for it and every tab (big GUI scale). */
+	private boolean wordmark() {
+		int tabs = tabW(Ui.tr("mods"), false) + 4 + tabW(optionsLabel(), true) + 4 + tabW(Ui.tr("theme"), true);
+		return px + PAD + 18 + Ui.width("NewGen", Ui.TITLE) + 14 + tabs < profilesX() - 4;
+	}
+
 	private int sideRowY(int i) {
-		return barY() + i * (SIDE_ROW + 2);
+		return barY() + i * (sideRow() + 2);
 	}
 
 	private int stateW(int i) {
@@ -272,7 +283,7 @@ public class ModsScreen extends Screen {
 
 	/** The header tabs after the name: Mods (this screen), Options (the game's own options), Theme (our look and sounds). */
 	private int tabX(int i) {
-		int x = px + PAD + 18 + Ui.width("NewGen", Ui.TITLE) + 14;
+		int x = px + PAD + 18 + (wordmark() ? Ui.width("NewGen", Ui.TITLE) + 14 : 4);
 		if (i >= 1) x += tabW(Ui.tr("mods"), false) + 4;
 		if (i >= 2) x += tabW(optionsLabel(), true) + 4;
 		return x;
@@ -395,6 +406,7 @@ public class ModsScreen extends Screen {
 	private List<Cell> cells() {
 		List<Cell> out = new ArrayList<>();
 		int left = contentX(), full = contentRight() - left, top = viewTop() - rowScroll, y = top;
+		if (themeView()) y += PREVIEW_H; // the palette cards come first
 		boolean sections = selected.settings.size() > 6;
 		int cols = sections && full >= 300 ? 2 : 1;
 		int colW = (full - (cols - 1) * COLUMN_GAP) / cols;
@@ -415,6 +427,7 @@ public class ModsScreen extends Screen {
 			}
 			if (part.isEmpty()) continue;
 			if (sections || pass == 2) {
+				if (!out.isEmpty()) y += 8; // a section after another gets room above its title
 				out.add(new Cell(null, Ui.tr(pass == 0 ? "section.general" : pass == 1 ? "section.colour" : "section.style"), left, y, full));
 				y += HEAD_H;
 			}
@@ -448,7 +461,7 @@ public class ModsScreen extends Screen {
 
 		// Header: icon and name, the two tabs, the close button.
 		Ui.icon(g, px + PAD, py + (HEADER - 14) / 2, 14);
-		Ui.text(g, "NewGen", px + PAD + 18, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
+		if (wordmark()) Ui.text(g, "NewGen", px + PAD + 18, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
 		String mods = Ui.tr("mods"), options = optionsLabel();
 		Ui.button(g, tabX(0), headY(), tabW(mods, false), BUTTON_H, mods, Ui.inside(mouseX, mouseY, tabX(0), headY(), tabW(mods, false), BUTTON_H),
 				themeView() ? Ui.DARK : Ui.SELECTED, Ui.CAPS);
@@ -476,15 +489,15 @@ public class ModsScreen extends Screen {
 		Ui.round(g, sx, barY() - 2, SIDE_W, py + ph - PAD - (barY() - 2), Ui.R_MD, Ui.CARD);
 		for (int t = 0; t < TABS.length; t++) {
 			int y = sideRowY(t);
-			boolean on = selected == null && t == tab, over = Ui.inside(mouseX, mouseY, sx + 2, y, SIDE_W - 4, SIDE_ROW);
-			if (on || over) Ui.round(g, sx + 2, y, SIDE_W - 4, SIDE_ROW, Ui.R_SM, on ? Ui.SELECTED : Ui.HOVER);
-			if (on) Ui.round(g, sx + 2, y + 4, 2, SIDE_ROW - 8, 1, Ui.ACCENT); // the accent as a small mark
-			Ui.glyph(g, TAB_ICONS[t], sx + 7, y + 4, 8, on ? Ui.TEXT : Ui.DIM);
-			Ui.text(g, Ui.tr("tab." + TABS[t].toLowerCase()), sx + 20, y + 5, on ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
+			boolean on = selected == null && t == tab, over = Ui.inside(mouseX, mouseY, sx + 2, y, SIDE_W - 4, sideRow());
+			if (on || over) Ui.round(g, sx + 2, y, SIDE_W - 4, sideRow(), Ui.R_SM, on ? Ui.SELECTED : Ui.HOVER);
+			if (on) Ui.round(g, sx + 2, y + 4, 2, sideRow() - 8, 1, Ui.ACCENT); // the accent as a small mark
+			Ui.glyph(g, TAB_ICONS[t], sx + 7, y + (sideRow() - 8) / 2, 8, on ? Ui.TEXT : Ui.DIM);
+			Ui.text(g, Ui.tr("tab." + TABS[t].toLowerCase()), sx + 20, y + (sideRow() - 6) / 2, on ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
 			int count = 0;
 			for (Mod mod : Mods.ALL) if (!isTheme(mod) && inTab(mod, t)) count++;
 			String n = String.valueOf(count);
-			Ui.text(g, n, sx + SIDE_W - 7 - Ui.width(n, Ui.UI), y + 5, Ui.DIM, Ui.UI);
+			Ui.text(g, n, sx + SIDE_W - 7 - Ui.width(n, Ui.UI), y + (sideRow() - 6) / 2, Ui.DIM, Ui.UI);
 		}
 		// All on / All off for the tab shown (asks first, then offers Undo).
 		if (selected == null) {
@@ -582,8 +595,10 @@ public class ModsScreen extends Screen {
 				cells = cells();
 			}
 			if (viewBottom() > viewTop()) g.enableScissor(contentX() - 4, viewTop(), right(), viewBottom());
+			if (themeView()) previews(g, contentX(), viewTop() - rowScroll, hot ? mouseX : -1, mouseY);
 			for (Cell cell : cells) {
 				if (cell.y + ROW_H <= viewTop() || cell.y >= viewBottom()) continue;
+
 				if (cell.setting != null) {
 					row(g, cell, hot ? mouseX : -1, mouseY);
 					if (rowMod == selected && rowFocus >= 0 && rowFocus < rows().size() && rows().get(rowFocus) == cell.setting)
@@ -669,6 +684,62 @@ public class ModsScreen extends Screen {
 			};
 			Ui.glyph(g, icon, x + 7, ry + 3, 8, Ui.SOFT);
 			Ui.text(g, Ui.tr(item), x + 20, ry + 4, Ui.TEXT, Ui.UI);
+		}
+	}
+
+	// ---- Theme: the palettes as small live cards ----
+
+	private static final int PREVIEW_H = 52;
+
+	private Setting setting(String id) {
+		for (Setting s : selected.settings) if (s.id.equals(id)) return s;
+		return null;
+	}
+
+	/** The palettes plus Custom: name and its accent, panel and button colours. */
+	private List<Object[]> previewPalettes() {
+		List<Object[]> out = new ArrayList<>();
+		for (Ui.Palette p : Ui.PALETTES) out.add(new Object[]{p.name(), p.accent(), p.glass(), p.dark()});
+		if (setting("custom_accent") instanceof Setting.Color a && setting("custom_glass") instanceof Setting.Color gl
+				&& setting("custom_buttons") instanceof Setting.Color b)
+			out.add(new Object[]{net.newgen.client.mods.ThemeMod.CUSTOM, a.current(), gl.value, b.value});
+		return out;
+	}
+
+	private int previewW(int n) {
+		return (contentRight() - contentX() - (n - 1) * GAP) / n;
+	}
+
+	/** The palette card under the mouse, or null. */
+	private String previewAt(double mx, double my) {
+		List<Object[]> list = previewPalettes();
+		int w = previewW(list.size()), top = viewTop() - rowScroll;
+		for (int i = 0; i < list.size(); i++)
+			if (Ui.inside(mx, my, contentX() + i * (w + GAP), top, w, PREVIEW_H - 8)) return (String) list.get(i)[0];
+		return null;
+	}
+
+	/** Each card is the palette in miniature: its panel glass with a button and an on switch in its accent. */
+	private void previews(GuiGraphics g, int x0, int y, int mouseX, int mouseY) {
+		List<Object[]> list = previewPalettes();
+		Setting chosen = setting("palette");
+		String current = chosen instanceof Setting.Choice c ? c.value : "";
+		int w = previewW(list.size()), h = PREVIEW_H - 8;
+		for (int i = 0; i < list.size(); i++) {
+			Object[] p = list.get(i);
+			int x = x0 + i * (w + GAP), accent = (int) p[1];
+			boolean on = p[0].equals(current), over = Ui.inside(mouseX, mouseY, x, y, w, h);
+			Ui.round(g, x, y, w, h, Ui.R_MD, (int) p[2]);
+			if (over) Ui.round(g, x, y, w, h, Ui.R_MD, Ui.HOVER);
+			Ui.round(g, x + 6, y + 6, Math.max(8, w - 36), 9, Ui.R_SM, (int) p[3]);
+			// the switch, on, in that accent
+			int sx = x + w - 24;
+			Ui.round(g, sx, y + 6, 18, 9, 4, accent);
+			Ui.round(g, sx + 10, y + 7, 7, 7, 3, Ui.INK);
+			Ui.round(g, x + 6, y + 20, 3, 8, 1, accent);
+			Ui.text(g, Ui.fit(choiceLabel((String) p[0]), w - 18, Ui.CAPS, false), x + 12, y + 21, Ui.TEXT, Ui.CAPS);
+			Ui.ring(g, x, y, w, h, Ui.R_MD, on ? 0xE6FFFFFF : Ui.LINE);
+			if (over) tip = Ui.tr("theme.preview.tip");
 		}
 	}
 
@@ -1006,7 +1077,7 @@ public class ModsScreen extends Screen {
 			return true;
 		}
 		for (int t = 0; t < TABS.length && !themeView(); t++) {
-			if (left && Ui.inside(mx, my, sx + 2, sideRowY(t), SIDE_W - 4, SIDE_ROW)) {
+			if (left && Ui.inside(mx, my, sx + 2, sideRowY(t), SIDE_W - 4, sideRow())) {
 				tab = t;
 				focus = -1;
 				selected = null;
@@ -1079,6 +1150,10 @@ public class ModsScreen extends Screen {
 			});
 		} else if (left && canEditHud() && Ui.inside(mx, my, contentX() + footW(Ui.tr("reset")) + 6, footY(), footW(Ui.tr("card.edit_hud")) + 14, BUTTON_H)) {
 			editInHud(selected);
+		} else if (left && themeView() && inView(my) && previewAt(mx, my) != null) {
+			Setting.Choice palette = (Setting.Choice) setting("palette");
+			palette.value = previewAt(mx, my);
+			saveChange(selected);
 		} else if (inView(my)) {
 			for (Cell cell : cells()) {
 				Setting setting = cell.setting;
@@ -1484,6 +1559,17 @@ public class ModsScreen extends Screen {
 			return true; // while typing, no key may close the menu
 		}
 		// Keyboard: Tab / Shift+Tab move between the cards, Enter opens the focused card's options, Shift+Enter turns it on or off.
+		// Arrows move the focus inside the grid: left / right one card, up / down one row.
+		if (selected == null && (Ui.horizontal(key) != 0 || Ui.vertical(key) != 0)) {
+			List<Mod> list = shown();
+			if (list.isEmpty()) return true;
+			int step = Ui.horizontal(key) != 0 ? Ui.horizontal(key) : Ui.vertical(key) * columns;
+			focus = focus < 0 ? 0 : Math.max(0, Math.min(list.size() - 1, focus + step));
+			int y = (focus / columns) * (CARD_H + GAP), viewH = viewBottom() - viewTop();
+			if (y < gridGoal) gridGoal = y;
+			else if (y + CARD_H > gridGoal + viewH) gridGoal = y + CARD_H - viewH;
+			return true;
+		}
 		if (selected == null && (key == GLFW.GLFW_KEY_TAB || key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER)) {
 			List<Mod> list = shown();
 			if (list.isEmpty()) return true;

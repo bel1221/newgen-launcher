@@ -241,8 +241,8 @@ public final class Ui {
 			I_SEARCH = 7, I_LAYOUT = 8, I_GLOBE = 9, I_EYE = 10, I_MOUSE = 11, I_SLIDERS = 12, I_PALETTE = 13,
 			// menu glyphs drawn by "java tools/ModIcons.java menu" (the same pen as the mod icons)
 			I_STAR = 14, I_STAR_ON = 15, I_RESET = 16, I_KEYBOARD = 17, I_HIDDEN = 18, I_UNDO = 19, I_COPY = 20, I_SORT = 21,
-			I_BELL = 22, I_PLUS = 23, I_MORE = 24, I_DOWNLOAD = 25, I_UPLOAD = 26;
-	private static final int ICON_COUNT = 27;
+			I_BELL = 22, I_PLUS = 23, I_MORE = 24, I_DOWNLOAD = 25, I_UPLOAD = 26, I_SOUND = 27;
+	private static final int ICON_COUNT = 28;
 
 	/** The mod icons: smooth white line icons drawn by tools/ModIcons.java on a 24 grid, 64 px tiles, 16 a row in
 	 * textures/mod_icons_<px>.png (one per on-screen pixel size), ids in mod_icons.txt; the same system as the menu glyphs. */

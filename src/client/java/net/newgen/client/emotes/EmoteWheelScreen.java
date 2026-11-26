@@ -139,6 +139,13 @@ public class EmoteWheelScreen extends Screen {
 		Ui.round(g, cx - CENTER / 2, cy - CENTER / 2, CENTER, CENTER, CENTER / 2, Ui.DARK);
 		Ui.ring(g, cx - CENTER / 2, cy - CENTER / 2, CENTER, CENTER, CENTER / 2, Ui.LINE);
 		EmoteLibrary.Emote lit = hovered < 0 ? null : EmoteLibrary.get(mod.slot(hovered));
+		if (lit != null) {
+			// The centre: how long the emote lasts, and a speaker mark when it has a sound.
+			float seconds = lit.animation().length() / 20f;
+			String len = seconds >= 60 || lit.animation().length() <= 0 ? "∞" : String.format(java.util.Locale.ROOT, "%.1f s", seconds);
+			Ui.centered(g, len, cx, cy - (lit.sound() != null ? 8 : 3), Ui.TEXT, Ui.CAPS);
+			if (lit.sound() != null) Ui.glyph(g, Ui.I_SOUND, cx - 4, cy + 3, 8, Ui.SOFT);
+		}
 		int textY = cy + RADIUS + SLOT / 2 + 18;
 		if (lit != null) {
 			Ui.centered(g, Ui.fit(lit.name(), width - 16, Ui.TITLE, false), cx, textY, Ui.TEXT, Ui.TITLE);

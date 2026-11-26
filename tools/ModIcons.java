@@ -335,6 +335,7 @@ public class ModIcons {
 		MENU.put("more", p -> p.dot(5, 12).dot(12, 12).dot(19, 12));
 		MENU.put("download", p -> p.line(12, 3, 12, 15).head(12, 15, 0, 1).path(4, 16, 4, 20, 20, 20, 20, 16));
 		MENU.put("upload", p -> p.line(12, 15, 12, 3).head(12, 3, 0, -1).path(4, 16, 4, 20, 20, 20, 20, 16));
+		MENU.put("sound", p -> p.path(3, 9, 7, 9, 12, 4, 12, 20, 7, 15, 3, 15, 3, 9).arc(13, 12, 4, -50, 100).arc(13, 12, 8, -50, 100));
 	}
 
 	/** Rewrites textures/icons.png: its first 14 tiles as they are, then the MENU glyphs. */

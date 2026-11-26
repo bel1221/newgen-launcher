@@ -83,6 +83,9 @@ public class ProfilesScreen extends Screen {
 		int close = right() - BUTTON_H;
 		int fileW = Ui.width(Ui.tr("profiles.open_file"), Ui.CAPS) + 30, pasteW = Ui.width(Ui.tr("profiles.paste"), Ui.CAPS) + 30,
 				newW = Ui.width(Ui.tr("profiles.new"), Ui.CAPS) + 30;
+		int titleEnd = px + PAD + 18 + BUTTON_H + 8 + Ui.width(Ui.tr("profiles"), Ui.TITLE) + 6;
+		// Too narrow for the labels (a small window or a big GUI scale): the three become icon buttons.
+		if (close - 6 - fileW - pasteW - newW - 8 < titleEnd) fileW = pasteW = newW = 18;
 		int file = close - 6 - fileW, paste = file - 4 - pasteW, add = paste - 4 - newW;
 		return new int[]{add, newW, paste, pasteW, file, fileW, close};
 	}
@@ -105,14 +108,19 @@ public class ProfilesScreen extends Screen {
 		Ui.panel(g, px, py, pw, ph);
 		g.fill(px + 1, py + HEADER, px + pw - 1, py + HEADER + 1, 0x18FFFFFF);
 		int x = px + PAD;
-		Ui.button(g, x, headY(), BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mx, mouseY, x, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
-		Ui.text(g, Ui.tr("profiles"), x + BUTTON_H + 8, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
+		Ui.icon(g, x, py + (HEADER - 14) / 2, 14);
+		int hx = x + 18;
+		Ui.button(g, hx, headY(), BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mx, mouseY, hx, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+		Ui.text(g, Ui.tr("profiles"), hx + BUTTON_H + 8, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
 		int[] b = headButtons();
-		if (b[0] > x + BUTTON_H + 8 + Ui.width(Ui.tr("profiles"), Ui.TITLE) + 6) {
-			Ui.button(g, b[0], headY(), b[1], BUTTON_H, Ui.tr("profiles.new"), Ui.I_PLUS, Ui.inside(mx, mouseY, b[0], headY(), b[1], BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
-			Ui.button(g, b[2], headY(), b[3], BUTTON_H, Ui.tr("profiles.paste"), Ui.I_COPY, Ui.inside(mx, mouseY, b[2], headY(), b[3], BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
-			Ui.button(g, b[4], headY(), b[5], BUTTON_H, Ui.tr("profiles.open_file"), Ui.I_UPLOAD, Ui.inside(mx, mouseY, b[4], headY(), b[5], BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+		{
+			boolean icons = b[1] == 18;
+			Ui.button(g, b[0], headY(), b[1], BUTTON_H, icons ? "" : Ui.tr("profiles.new"), Ui.I_PLUS, Ui.inside(mx, mouseY, b[0], headY(), b[1], BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+			Ui.button(g, b[2], headY(), b[3], BUTTON_H, icons ? "" : Ui.tr("profiles.paste"), Ui.I_COPY, Ui.inside(mx, mouseY, b[2], headY(), b[3], BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+			Ui.button(g, b[4], headY(), b[5], BUTTON_H, icons ? "" : Ui.tr("profiles.open_file"), Ui.I_UPLOAD, Ui.inside(mx, mouseY, b[4], headY(), b[5], BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 			if (Ui.inside(mx, mouseY, b[2], headY(), b[3], BUTTON_H)) tip = Ui.tr("profiles.paste.tip");
+			if (icons && Ui.inside(mx, mouseY, b[0], headY(), b[1], BUTTON_H)) tip = Ui.tr("profiles.new");
+			if (icons && Ui.inside(mx, mouseY, b[4], headY(), b[5], BUTTON_H)) tip = Ui.tr("profiles.open_file");
 		}
 		Ui.button(g, b[6], headY(), BUTTON_H, BUTTON_H, "", Ui.I_CLOSE, Ui.inside(mx, mouseY, b[6], headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 
@@ -289,7 +297,7 @@ public class ProfilesScreen extends Screen {
 		if (left && Overlay.clickToast(mx, my, width, height)) return true;
 		finishRename();
 		int[] b = headButtons();
-		if (left && Ui.inside(mx, my, px + PAD, headY(), BUTTON_H, BUTTON_H)) {
+		if (left && Ui.inside(mx, my, px + PAD + 18, headY(), BUTTON_H, BUTTON_H)) {
 			minecraft.setScreen(parent);
 			return true;
 		}

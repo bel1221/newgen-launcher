@@ -34,6 +34,30 @@ public class HubScreen extends Screen {
 	}
 
 	/** Opens the editor with one element selected (a mod card's "Edit in HUD editor"). */
+	/** The three key hints under the buttons; each goes for good once the player has done it (kept with the config). */
+	private static final String[] HINTS = {"drag", "scroll", "menu"};
+
+	private static void usedHint(String hint) {
+		if (Mods.seen.add("hint:" + hint)) Mods.save();
+	}
+
+	/** Short chips, "Drag · move", "Scroll · size", "Right click · menu", centred under the buttons. */
+	private void hintChips(GuiGraphics g) {
+		List<String> chips = new java.util.ArrayList<>();
+		for (String h : HINTS) if (!Mods.seen.contains("hint:" + h)) chips.add(Ui.tr("hub.chip." + h));
+		if (chips.isEmpty()) return;
+		int total = -4;
+		for (String c : chips) total += Ui.width(c, Ui.UI) + 12 + 4;
+		int x = (width - total) / 2;
+		for (String c : chips) {
+			int w = Ui.width(c, Ui.UI) + 12;
+			Ui.round(g, x, hintY, w, 13, Ui.R_SM, Ui.GLASS);
+			Ui.ring(g, x, hintY, w, 13, Ui.R_SM, Ui.LINE);
+			Ui.text(g, c, x + 6, hintY + 3, Ui.SOFT, Ui.UI);
+			x += w + 4;
+		}
+	}
+
 	public HubScreen(HudMod focus) {
 		this();
 		selection.add(focus);
@@ -242,10 +266,7 @@ public class HubScreen extends Screen {
 		Ui.logo(g, width / 2, top, logoW);
 		super.render(g, mouseX, mouseY, delta);
 		if (minecraft.level != null) {
-			String hint = Ui.fit(Ui.tr("hub.hint2"), width - 16, Ui.UI, false);
-			int w = Ui.width(hint, Ui.UI) + 12;
-			Ui.round(g, (width - w) / 2, hintY, w, 13, Ui.R_SM, Ui.GLASS);
-			Ui.centered(g, hint, width / 2, hintY + 3, Ui.SOFT, Ui.UI);
+			hintChips(g);
 			toolbar(g, mouseX, mouseY);
 		}
 		if (menuFor != null) menu(g, mouseX, mouseY);
@@ -463,6 +484,7 @@ public class HubScreen extends Screen {
 		if (event.button() == 1) {
 			if (hit != null) {
 				menuFor = hit;
+				usedHint("menu");
 				menuX = (int) Math.min(mx, width - 112);
 				menuY = (int) Math.min(my, height - MENU.length * 14 - 8);
 				if (!selection.contains(hit)) selectWithGroup(hit, false);
@@ -494,6 +516,7 @@ public class HubScreen extends Screen {
 		dragStart.clear();
 		for (HudMod h : selection) dragStart.put(h, new int[]{h.left, h.top});
 		moving = true;
+		usedHint("drag");
 		return true;
 	}
 
@@ -531,6 +554,7 @@ public class HubScreen extends Screen {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		usedHint("scroll");
 		HudMod hit = at(mouseX, mouseY);
 		java.util.Collection<HudMod> targets = hit != null && selection.contains(hit) ? selection : hit != null ? List.of(hit) : List.of();
 		if (targets.isEmpty() || scrollY == 0) return false;

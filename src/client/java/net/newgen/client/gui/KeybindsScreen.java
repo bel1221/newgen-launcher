@@ -218,11 +218,14 @@ public class KeybindsScreen extends Screen {
 		Ui.panel(g, px, py, pw, ph);
 		g.fill(px + 1, py + HEADER, px + pw - 1, py + HEADER + 1, 0x18FFFFFF);
 		int x = px + PAD;
-		Ui.button(g, x, headY(), BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mouseX, mouseY, x, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
-		Ui.glyph(g, Ui.I_KEYBOARD, x + BUTTON_H + 8, headY() + 2, 10, Ui.TEXT);
-		Ui.text(g, Ui.tr("keys"), x + BUTTON_H + 22, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
+		// The same header as the Mods menu: the NewGen mark, back, the page name, its tools, close.
+		Ui.icon(g, x, py + (HEADER - 14) / 2, 14);
+		int hx = x + 18;
+		Ui.button(g, hx, headY(), BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mouseX, mouseY, hx, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+		Ui.glyph(g, Ui.I_KEYBOARD, hx + BUTTON_H + 8, headY() + 2, 10, Ui.TEXT);
+		Ui.text(g, Ui.tr("keys"), hx + BUTTON_H + 22, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
 		int clashes = clashCount();
-		if (clashX() > x + BUTTON_H + 22 + Ui.width(Ui.tr("keys"), Ui.TITLE) + 8) {
+		if (clashX() > hx + BUTTON_H + 22 + Ui.width(Ui.tr("keys"), Ui.TITLE) + 8) {
 			Ui.button(g, clashX(), headY(), clashW(), BUTTON_H, Ui.trf("keys.clashes", clashes),
 					Ui.inside(mouseX, mouseY, clashX(), headY(), clashW(), BUTTON_H), clashesOnly ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
 			if (Ui.inside(mouseX, mouseY, clashX(), headY(), clashW(), BUTTON_H)) tip = Ui.tr("keys.clashes.tip");
@@ -329,7 +332,7 @@ public class KeybindsScreen extends Screen {
 			onClose();
 			return true;
 		}
-		if (left && Ui.inside(mx, my, px + PAD, headY(), BUTTON_H, BUTTON_H)) {
+		if (left && Ui.inside(mx, my, px + PAD + 18, headY(), BUTTON_H, BUTTON_H)) {
 			minecraft.setScreen(parent);
 			return true;
 		}
