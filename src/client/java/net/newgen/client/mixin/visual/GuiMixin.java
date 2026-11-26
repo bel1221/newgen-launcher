@@ -10,6 +10,7 @@ import net.newgen.client.mods.visual.OverlayMod;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** Crosshair and the pumpkin / powder snow part of Overlays. */
@@ -30,5 +31,12 @@ public class GuiMixin {
 		String path = texture.getPath();
 		if (path.contains("pumpkin") && OverlayMod.I.hidePumpkin.value) ci.cancel();
 		if (path.contains("powder_snow") && OverlayMod.I.hidePowderSnow.value) ci.cancel();
+	}
+
+	// Overlays: pumpkin overlay opacity. The texture is the second argument, so the alpha is read after it here.
+	@ModifyVariable(method = "renderTextureOverlay", at = @At("HEAD"), argsOnly = true)
+	private float newgen$overlayAlpha(float alpha, GuiGraphics graphics, Identifier texture) {
+		if (OverlayMod.I.enabled && texture.getPath().contains("pumpkin")) return alpha * (float) OverlayMod.I.pumpkinOpacity.get() / 100f;
+		return alpha;
 	}
 }

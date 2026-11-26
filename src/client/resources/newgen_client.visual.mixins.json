@@ -23,7 +23,8 @@
 		"NameTagStorageMixin",
 		"OverlayTextureAccessor",
 		"ParticleEngineMixin",
-		"ScreenEffectRendererMixin"
+		"ScreenEffectRendererMixin",
+		"ZoomScrollMixin"
 	],
 	"injectors": { "defaultRequire": 1 }
 }

@@ -1,6 +1,7 @@
 package net.newgen.client.mixin.visual;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ScreenEffectRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -27,5 +28,10 @@ public class ScreenEffectRendererMixin {
 	@Inject(method = "renderFire", at = @At("RETURN"))
 	private static void newgen$fireDone(PoseStack pose, MultiBufferSource buffers, TextureAtlasSprite sprite, CallbackInfo ci) {
 		pose.popPose();
+	}
+
+	@Inject(method = "renderWater", at = @At("HEAD"), cancellable = true)
+	private static void newgen$water(Minecraft mc, PoseStack pose, MultiBufferSource buffers, CallbackInfo ci) {
+		if (OverlayMod.I.enabled && OverlayMod.I.hideWater.value) ci.cancel();
 	}
 }

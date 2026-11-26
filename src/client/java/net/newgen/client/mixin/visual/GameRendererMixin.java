@@ -7,11 +7,12 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.newgen.client.mods.visual.FovMod;
 import net.newgen.client.mods.visual.HurtCamMod;
 import net.newgen.client.mods.visual.MenuBlurMod;
+import net.newgen.client.mods.visual.OverlayMod;
 import net.newgen.client.mods.visual.ZoomMod;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-/** FOV, Zoom, Hurt Cam and Menu Blur. */
+/** FOV, Zoom, Hurt Cam, Menu Blur and the nausea / portal distortion of Overlays. */
 @Mixin(GameRenderer.class)
 public class GameRendererMixin {
 	// The only Integer read in getFov is the FOV option.
@@ -35,5 +36,24 @@ public class GameRendererMixin {
 	@ModifyExpressionValue(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Options;getMenuBackgroundBlurriness()I"))
 	private int newgen$menuBlur(int original) {
 		return MenuBlurMod.I.enabled ? (int) MenuBlurMod.I.strength.get() : original;
+	}
+
+	// The only Double.floatValue in getFov is the FOV effects scale, used only for the underwater FOV change.
+	@ModifyExpressionValue(method = "getFov", at = @At(value = "INVOKE", target = "Ljava/lang/Double;floatValue()F", remap = false))
+	private float newgen$underwaterFov(float original) {
+		if (!FovMod.I.enabled) return original;
+		return FovMod.I.lock.value ? 0f : original * (float) FovMod.I.underwater.get();
+	}
+
+	// Zoom: "Show hand while zoomed" off hides the hand the way third person does.
+	@ModifyExpressionValue(method = "renderItemInHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/CameraType;isFirstPerson()Z"))
+	private boolean newgen$zoomHand(boolean original) {
+		return original && ZoomMod.I.showHand();
+	}
+
+	// The only Math.max(float, float) in renderLevel is the nausea / portal distortion strength.
+	@ModifyExpressionValue(method = "renderLevel", at = @At(value = "INVOKE", target = "Ljava/lang/Math;max(FF)F", remap = false))
+	private float newgen$distortion(float original) {
+		return OverlayMod.I.enabled ? original * (float) OverlayMod.I.distortion.get() / 100f : original;
 	}
 }
