@@ -76,6 +76,12 @@ public class ModsScreen extends Screen {
 		this.parent = parent;
 	}
 
+	/** Opens straight on one mod's options (the HUD editor's "Settings"). */
+	public ModsScreen(Screen parent, Mod open) {
+		this(parent);
+		this.selected = open;
+	}
+
 	@Override
 	protected void init() {
 		// Vanilla's tutorial toast ("Move with W, A, S and D") sits where our panels are; it goes. Other toasts stay.
@@ -928,8 +934,12 @@ public class ModsScreen extends Screen {
 				path = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_openFileDialog(f.name, f.value, patterns, null, false);
 			}
 			if (path != null) {
-				f.value = path;
-				Mods.save();
+				String chosen = path;
+				// Back on the client thread before touching the option and the config.
+				net.minecraft.client.Minecraft.getInstance().execute(() -> {
+					f.value = chosen;
+					Mods.save();
+				});
 			}
 		}, "Newgen file dialog");
 		t.setDaemon(true);

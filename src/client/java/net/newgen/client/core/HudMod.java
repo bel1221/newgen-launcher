@@ -17,6 +17,10 @@ public abstract class HudMod extends Mod {
 	/** Where the element sits before the player moves it; "reset position" in the HUD editor goes back here. */
 	public final float defaultX, defaultY;
 
+	/** HUD editor: a locked element cannot be moved; elements with the same group id are selected and moved together. */
+	public boolean locked;
+	public String group = "";
+
 	/** True while the HUD editor is open: an element with nothing to show draws its name, so it can still be placed. */
 	public static boolean editing;
 

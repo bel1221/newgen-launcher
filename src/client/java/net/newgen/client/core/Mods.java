@@ -91,10 +91,14 @@ public final class Mods {
 				if (mod instanceof HudMod hud) {
 					if (o.has("x")) hud.x = clamp01(o.get("x").getAsFloat());
 					if (o.has("y")) hud.y = clamp01(o.get("y").getAsFloat());
+					if (o.has("locked")) hud.locked = o.get("locked").getAsBoolean();
+					if (o.has("group")) hud.group = o.get("group").getAsString();
 				}
 				if (mod.hud != null) {
 					if (o.has("hud_x")) mod.hud.x = clamp01(o.get("hud_x").getAsFloat());
 					if (o.has("hud_y")) mod.hud.y = clamp01(o.get("hud_y").getAsFloat());
+					if (o.has("hud_locked")) mod.hud.locked = o.get("hud_locked").getAsBoolean();
+					if (o.has("hud_group")) mod.hud.group = o.get("hud_group").getAsString();
 				}
 				JsonObject settings = o.getAsJsonObject("settings");
 				if (settings == null) continue;
@@ -120,10 +124,14 @@ public final class Mods {
 			if (mod instanceof HudMod hud) {
 				o.addProperty("x", hud.x);
 				o.addProperty("y", hud.y);
+				o.addProperty("locked", hud.locked);
+				o.addProperty("group", hud.group);
 			}
 			if (mod.hud != null) {
 				o.addProperty("hud_x", mod.hud.x);
 				o.addProperty("hud_y", mod.hud.y);
+				o.addProperty("hud_locked", mod.hud.locked);
+				o.addProperty("hud_group", mod.hud.group);
 			}
 			JsonObject settings = new JsonObject();
 			for (Setting s : mod.settings) settings.add(s.id, s.toJson());

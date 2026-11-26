@@ -61,8 +61,9 @@ public class ColorPickerScreen extends Screen {
 
 	@Override
 	protected void init() {
-		px = (width - PW) / 2;
-		py = (height - PH) / 2;
+		// 260x150 fits every window Minecraft allows at its GUI scale (the smallest is about 320x180 units); clamped anyway.
+		px = Math.max(2, (width - PW) / 2);
+		py = Math.max(2, (height - PH) / 2);
 	}
 
 	private int sqX() {
