@@ -19,6 +19,8 @@ public class ScreenshotMod extends Mod {
 
 	private final Setting.Bool actions = bool("actions", "Show actions in chat", true);
 	private final Setting.Bool autoCopy = bool("auto_copy", "Copy file path automatically", false);
+	private final Setting.Bool compact = bool("compact", "Compact chat message", false);
+	private final Setting.Bool preview = bool("preview", "Show preview toast", true);
 
 	public ScreenshotMod() {
 		super("screenshot", "Screenshot", "Open folder / copy path buttons after a screenshot");
@@ -28,22 +30,32 @@ public class ScreenshotMod extends Mod {
 	/** Wraps the callback that reports the result of a screenshot. May run on a worker thread. */
 	public static Consumer<Component> wrap(Consumer<Component> vanilla) {
 		return message -> {
-			vanilla.accept(message);
 			ScreenshotMod m = INSTANCE;
-			if (m == null || !m.enabled) return;
-			File file = savedFile(message);
-			if (file == null) return; // the screenshot failed; vanilla already said so
+			File file = m != null && m.enabled ? savedFile(message) : null;
+			if (file == null) { // mod off, or the screenshot failed: vanilla says so
+				vanilla.accept(message);
+				return;
+			}
 			String path = file.getAbsolutePath();
-			if (m.actions.value) {
-				vanilla.accept(Component.empty()
-						.append(button("[Open folder]", "Open the screenshots folder", new ClickEvent.OpenFile(file.getAbsoluteFile().getParentFile())))
-						.append(" ")
-						.append(button("[Copy path]", "Copy the file path", new ClickEvent.CopyToClipboard(path))));
+			MutableComponent buttons = Component.empty()
+					.append(button("[Open folder]", "Open the screenshots folder", new ClickEvent.OpenFile(file.getAbsoluteFile().getParentFile())))
+					.append(" ")
+					.append(button("[Copy path]", "Copy the file path", new ClickEvent.CopyToClipboard(path)));
+			if (m.compact.value) {
+				// One short line: "Screenshot: <name>" with the name clickable, then the buttons.
+				MutableComponent line = Component.translatable("newgen_client.screenshot.compact", Component.literal(file.getName())
+						.withStyle(s -> s.withUnderlined(true).withClickEvent(new ClickEvent.OpenFile(file))));
+				if (m.actions.value) line.append(" ").append(buttons);
+				vanilla.accept(line);
+			} else {
+				vanilla.accept(message);
+				if (m.actions.value) vanilla.accept(buttons);
 			}
 			if (m.autoCopy.value) {
 				Minecraft mc = Minecraft.getInstance();
 				mc.execute(() -> mc.keyboardHandler.setClipboard(path));
 			}
+			if (m.preview.value) ScreenshotPreviewToast.show(file);
 		};
 	}
 

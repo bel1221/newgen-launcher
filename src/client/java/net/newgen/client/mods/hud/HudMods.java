@@ -8,16 +8,14 @@ public final class HudMods {
 	public static final String CATEGORY = "HUD";
 
 	// Mods that change a vanilla HUD part; the mixins in mixin/hud read these.
-	public static final VanillaPartMod ACTION_BAR = new VanillaPartMod("action_bar", "Action Bar",
-			"Hide, scale or move the message above the hotbar", 0.5f, 1f);
+	public static final FadingPartMod ACTION_BAR = new FadingPartMod("action_bar", "Action Bar",
+			"Hide, scale or move the message above the hotbar", 0.5f, 1f, true);
 	public static final VanillaPartMod BOSSBAR = new VanillaPartMod("bossbar", "Bossbar",
 			"Hide, scale or move the boss bars", 0.5f, 0f);
-	public static final VanillaPartMod SCOREBOARD = new VanillaPartMod("scoreboard", "Scoreboard",
-			"Hide, scale or move the sidebar scoreboard", 1f, 0.5f);
-	public static final VanillaPartMod TAB = new VanillaPartMod("tab", "Tab",
-			"Hide, scale or move the player list", 0.5f, 0f);
-	public static final VanillaPartMod TITLES = new VanillaPartMod("titles", "Titles",
-			"Hide, scale or move the big titles", 0.5f, 0.5f);
+	public static final ScoreboardMod SCOREBOARD = new ScoreboardMod();
+	public static final TabMod TAB = new TabMod();
+	public static final FadingPartMod TITLES = new FadingPartMod("titles", "Titles",
+			"Hide, scale or move the big titles", 0.5f, 0.5f, false);
 	public static final Mod LOCATOR_BAR = new Mod("locator_bar", "Locator Bar",
 			"Hides the locator bar, so the XP bar shows instead");
 	public static final F3DisplayMod F3_DISPLAY = new F3DisplayMod();
