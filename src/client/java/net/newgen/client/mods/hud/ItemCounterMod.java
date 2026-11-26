@@ -7,12 +7,14 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.newgen.client.core.HudMod;
 import net.newgen.client.core.Setting;
 
@@ -20,6 +22,7 @@ public class ItemCounterMod extends HudMod {
 	private final Setting.Text items = text("items", "Items (ids, comma separated)", "arrow,ender_pearl,golden_apple");
 	private final Setting.Bool held = bool("held", "Count held item", true);
 	private final Setting.Bool hideZero = bool("hide_zero", "Hide items you have none of", true);
+	private final Setting.Bool shulkers = bool("shulkers", "Count inside shulker boxes", true);
 
 	private final List<ItemStack> stacks = new ArrayList<>();
 
@@ -39,7 +42,7 @@ public class ItemCounterMod extends HudMod {
 		}
 		List<String> out = new ArrayList<>();
 		for (Item item : wanted) {
-			int n = count(mc.player, s -> s.is(item));
+			int n = count(mc.player, s -> s.is(item), shulkers.value);
 			if (n == 0 && hideZero.value) continue;
 			stacks.add(new ItemStack(item));
 			out.add("x" + n);
@@ -54,11 +57,21 @@ public class ItemCounterMod extends HudMod {
 
 	/** Total count of the matching items in the whole inventory (armour and offhand included). */
 	static int count(Player player, Predicate<ItemStack> test) {
+		return count(player, test, false);
+	}
+
+	/** As count(player, test); with insideContainers also the items stored in carried shulker boxes (and other filled containers). */
+	static int count(Player player, Predicate<ItemStack> test, boolean insideContainers) {
 		Inventory inv = player.getInventory();
 		int n = 0;
 		for (int i = 0; i < inv.getContainerSize(); i++) {
 			ItemStack s = inv.getItem(i);
-			if (!s.isEmpty() && test.test(s)) n += s.getCount();
+			if (s.isEmpty()) continue;
+			if (test.test(s)) n += s.getCount();
+			if (insideContainers) {
+				ItemContainerContents inside = s.get(DataComponents.CONTAINER);
+				if (inside != null) for (ItemStack in : inside.nonEmptyItems()) if (test.test(in)) n += in.getCount() * s.getCount();
+			}
 		}
 		return n;
 	}
