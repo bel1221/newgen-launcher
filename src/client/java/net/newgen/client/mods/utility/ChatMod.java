@@ -46,6 +46,7 @@ public class ChatMod extends Mod {
 	private final Setting.Color mentionColor = color("mention_color", "Mention colour", 0xFFFFD25A);
 	// Links and typing
 	private final Setting.Bool copyDelete = bool("copy_delete", "Right-click copies a message (Shift: deletes)", true);
+	private final Setting.Bool imagePreview = bool("image_preview", "Preview image links on hover", true);
 	private final Setting.Bool underlineLinks = bool("underline_links", "Underline links", true);
 	private final Setting.Bool emoji = bool("emoji", "Emoji shortcodes (:heart: :star: …)", true);
 	private final Setting.Text shortcuts = text("shortcuts", "Shortcuts (gg=Good game!; /h=/home)", "");
@@ -185,6 +186,11 @@ public class ChatMod extends Mod {
 		int c = m.backgroundColor.value;
 		int alpha = (c >>> 24) * vanillaAlpha / 255;
 		return alpha << 24 | c & 0xFFFFFF;
+	}
+
+	public static boolean imagePreview() {
+		ChatMod m = on();
+		return m != null && m.imagePreview.value;
 	}
 
 	public static boolean copyAndDelete() {

@@ -22,6 +22,22 @@ public class ChatScreenMixin {
 		return ChatMod.outgoing(typed);
 	}
 
+	/** Image link preview: the link under the pointer, if it is one, shows its image beside the pointer. */
+	@Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", at = @At("TAIL"))
+	private void newgen$imagePreview(net.minecraft.client.gui.GuiGraphics g, int mouseX, int mouseY, float partialTick, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+		if (!ChatMod.imagePreview()) return;
+		Minecraft mc = Minecraft.getInstance();
+		var finder = new net.minecraft.client.gui.ActiveTextCollector.ClickableStyleFinder(mc.font, mouseX, mouseY);
+		mc.gui.getChat().captureClickableText(finder, mc.getWindow().getGuiScaledHeight(), mc.gui.getGuiTicks(), true);
+		net.minecraft.network.chat.Style style = finder.result();
+		if (style == null || !(style.getClickEvent() instanceof net.minecraft.network.chat.ClickEvent.OpenUrl open)) return;
+		net.newgen.client.mods.utility.ImagePreview.Image image = net.newgen.client.mods.utility.ImagePreview.get(open.uri().toString());
+		if (image == null) return;
+		int x = Math.min(mouseX + 8, g.guiWidth() - image.width() - 2), y = Math.max(2, mouseY - image.height() - 8);
+		g.fill(x - 2, y - 2, x + image.width() + 2, y + image.height() + 2, 0xC0000000);
+		g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, image.texture(), x, y, 0, 0, image.width(), image.height(), image.width(), image.height(), image.width(), image.height());
+	}
+
 	@Inject(method = "mouseClicked(Lnet/minecraft/client/input/MouseButtonEvent;Z)Z", at = @At("HEAD"), cancellable = true)
 	private void newgen$copyOrDelete(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
 		if (event.button() != GLFW.GLFW_MOUSE_BUTTON_RIGHT || !ChatMod.copyAndDelete()) return;
