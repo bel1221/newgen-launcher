@@ -57,7 +57,9 @@ class ChatModTest {
 	@Test
 	void chatTabs() {
 		List<ChatTabs.Tab> tabs = ChatTabs.build("Trades=buy|sell; Broken=([; =x");
-		assertEquals(5, tabs.size(), "4 built-in + Trades (a broken regex and an empty name are skipped)");
+		assertEquals(6, tabs.size(), "4 built-in + Trades + Broken (an empty name is skipped)");
+		assertTrue(tabs.get(5).invalid() && tabs.get(5).label().endsWith("(!)"), "a broken regex is a visible invalid tab");
+		assertFalse(ChatTabs.belongs(tabs.get(5), "anything", true, false), "and matches nothing");
 		ChatTabs.Tab server = tabs.get(1), whisper = tabs.get(2), mentions = tabs.get(3), trades = tabs.get(4);
 		assertTrue(ChatTabs.belongs(server, "Server restarting soon", false, false));
 		assertFalse(ChatTabs.belongs(server, "<Steve> hi", true, false));
@@ -83,6 +85,24 @@ class ChatModTest {
 		// GUI scale 2: a 640-wide GUI on a 1280-wide frame
 		assertArrayEquals(new int[] {0, 200, 600, 60}, ChatScreenshot.crop(new int[] {0, 100, 300, 130}, 1280, 720, 640));
 		assertArrayEquals(new int[] {0, 700, 1280, 20}, ChatScreenshot.crop(new int[] {0, 350, 9999, 9999}, 1280, 720, 640), "clamped to the image");
+	}
+
+	@Test
+	void evilRegexReturnsQuickly() {
+		List<ChatTabs.Tab> tabs = ChatTabs.build("Evil=(a+)+$");
+		String text = "a".repeat(40) + "b";
+		long start = System.nanoTime();
+		assertFalse(ChatTabs.belongs(tabs.get(4), text, true, false));
+		assertTrue(System.nanoTime() - start < 200_000_000L, "gave up within the budget, not after billions of steps");
+		assertTrue(ChatTabs.build("Long=" + "a".repeat(201)).get(4).invalid(), "patterns over 200 characters are refused");
+	}
+
+	@Test
+	void imagePreviewRefusesLocalAddresses() {
+		for (String host : new String[] {"127.0.0.1", "localhost", "10.0.0.5", "172.16.3.4", "192.168.1.10", "169.254.169.254", "[::1]", "[fe80::1]", "[fd00::1]", "0.0.0.0", "224.0.0.1", "100.64.0.1"})
+			assertFalse(ImagePreview.publicHost(host), host);
+		assertTrue(ImagePreview.publicHost("93.184.216.34"), "a public address literal");
+		assertFalse(ImagePreview.publicHost(""), "no host");
 	}
 
 	@Test

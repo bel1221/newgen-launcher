@@ -14,8 +14,16 @@ import java.util.regex.PatternSyntaxException;
  */
 public final class ChatTabs {
 	/** One tab. Built-in tabs have a lang key as label; custom ones their own name. */
-	public record Tab(String id, String label, boolean builtIn, Pattern pattern) {
+	/** One tab. Built-in tabs have a lang key as label; custom ones their own name. invalid: its regex did not compile. */
+	public record Tab(String id, String label, boolean builtIn, Pattern pattern, boolean invalid) {
+		Tab(String id, String label, boolean builtIn, Pattern pattern) {
+			this(id, label, builtIn, pattern, false);
+		}
 	}
+
+	/** Longest custom regex accepted, longest part of a line matched, time budget per match. */
+	static final int MAX_PATTERN = 200, MAX_TEXT = 512;
+	static final long BUDGET_NANOS = 2_000_000L;
 
 	/** Common whisper formats: "X whispers to you: …", "[X -> me] …", "From X: …", "[msg] …". */
 	static final Pattern WHISPER = Pattern.compile(
@@ -50,11 +58,16 @@ public final class ChatTabs {
 			if (eq <= 0) continue;
 			String name = entry.substring(0, eq).strip();
 			if (name.isEmpty()) continue;
-			try {
-				list.add(new Tab("custom:" + name, name, false, Pattern.compile(entry.substring(eq + 1).strip(), Pattern.CASE_INSENSITIVE)));
-			} catch (PatternSyntaxException e) {
-				// a broken regex is skipped, the other tabs still work
+			String regex = entry.substring(eq + 1).strip();
+			Pattern pattern = null;
+			if (regex.length() <= MAX_PATTERN) {
+				try {
+					pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+				} catch (PatternSyntaxException e) {
+					// shown as an invalid tab (marked "(!)"), matching nothing; the other tabs still work
+				}
 			}
+			list.add(new Tab("custom:" + name, pattern == null ? name + " (!)" : name, false, pattern, pattern == null));
 		}
 		return list;
 	}
@@ -65,8 +78,56 @@ public final class ChatTabs {
 			case "all" -> true;
 			case "server" -> !fromPlayer;
 			case "mentions" -> mention;
-			default -> tab.pattern() != null && tab.pattern().matcher(text).find();
+			case "private" -> tab.pattern().matcher(text).find();
+			default -> tab.pattern() != null && safeFind(tab.pattern(), text);
 		};
+	}
+
+	/**
+	 * find() on at most MAX_TEXT characters within BUDGET_NANOS: a player's regex can backtrack catastrophically
+	 * (e.g. (a+)+$), so the text throws once the budget is spent, and that counts as no match.
+	 */
+	static boolean safeFind(Pattern pattern, String text) {
+		String part = text.length() > MAX_TEXT ? text.substring(0, MAX_TEXT) : text;
+		try {
+			return pattern.matcher(new Budgeted(part, System.nanoTime() + BUDGET_NANOS)).find();
+		} catch (OutOfBudget e) {
+			return false;
+		}
+	}
+
+	private static final class OutOfBudget extends RuntimeException {
+		OutOfBudget() {
+			super(null, null, false, false);
+		}
+	}
+
+	/** Text that throws OutOfBudget when read after its deadline (checked every 256 reads). */
+	private record Budgeted(String text, long deadline, int[] reads) implements CharSequence {
+		Budgeted(String text, long deadline) {
+			this(text, deadline, new int[1]);
+		}
+
+		@Override
+		public char charAt(int index) {
+			if ((++reads[0] & 255) == 0 && System.nanoTime() > deadline) throw new OutOfBudget();
+			return text.charAt(index);
+		}
+
+		@Override
+		public int length() {
+			return text.length();
+		}
+
+		@Override
+		public CharSequence subSequence(int start, int end) {
+			return new Budgeted(text.substring(start, end), deadline, reads);
+		}
+
+		@Override
+		public String toString() {
+			return text;
+		}
 	}
 
 	public static int active() {

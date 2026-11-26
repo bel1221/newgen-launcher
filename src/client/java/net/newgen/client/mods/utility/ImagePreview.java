@@ -4,6 +4,9 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -31,6 +34,7 @@ public final class ImagePreview {
 	public static final int MAX_SIDE = 256;
 	private static final Duration TIMEOUT = Duration.ofSeconds(5);
 	private static final int CACHE = 16;
+	private static final int MAX_REDIRECTS = 3;
 
 	/** A loaded preview: its texture and size. */
 	public record Image(Identifier texture, int width, int height) {
@@ -64,7 +68,7 @@ public final class ImagePreview {
 		}
 		CACHE_MAP.put(url, null);
 		while (CACHE_MAP.size() > CACHE) evict();
-		CompletableFuture.supplyAsync(() -> download(url)).thenAccept(pixels -> Minecraft.getInstance().execute(() -> {
+		CompletableFuture.supplyAsync(() -> download(url)).completeOnTimeout(null, TIMEOUT.toMillis() + 500, java.util.concurrent.TimeUnit.MILLISECONDS).thenAccept(pixels -> Minecraft.getInstance().execute(() -> {
 			if (!CACHE_MAP.containsKey(url)) return;
 			if (pixels == null) {
 				CACHE_MAP.put(url, FAILED);
@@ -83,29 +87,76 @@ public final class ImagePreview {
 	}
 
 	/** Downloads and decodes the image, scaled to fit MAX_SIDE; null on any failure. Off the game thread. */
+	/**
+	 * Downloads and decodes the image, scaled to fit MAX_SIDE; null on any failure. Off the game thread. Only public
+	 * addresses: every hop (at most 3 redirects, followed by hand) is resolved and refused if it points into this computer
+	 * or the local network. TIMEOUT is the whole budget, reading included.
+	 */
 	private static NativeImage download(String url) {
+		long deadline = System.nanoTime() + TIMEOUT.toNanos();
 		try {
-			if (client == null) client = HttpClient.newBuilder().connectTimeout(TIMEOUT).followRedirects(HttpClient.Redirect.NORMAL).build();
-			HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(TIMEOUT).header("User-Agent", "NewgenClient").GET().build();
-			HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-			String type = response.headers().firstValue("Content-Type").orElse("").toLowerCase(Locale.ROOT);
-			try (InputStream in = response.body()) {
-				if (response.statusCode() != 200 || !type.startsWith("image/")) return null;
-				byte[] bytes = readCapped(in, MAX_BYTES);
-				return bytes == null ? null : decode(bytes);
+			if (client == null) client = HttpClient.newBuilder().connectTimeout(TIMEOUT).followRedirects(HttpClient.Redirect.NEVER).build();
+			URI uri = URI.create(url);
+			for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
+				if (!previewable(uri.toString()) || !publicHost(uri.getHost())) return null;
+				Duration left = Duration.ofNanos(deadline - System.nanoTime());
+				if (left.isNegative() || left.isZero()) return null;
+				HttpRequest request = HttpRequest.newBuilder(uri).timeout(left).header("User-Agent", "NewgenClient").GET().build();
+				HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+				try (InputStream in = response.body()) {
+					int status = response.statusCode();
+					if (status >= 300 && status < 400) {
+						String location = response.headers().firstValue("Location").orElse(null);
+						if (location == null) return null;
+						uri = uri.resolve(location);
+						continue;
+					}
+					String type = response.headers().firstValue("Content-Type").orElse("").toLowerCase(Locale.ROOT);
+					if (status != 200 || !type.startsWith("image/")) return null;
+					byte[] bytes = readCapped(in, MAX_BYTES, deadline);
+					return bytes == null ? null : decode(bytes);
+				}
 			}
+			return null;
 		} catch (Exception e) {
 			return null;
 		}
 	}
 
+	/** Whether every address the host resolves to is a public one (not this computer, the LAN, link-local or multicast). */
+	static boolean publicHost(String host) {
+		if (host == null || host.isBlank()) return false;
+		try {
+			String h = host.startsWith("[") && host.endsWith("]") ? host.substring(1, host.length() - 1) : host;
+			InetAddress[] addresses = InetAddress.getAllByName(h);
+			if (addresses.length == 0) return false;
+			for (InetAddress a : addresses) if (!publicAddress(a)) return false;
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	static boolean publicAddress(InetAddress a) {
+		if (a.isLoopbackAddress() || a.isAnyLocalAddress() || a.isSiteLocalAddress() || a.isLinkLocalAddress() || a.isMulticastAddress()) return false;
+		byte[] b = a.getAddress();
+		if (a instanceof Inet6Address && (b[0] & 0xFE) == 0xFC) return false; // unique-local fc00::/7
+		if (a instanceof Inet4Address && ((b[0] & 0xFF) == 0 || (b[0] & 0xFF) == 100 && (b[1] & 0xC0) == 64)) return false; // 0/8, carrier-grade NAT 100.64/10
+		return true;
+	}
+
 	/** At most cap bytes, or null when the stream is longer. */
 	static byte[] readCapped(InputStream in, int cap) throws java.io.IOException {
+		return readCapped(in, cap, Long.MAX_VALUE);
+	}
+
+	/** At most cap bytes before the deadline (System.nanoTime), or null. */
+	static byte[] readCapped(InputStream in, int cap, long deadline) throws java.io.IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		byte[] buf = new byte[8192];
 		int n;
 		while ((n = in.read(buf)) > 0) {
-			if (out.size() + n > cap) return null;
+			if (out.size() + n > cap || System.nanoTime() > deadline) return null;
 			out.write(buf, 0, n);
 		}
 		return out.toByteArray();
