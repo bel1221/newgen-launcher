@@ -399,5 +399,8 @@
 	"newgen_client.tip.natural_capes.sideways": "How much the cape sways to the sides when you turn (100 = normal).",
 	"newgen_client.tip.mount_view.hide": "In first person the horse, pig, camel or boat you ride is not drawn.",
 	"newgen_client.tip.glint_colorizer.color": "The colour of the enchantment shimmer. Chroma in the colour picker makes it cycle.",
-	"newgen_client.tip.glint_colorizer.strength": "How bright the shimmer is (100 = like vanilla)."
+	"newgen_client.tip.glint_colorizer.strength": "How bright the shimmer is (100 = like vanilla).",
+	"newgen_client.hud.preview": "Preview",
+	"newgen_client.error.retry": "Try again",
+	"newgen_client.emotes.add": "+ Add emote (click to fill this slot)",
 }

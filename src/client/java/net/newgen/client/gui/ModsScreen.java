@@ -85,6 +85,8 @@ public class ModsScreen extends Screen {
 	private boolean cardDragging;
 	private String tip;               // tooltip for what is under the mouse this frame
 	private boolean swallowSpace;
+	private int barScroll;            // the scroll bar: last offset seen, and when it last moved
+	private long barAt;
 
 	public ModsScreen(Screen parent) {
 		super(Component.literal("Newgen Mods"));
@@ -307,6 +309,16 @@ public class ModsScreen extends Screen {
 		return !num.box && (num.max - num.min) / num.step <= 5.0001;
 	}
 
+	/** The slider's track: its control width less room for the value (as wide as the longest value it can show). */
+	private static int trackW(int w, Setting.Num num) {
+		int vw = Math.max(Ui.width(numText(num, num.min), Ui.CAPS), Ui.width(numText(num, num.max), Ui.CAPS));
+		return Math.max(16, sliderW(w) + 30 - vw - 6);
+	}
+
+	private static String numText(Setting.Num num, double v) {
+		return num.step >= 1 ? String.valueOf((int) v) : String.format("%.1f", v);
+	}
+
 	private static int sliderW(int w) {
 		return Math.min(80, w / 3);
 	}
@@ -410,6 +422,7 @@ public class ModsScreen extends Screen {
 		List<Cell> out = new ArrayList<>();
 		int left = contentX(), full = contentRight() - left, top = viewTop() - rowScroll, y = top;
 		if (themeView()) y += PREVIEW_H; // the palette cards come first
+		if (hudPreview() != null) y += HUD_PREVIEW_H; // a HUD mod: its element, live, first
 		boolean sections = selected.settings.size() > 6;
 		int cols = sections && full >= 300 ? 2 : 1;
 		int colW = (full - (cols - 1) * COLUMN_GAP) / cols;
@@ -560,10 +573,10 @@ public class ModsScreen extends Screen {
 						boolean over = hot && Ui.inside(mouseX, mouseY, x0, hy, x1 - x0, RESULT_H);
 						if (over) Ui.round(g, x0, hy, x1 - x0, RESULT_H, Ui.R_SM, Ui.HOVER);
 						String mod = modName(h.mod);
-						Ui.text(g, Ui.fit(mod, (x1 - x0) / 2, Ui.UI, false), x0 + 5, hy + 4, Ui.DIM, Ui.UI);
+						Ui.highlighted(g, Ui.fit(mod, (x1 - x0) / 2, Ui.UI, false), x0 + 5, hy + 4, Ui.DIM, Ui.UI, search);
 						int ox = x0 + 5 + Math.min(Ui.width(mod, Ui.UI), (x1 - x0) / 2) + 6;
 						Ui.text(g, "›", ox, hy + 4, Ui.DIM, Ui.UI);
-						Ui.text(g, Ui.fit(settingLabel(h.setting.name), x1 - ox - 16, Ui.UI, false), ox + 9, hy + 4, Ui.TEXT, Ui.UI);
+						Ui.highlighted(g, Ui.fit(settingLabel(h.setting.name), x1 - ox - 16, Ui.UI, false), ox + 9, hy + 4, Ui.TEXT, Ui.UI, search);
 					}
 					hy += RESULT_H;
 				}
@@ -599,6 +612,7 @@ public class ModsScreen extends Screen {
 			}
 			if (viewBottom() > viewTop()) g.enableScissor(contentX() - 4, viewTop(), right(), viewBottom());
 			if (themeView()) previews(g, contentX(), viewTop() - rowScroll, hot ? mouseX : -1, mouseY);
+			if (hudPreview() != null) hudStrip(g, contentX(), viewTop() - rowScroll);
 			for (Cell cell : cells) {
 				if (cell.y + ROW_H <= viewTop() || cell.y >= viewBottom()) continue;
 
@@ -628,8 +642,18 @@ public class ModsScreen extends Screen {
 		if (max > 0) {
 			int scroll = selected == null ? gridScroll : rowScroll, h = Math.max(8, viewH * viewH / content);
 			int y = viewTop() + (viewH - h) * scroll / max;
-			Ui.round(g, right() - 3, viewTop(), 3, viewH, 1, FAINT);
-			Ui.round(g, right() - 3, y, 3, h, 1, 0x80FFFFFF);
+			// Shown while scrolling (fading 600 ms after it stops) or while the mouse is near it.
+			long now = System.currentTimeMillis();
+			if (scroll != barScroll) {
+				barScroll = scroll;
+				barAt = now;
+			}
+			boolean near = Ui.inside(mouseX, mouseY, right() - 12, viewTop(), 16, viewH);
+			float k = near ? 1f : Math.max(0f, Math.min(1f, 1 - (now - barAt - 600) / 300f));
+			if (k > 0) {
+				Ui.round(g, right() - 3, viewTop(), 3, viewH, 1, Math.round(0x18 * k) << 24 | 0xFFFFFF);
+				Ui.round(g, right() - 3, y, 3, h, 1, Math.round(0x80 * k) << 24 | 0xFFFFFF);
+			}
 		}
 		if (menuMod != null) cardMenu(g, mouseX, mouseY);
 		Overlay.tooltip(g, Overlay.confirming() || menuMod != null ? null : tip, mouseX, mouseY, width, height);
@@ -746,6 +770,39 @@ public class ModsScreen extends Screen {
 		}
 	}
 
+	// ---- HUD mod pages: the element itself, live, at the top ----
+
+	private static final int HUD_PREVIEW_H = 48;
+
+	/** The element a HUD mod's page previews (in a world only: the element reads the player), or null. */
+	private net.newgen.client.core.HudMod hudPreview() {
+		if (selected == null || themeView() || minecraft.level == null) return null;
+		return selected instanceof net.newgen.client.core.HudMod h ? h : selected.hud;
+	}
+
+	/** Draws the element centred in a strip, shrunk to fit; every option change shows at once. */
+	private void hudStrip(GuiGraphics g, int x0, int y) {
+		net.newgen.client.core.HudMod h = hudPreview();
+		int w = contentRight() - x0, sh = HUD_PREVIEW_H - 8;
+		Ui.round(g, x0, y, w, sh, Ui.R_MD, 0x30000000);
+		Ui.ring(g, x0, y, w, sh, Ui.R_MD, Ui.LINE);
+		Ui.text(g, Ui.tr("hud.preview"), x0 + 6, y + 4, Ui.DIM, Ui.CAPS);
+		boolean was = net.newgen.client.core.HudMod.editing;
+		net.newgen.client.core.HudMod.editing = true; // an element with nothing to show draws its name
+		try {
+			float s = h.height <= 0 ? 1f : Math.min(1f, Math.min((sh - 10) / (float) h.height, (w - 20) / (float) Math.max(1, h.width)));
+			g.pose().pushMatrix();
+			g.pose().translate(x0 + w / 2f, y + sh / 2f + 2);
+			g.pose().scale(s, s);
+			// render() places the element at its HUD position (left, top, from the last frame): move that to the centre.
+			g.pose().translate(-h.width / 2f - h.left, -h.height / 2f - h.top);
+			h.render(g, minecraft);
+			g.pose().popMatrix();
+		} finally {
+			net.newgen.client.core.HudMod.editing = was;
+		}
+	}
+
 	/** A HUD mod's page (in a world) has "Edit in HUD editor" next to Reset. */
 	private boolean canEditHud() {
 		return selected != null && !themeView() && minecraft.level != null && (selected instanceof net.newgen.client.core.HudMod || selected.hud != null);
@@ -856,7 +913,8 @@ public class ModsScreen extends Screen {
 		int ink = dragged ? Ui.DIM : mod.enabled ? Ui.TEXT : Ui.DIM;
 		// The mod's own icon, 16 units so its pixels stay whole; the category glyph if it has none.
 		if (!Ui.modIcon(g, mod.id, x + (w - 16) / 2, y + 6, ink)) Ui.glyph(g, tabIcon(mod), x + (w - 14) / 2, y + 7, 14, ink);
-		Ui.centered(g, Ui.fit(modName(mod), w - 10, Ui.CAPS, false), x + w / 2, y + 27, mod.enabled ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
+		String name = Ui.fit(modName(mod), w - 10, Ui.CAPS, false);
+		Ui.highlighted(g, name, x + (w - Ui.width(name, Ui.CAPS)) / 2, y + 27, mod.enabled ? Ui.TEXT : Ui.SOFT, Ui.CAPS, search);
 		Ui.toggle(g, switchX(x), y + 41, mod.enabled, onSwitch(mouseX, mouseY, x, y));
 
 		boolean fav = Mods.favourites.contains(mod.id), starHot = onStar(mouseX, mouseY, x, y);
@@ -894,14 +952,15 @@ public class ModsScreen extends Screen {
 			Ui.centered(g, num.text(), sx + sw / 2, y + 6, Ui.TEXT, Ui.UI);
 			controlX = sx;
 		} else if (setting instanceof Setting.Num num) {
-			// The knob's centre runs from 4 pixels inside one end of the track to 4 inside the other (see the click).
-			int sw = sliderW(cell.w), sx = cr - sw;
-			int knob = sx + 4 + (int) ((num.get() - num.min) / (num.max - num.min) * (sw - 8));
-			Ui.round(g, sx, y + 9, sw, 3, 1, 0x70000000);
+			// The track, then its value at the shared right edge. The knob runs from 4 inside one end of the track to 4
+			// inside the other (see the click).
+			int sx = cr - sliderW(cell.w) - 30, tw = trackW(cell.w, num);
+			int knob = sx + 4 + (int) ((num.get() - num.min) / (num.max - num.min) * (tw - 8));
+			Ui.round(g, sx, y + 9, tw, 3, 1, 0x70000000);
 			Ui.round(g, sx, y + 9, knob - sx, 3, 1, Ui.ACCENT);
 			Ui.round(g, knob - 4, y + 6, 8, 8, 4, Ui.ACCENT);
-			controlX = sx - 8 - Ui.width(num.text(), Ui.CAPS);
-			Ui.text(g, num.text(), controlX, y + 6, Ui.SOFT, Ui.CAPS);
+			Ui.text(g, num.text(), cr - Ui.width(num.text(), Ui.CAPS), y + 6, Ui.SOFT, Ui.CAPS);
+			controlX = sx;
 		} else if (setting instanceof Setting.Color color) {
 			// Round swatch on a grey base, so a see-through colour looks see-through; next to it the code, which can be typed.
 			int hx = cr - HEX_W, sx = hx - 5 - SWATCH;
@@ -1210,10 +1269,10 @@ public class ModsScreen extends Screen {
 					// "‹" half steps down, the rest up.
 					num.set(num.get() + (mx < cr - sliderW(cell.w) / 2 ? -num.step : num.step));
 					saveChange(selected);
-				} else if (setting instanceof Setting.Num num && mx >= cr - sliderW(cell.w) - 4) {
+				} else if (setting instanceof Setting.Num num && mx >= cr - sliderW(cell.w) - 34) {
 					dragging = num;
-					dragW = sliderW(cell.w) - 8;
-					dragX = cr - dragW - 4;
+					dragW = trackW(cell.w, num) - 8;
+					dragX = cr - sliderW(cell.w) - 30 + 4;
 					slide(mx);
 				} else if (setting instanceof Setting.Color color && mx >= cr - HEX_W) {
 					typing = color;

@@ -152,7 +152,7 @@ public class EmoteWheelScreen extends Screen {
 			if (!lit.author().isEmpty()) Ui.centered(g, I18n.get("newgen_client.emotes.by", lit.author()), cx, textY + 13, Ui.DIM, Ui.UI);
 		} else {
 			// On a glass strip, like the hub's hint, so it reads over any scenery.
-			String hint = Ui.fit(Ui.tr("emotes.hint"), width - 16, Ui.UI, false);
+			String hint = Ui.fit(Ui.tr(hovered >= 0 ? "emotes.add" : "emotes.hint"), width - 16, Ui.UI, false);
 			int w = Ui.width(hint, Ui.UI) + 12;
 			Ui.round(g, cx - w / 2, textY - 3, w, 13, Ui.R_SM, Ui.GLASS);
 			Ui.centered(g, hint, cx, textY, Ui.SOFT, Ui.UI);
@@ -229,6 +229,11 @@ public class EmoteWheelScreen extends Screen {
 	private void choose() {
 		stopPreview();
 		EmoteLibrary.Emote emote = hovered < 0 ? null : EmoteLibrary.get(mod.slot(hovered));
+		if (hovered >= 0 && emote == null) {
+			// An empty slot: straight to Edit wheel to fill it.
+			minecraft.setScreen(new EmoteWheelEditScreen(null, mod));
+			return;
+		}
 		onClose();
 		if (emote != null) mod.play(minecraft, emote);
 	}

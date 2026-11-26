@@ -50,6 +50,8 @@ public class KeybindsScreen extends Screen {
 	private boolean clashesOnly;
 	private Bind listening;
 	private String tip;
+	private int barScroll;
+	private long barAt;
 
 	public KeybindsScreen(Screen parent) {
 		super(Component.literal("Keybinds"));
@@ -262,8 +264,17 @@ public class KeybindsScreen extends Screen {
 		if (rows.isEmpty()) Ui.centered(g, Ui.tr("keys.none"), px + pw / 2, viewTop() + 12, Ui.DIM, Ui.UI);
 		if (max > 0) {
 			int viewH = viewBottom() - viewTop(), h = Math.max(8, viewH * viewH / content), y = viewTop() + (viewH - h) * scroll / max;
-			Ui.round(g, right() - 3, viewTop(), 3, viewH, 1, 0x18FFFFFF);
-			Ui.round(g, right() - 3, y, 3, h, 1, 0x80FFFFFF);
+			long now = System.currentTimeMillis();
+			if (scroll != barScroll) {
+				barScroll = scroll;
+				barAt = now;
+			}
+			// Shown while scrolling (fading after 600 ms) or while the mouse is near it.
+			float k = Ui.inside(mouseX, mouseY, right() - 12, viewTop(), 16, viewH) ? 1f : Math.max(0f, Math.min(1f, 1 - (now - barAt - 600) / 300f));
+			if (k > 0) {
+				Ui.round(g, right() - 3, viewTop(), 3, viewH, 1, Math.round(0x18 * k) << 24 | 0xFFFFFF);
+				Ui.round(g, right() - 3, y, 3, h, 1, Math.round(0x80 * k) << 24 | 0xFFFFFF);
+			}
 		}
 		Overlay.tooltip(g, Overlay.confirming() ? null : tip, mouseX, mouseY, width, height);
 		Overlay.renderToasts(g, width, height, mouseX, mouseY);
@@ -277,7 +288,7 @@ public class KeybindsScreen extends Screen {
 		boolean canMode = b.key != null || b.mode != null;
 		int labelEnd = (canMode ? modeX() : keyX()) - 8;
 		String label = Ui.fit(b.label, Math.max(20, labelEnd - x), Ui.UI, false);
-		Ui.text(g, label, x, y + 5, Ui.SOFT, Ui.UI);
+		Ui.highlighted(g, label, x, y + 5, Ui.SOFT, Ui.UI, search);
 		if (!clashes.isEmpty()) {
 			int cx = x + Ui.width(label, Ui.UI) + 8;
 			String warn = Ui.trf("keys.clash", clashes.get(0).label) + (clashes.size() > 1 ? " +" + (clashes.size() - 1) : "");

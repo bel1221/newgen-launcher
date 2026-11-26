@@ -601,5 +601,8 @@
 	"newgen_client.tip.natural_capes.sideways": "Áo choàng lắc sang bên bao nhiêu khi bạn quay (100 = bình thường).",
 	"newgen_client.tip.mount_view.hide": "Ở góc nhìn thứ nhất, ngựa, heo, lạc đà hay thuyền bạn cưỡi không được vẽ.",
 	"newgen_client.tip.glint_colorizer.color": "Màu ánh phù phép. Chế độ chroma trong bảng chọn màu làm nó đổi màu liên tục.",
-	"newgen_client.tip.glint_colorizer.strength": "Ánh sáng mạnh cỡ nào (100 = như bản gốc)."
+	"newgen_client.tip.glint_colorizer.strength": "Ánh sáng mạnh cỡ nào (100 = như bản gốc).",
+	"newgen_client.hud.preview": "Xem trước",
+	"newgen_client.error.retry": "Thử lại",
+	"newgen_client.emotes.add": "+ Thêm emote (nhấp để điền ô này)",
 }

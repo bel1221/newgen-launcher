@@ -63,6 +63,7 @@ public final class LoadingCard {
 	}
 
 	private static void draw(Minecraft mc, Screen s, GuiGraphics g, int mouseX, int mouseY, float delta, long start) {
+		if (s instanceof ConnectScreen) ErrorCard.remember(mc);
 		int width = s.width, height = s.height;
 		g.nextStratum();
 		if (!VideoBackground.render(g, width, height)) g.fill(0, 0, width, height, 0xFF0E1216);
