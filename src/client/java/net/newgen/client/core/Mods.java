@@ -82,6 +82,7 @@ public final class Mods {
 	/** A key per mod that turns it on or off in game (Keybinds page); Setting.Key codes. */
 	public static final java.util.Map<String, Integer> toggleKeys = new java.util.HashMap<>();
 	private static final java.util.Map<String, Boolean> toggleHeld = new java.util.HashMap<>();
+	private static final java.util.Map<String, Setting.Key> toggleProbes = new java.util.HashMap<>();
 
 	public static void touch(Mod mod) {
 		changedAt.put(mod.id, System.currentTimeMillis());
@@ -106,10 +107,19 @@ public final class Mods {
 
 	/** Each tick: the per-mod toggle keys flip their mod (only in game, never while a screen is open). */
 	public static void tickToggleKeys(net.minecraft.client.Minecraft mc) {
+		if (mc.player == null) return;
+		if (mc.screen != null) {
+			// Typing in chat, a sign or an anvil never flips a mod. Keys held when the screen closes count as already
+			// held, so closing chat with the key still down does not fire it.
+			for (Mod mod : ALL) if (toggleKeys.containsKey(mod.id)) toggleHeld.put(mod.id, true);
+			return;
+		}
 		for (Mod mod : ALL) {
 			Integer code = toggleKeys.get(mod.id);
 			if (code == null || code == -1) continue;
-			boolean down = new Setting.Key("probe", "", code).isDown(mc), was = toggleHeld.getOrDefault(mod.id, false);
+			Setting.Key probe = toggleProbes.computeIfAbsent(mod.id, id -> new Setting.Key("toggle", "", -1));
+			probe.value = code;
+			boolean down = probe.isDown(mc), was = toggleHeld.getOrDefault(mod.id, false);
 			toggleHeld.put(mod.id, down);
 			if (!down || was) continue;
 			mod.enabled = !mod.enabled;
@@ -159,8 +169,48 @@ public final class Mods {
 		return a;
 	}
 
+	private static java.util.Map<Mod, Boolean> defaultEnabled;
+
+	/**
+	 * Loads another saved state over the running one (a profile switch): every mod back to its defaults first, so
+	 * anything the state does not mention is the default, then the file as on start-up.
+	 */
+	public static void reload() {
+		for (Mod mod : ALL) {
+			mod.reset();
+			mod.enabled = defaultEnabled.getOrDefault(mod, false);
+			if (mod instanceof HudMod hud) {
+				hud.locked = false;
+				hud.group = "";
+			}
+			if (mod.hud != null) {
+				mod.hud.locked = false;
+				mod.hud.group = "";
+			}
+		}
+		favourites.clear();
+		hidden.clear();
+		seen.clear();
+		changedAt.clear();
+		order.clear();
+		toggleKeys.clear();
+		load();
+	}
+
+	/** The config file of the running state (profiles copy it in and out). */
+	public static Path file() {
+		return FILE;
+	}
+
 	public static void load() {
-		for (Mod mod : ALL) for (Setting s : mod.settings) s.def = s.toJson();
+		if (defaultEnabled == null) {
+			// Defaults are taken once, before any file is read; a reload must not take the loaded values as defaults.
+			defaultEnabled = new java.util.HashMap<>();
+			for (Mod mod : ALL) {
+				defaultEnabled.put(mod, mod.enabled);
+				for (Setting s : mod.settings) s.def = s.toJson();
+			}
+		}
 		if (!Files.exists(FILE)) {
 			firstRun();
 			readMeta(null);

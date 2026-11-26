@@ -61,6 +61,14 @@ particle_changer
 shields
 weather_changer
 zoom
+clean_view
+dropped_items
+entity_distance
+glint_colorizer
+mount_view
+natural_capes
+no_bobbing
+numerical_enchants
 freelook
 snaplook
 toggle_sneak

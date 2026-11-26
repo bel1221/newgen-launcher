@@ -44,6 +44,7 @@ public class NewgenClient implements ClientModInitializer {
 		net.newgen.client.mods.controls.ControlsMods.register();
 		net.newgen.client.mods.utility.UtilityMods.register();
 		Mods.load();
+		net.newgen.client.core.Profiles.load();
 		// Cached menu labels are dropped after every resource reload.
 		net.fabricmc.fabric.api.resource.v1.ResourceLoader.get(net.minecraft.server.packs.PackType.CLIENT_RESOURCES).registerReloader(
 				Identifier.fromNamespaceAndPath(ID, "menu_labels"),
@@ -62,6 +63,11 @@ public class NewgenClient implements ClientModInitializer {
 		// NewGen's title screen replaces the vanilla one whenever that is shown, also when another screen goes "back" to it.
 		ScreenEvents.AFTER_INIT.register((mc, screen, width, height) -> {
 			if (screen instanceof TitleScreen) mc.setScreen(new NewgenTitleScreen());
+			net.newgen.client.gui.LoadingCard.attach(mc, screen, width, height);
+			net.newgen.client.gui.ErrorCard.attach(mc, screen, width, height);
+			net.newgen.client.gui.PauseRestyle.attach(mc, screen, width, height);
+			// The palette and accent animation update every frame on our screens (the tick alone would step at 20 a second).
+			if (screen.getClass().getName().startsWith("net.newgen.")) ScreenEvents.beforeRender(screen).register((s, g, mx, my, d) -> theme.frame());
 		});
 
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(ID, "hud"), (graphics, delta) -> {

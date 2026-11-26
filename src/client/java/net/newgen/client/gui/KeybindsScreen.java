@@ -50,6 +50,8 @@ public class KeybindsScreen extends Screen {
 	private boolean clashesOnly;
 	private Bind listening;
 	private String tip;
+	private int barScroll;
+	private long barAt;
 
 	public KeybindsScreen(Screen parent) {
 		super(Component.literal("Keybinds"));
@@ -218,11 +220,14 @@ public class KeybindsScreen extends Screen {
 		Ui.panel(g, px, py, pw, ph);
 		g.fill(px + 1, py + HEADER, px + pw - 1, py + HEADER + 1, 0x18FFFFFF);
 		int x = px + PAD;
-		Ui.button(g, x, headY(), BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mouseX, mouseY, x, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
-		Ui.glyph(g, Ui.I_KEYBOARD, x + BUTTON_H + 8, headY() + 2, 10, Ui.TEXT);
-		Ui.text(g, Ui.tr("keys"), x + BUTTON_H + 22, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
+		// The same header as the Mods menu: the NewGen mark, back, the page name, its tools, close.
+		Ui.icon(g, x, py + (HEADER - 14) / 2, 14);
+		int hx = x + 18;
+		Ui.button(g, hx, headY(), BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mouseX, mouseY, hx, headY(), BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
+		Ui.glyph(g, Ui.I_KEYBOARD, hx + BUTTON_H + 8, headY() + 2, 10, Ui.TEXT);
+		Ui.text(g, Ui.tr("keys"), hx + BUTTON_H + 22, py + (HEADER - 7) / 2, Ui.TEXT, Ui.TITLE);
 		int clashes = clashCount();
-		if (clashX() > x + BUTTON_H + 22 + Ui.width(Ui.tr("keys"), Ui.TITLE) + 8) {
+		if (clashX() > hx + BUTTON_H + 22 + Ui.width(Ui.tr("keys"), Ui.TITLE) + 8) {
 			Ui.button(g, clashX(), headY(), clashW(), BUTTON_H, Ui.trf("keys.clashes", clashes),
 					Ui.inside(mouseX, mouseY, clashX(), headY(), clashW(), BUTTON_H), clashesOnly ? Ui.SELECTED : Ui.DARK, Ui.CAPS);
 			if (Ui.inside(mouseX, mouseY, clashX(), headY(), clashW(), BUTTON_H)) tip = Ui.tr("keys.clashes.tip");
@@ -259,8 +264,17 @@ public class KeybindsScreen extends Screen {
 		if (rows.isEmpty()) Ui.centered(g, Ui.tr("keys.none"), px + pw / 2, viewTop() + 12, Ui.DIM, Ui.UI);
 		if (max > 0) {
 			int viewH = viewBottom() - viewTop(), h = Math.max(8, viewH * viewH / content), y = viewTop() + (viewH - h) * scroll / max;
-			Ui.round(g, right() - 3, viewTop(), 3, viewH, 1, 0x18FFFFFF);
-			Ui.round(g, right() - 3, y, 3, h, 1, 0x80FFFFFF);
+			long now = System.currentTimeMillis();
+			if (scroll != barScroll) {
+				barScroll = scroll;
+				barAt = now;
+			}
+			// Shown while scrolling (fading after 600 ms) or while the mouse is near it.
+			float k = Ui.inside(mouseX, mouseY, right() - 12, viewTop(), 16, viewH) ? 1f : Math.max(0f, Math.min(1f, 1 - (now - barAt - 600) / 300f));
+			if (k > 0) {
+				Ui.round(g, right() - 3, viewTop(), 3, viewH, 1, Math.round(0x18 * k) << 24 | 0xFFFFFF);
+				Ui.round(g, right() - 3, y, 3, h, 1, Math.round(0x80 * k) << 24 | 0xFFFFFF);
+			}
 		}
 		Overlay.tooltip(g, Overlay.confirming() ? null : tip, mouseX, mouseY, width, height);
 		Overlay.renderToasts(g, width, height, mouseX, mouseY);
@@ -274,7 +288,7 @@ public class KeybindsScreen extends Screen {
 		boolean canMode = b.key != null || b.mode != null;
 		int labelEnd = (canMode ? modeX() : keyX()) - 8;
 		String label = Ui.fit(b.label, Math.max(20, labelEnd - x), Ui.UI, false);
-		Ui.text(g, label, x, y + 5, Ui.SOFT, Ui.UI);
+		Ui.highlighted(g, label, x, y + 5, Ui.SOFT, Ui.UI, search);
 		if (!clashes.isEmpty()) {
 			int cx = x + Ui.width(label, Ui.UI) + 8;
 			String warn = Ui.trf("keys.clash", clashes.get(0).label) + (clashes.size() > 1 ? " +" + (clashes.size() - 1) : "");
@@ -329,7 +343,7 @@ public class KeybindsScreen extends Screen {
 			onClose();
 			return true;
 		}
-		if (left && Ui.inside(mx, my, px + PAD, headY(), BUTTON_H, BUTTON_H)) {
+		if (left && Ui.inside(mx, my, px + PAD + 18, headY(), BUTTON_H, BUTTON_H)) {
 			minecraft.setScreen(parent);
 			return true;
 		}

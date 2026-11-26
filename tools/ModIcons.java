@@ -295,6 +295,15 @@ public class ModIcons {
 		icon("shields", p -> p.path(3, 7, 15, 7, 15, 14, 9, 21, 3, 14, 3, 7).line(9, 7, 9, 21).line(19, 3, 19, 10).head(19, 10, 0, 1));
 		icon("weather_changer", p -> p.path(6, 15, 4, 13, 4.5, 10, 7.5, 9).arc(12, 9, 5, 0, 180).path(17, 9, 20, 10, 20.5, 13, 18, 15).line(6, 15, 18, 15).line(8, 18, 7, 21).line(12, 18, 11, 21).line(16, 18, 15, 21));
 		icon("zoom", p -> p.circle(10, 10, 7.5).line(15.5, 15.5, 21, 21).line(7, 10, 13, 10).line(10, 7, 10, 13));
+		// Wave 3
+		icon("clean_view", p -> p.path(3, 12, 7, 7, 17, 7, 21, 12, 17, 17, 7, 17, 3, 12).circle(12, 12, 2.5).path(17, 2, 18, 4, 20, 5, 18, 6, 17, 8, 16, 6, 14, 5, 16, 4, 17, 2));
+		icon("dropped_items", p -> p.shape(12, 4, 19, 8, 12, 12, 5, 8).path(5, 8, 5, 12, 12, 16, 19, 12, 19, 8).line(12, 12, 12, 16).line(3, 20, 21, 20));
+		icon("entity_distance", p -> p.circle(5, 8, 2).path(5, 11, 5, 16).circle(18, 10, 1.5).path(18, 12.5, 18, 15).line(3, 20, 21, 20).line(9, 13, 14, 13).head(14, 13, 1, 0));
+		icon("glint_colorizer", p -> p.sword(3, 21, 15, 9).path(18, 2, 19, 4.5, 21.5, 5.5, 19, 6.5, 18, 9, 17, 6.5, 14.5, 5.5, 17, 4.5, 18, 2));
+		icon("mount_view", p -> p.path(4, 18, 4, 12, 8, 9, 14, 9, 17, 5, 20, 6, 19, 10, 17, 11, 17, 18).line(4, 12, 2, 15).line(8, 9, 8, 18).line(14, 11, 14, 18).line(2, 2, 22, 22));
+		icon("natural_capes", p -> p.circle(12, 4, 2.5).path(9, 8, 15, 8).path(9, 8, 7, 21, 17, 21, 15, 8).path(10, 14, 12, 15, 14, 14));
+		icon("no_bobbing", p -> p.rect(4, 6, 16, 12, 2).circle(12, 12, 2.5).path(2, 21, 7, 21).path(17, 21, 22, 21).path(9, 3, 15, 3));
+		icon("numerical_enchants", p -> p.rect(3, 3, 18, 18, 2).path(9, 8, 11, 6.5, 11, 17).line(9, 17, 13, 17).path(15, 7, 18, 7, 15, 11, 17, 11, 18, 12.5, 18, 15.5, 17, 17, 15, 17));
 
 		// ---- Controls
 		icon("freelook", p -> p.path(4, 12, 8, 8, 16, 8, 20, 12, 16, 16, 8, 16, 4, 12).circle(12, 12, 2).arc(12, 12, 10, 20, 140).head(3.4, 7, -0.6, 1));
@@ -330,6 +339,12 @@ public class ModIcons {
 		MENU.put("undo", p -> p.path(9, 5, 4, 10, 9, 15).path(4, 10, 15, 10).arc(15, 14.5, 4.5, -90, 180));
 		MENU.put("copy", p -> p.rect(8, 8, 12, 13, 2).path(5, 16, 4, 16, 4, 3, 16, 3, 16, 5));
 		MENU.put("sort", p -> p.line(7, 4, 7, 20).head(7, 20, 0, 1).line(17, 20, 17, 4).head(17, 4, 0, -1));
+		MENU.put("bell", p -> p.path(5, 17, 5, 10.5).arc(12, 10.5, 7, 0, 180).path(19, 10.5, 19, 17).line(3, 17, 21, 17).arc(12, 19, 2.5, 180, 180));
+		MENU.put("plus", p -> p.line(12, 4, 12, 20).line(4, 12, 20, 12));
+		MENU.put("more", p -> p.dot(5, 12).dot(12, 12).dot(19, 12));
+		MENU.put("download", p -> p.line(12, 3, 12, 15).head(12, 15, 0, 1).path(4, 16, 4, 20, 20, 20, 20, 16));
+		MENU.put("upload", p -> p.line(12, 15, 12, 3).head(12, 3, 0, -1).path(4, 16, 4, 20, 20, 20, 20, 16));
+		MENU.put("sound", p -> p.path(3, 9, 7, 9, 12, 4, 12, 20, 7, 15, 3, 15, 3, 9).arc(13, 12, 4, -50, 100).arc(13, 12, 8, -50, 100));
 	}
 
 	/** Rewrites textures/icons.png: its first 14 tiles as they are, then the MENU glyphs. */

@@ -13,6 +13,7 @@
 	"mixins": [
 		{ "config": "newgen_client.hud.mixins.json", "environment": "client" },
 		{ "config": "newgen_client.visual.mixins.json", "environment": "client" },
+		{ "config": "newgen_client.visual2.mixins.json", "environment": "client" },
 		{ "config": "newgen_client.controls.mixins.json", "environment": "client" },
 		{ "config": "newgen_client.utility.mixins.json", "environment": "client" }
 	],
