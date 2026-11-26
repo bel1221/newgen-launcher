@@ -10,9 +10,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 /** Nametag: background, height, scale, colours, and hiding the tags while F1 is on. */
 @Mixin(NameTagFeatureRenderer.Storage.class)
@@ -39,11 +37,18 @@ public class NameTagStorageMixin {
 		original.call(pose, x * s, y * s, z * s);
 	}
 
-	// Two (or three) tags are made per name: each gets the same colours. One injector, because the remapper
-	// left the second copy of this target string unmapped and the game crashed (Scanned 0 targets).
-	@ModifyArgs(method = "add", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeStorage$NameTagSubmit;<init>(Lorg/joml/Matrix4f;FFLnet/minecraft/network/chat/Component;IIID)V"), require = 1, allow = 3)
-	private void newgen$colors(Args args) {
-		args.set(5, NametagMod.I.text(args.<Integer>get(5)));
-		args.set(6, NametagMod.I.background(args.<Integer>get(6)));
+	// Two (or three) tags are made per name: each gets the same colours. Two ModifyArg hooks (no Args object or boxing
+	// per tag), with the target written out in each. The remapper once left a second identical target string
+	// unmapped, so scan-unmapped-mixins.sh must report 0 for this class.
+	@ModifyArg(method = "add", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeStorage$NameTagSubmit;<init>(Lorg/joml/Matrix4f;FFLnet/minecraft/network/chat/Component;IIID)V"), index = 5, require = 1, allow = 3)
+	private int newgen$textColor(int color) {
+		NametagMod mod = NametagMod.I;
+		return mod.enabled ? mod.text(color) : color;
+	}
+
+	@ModifyArg(method = "add", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeStorage$NameTagSubmit;<init>(Lorg/joml/Matrix4f;FFLnet/minecraft/network/chat/Component;IIID)V"), index = 6, require = 1, allow = 3)
+	private int newgen$backgroundColor(int color) {
+		NametagMod mod = NametagMod.I;
+		return mod.enabled ? mod.background(color) : color;
 	}
 }
