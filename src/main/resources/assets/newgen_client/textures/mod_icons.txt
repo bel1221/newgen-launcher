@@ -30,6 +30,7 @@ f3_display
 item_counter
 item_tracker
 memory
+media_player
 momentum
 pack_display
 ping
