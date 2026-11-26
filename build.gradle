@@ -80,3 +80,32 @@ sourceSets.test {
 test {
 	useJUnitPlatform()
 }
+
+// The finished jar: the title clips (already H.264) are STORED, not deflated again (no gain, only work to
+// inflate them on every read); everything else is deflated at the highest level.
+remapJar.doLast { task ->
+	def jar = task.archiveFile.get().asFile
+	def tmp = new File(jar.path + ".tmp")
+	new java.util.zip.ZipFile(jar).withCloseable { zin ->
+		new java.util.zip.ZipOutputStream(new FileOutputStream(tmp)).withCloseable { zout ->
+			zout.setLevel(java.util.zip.Deflater.BEST_COMPRESSION)
+			zin.entries().each { e ->
+				def bytes = zin.getInputStream(e).bytes
+				def out = new java.util.zip.ZipEntry(e.name)
+				out.time = e.time
+				if (e.name.endsWith(".mp4")) {
+					def crc = new java.util.zip.CRC32()
+					crc.update(bytes)
+					out.method = java.util.zip.ZipEntry.STORED
+					out.size = bytes.length
+					out.compressedSize = bytes.length
+					out.crc = crc.value
+				}
+				zout.putNextEntry(out)
+				zout.write(bytes)
+				zout.closeEntry()
+			}
+		}
+	}
+	java.nio.file.Files.move(tmp.toPath(), jar.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+}
