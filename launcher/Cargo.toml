@@ -88,3 +88,5 @@ resources = [
 [package.metadata.packager.nsis]
 # Per-user install under %LOCALAPPDATA%: no administrator prompt
 installer-mode = "currentUser"
+# Solid LZMA (cargo-packager's template sets /SOLID with lzma): the smallest installer NSIS makes.
+compression = "lzma"
