@@ -23,13 +23,32 @@ public class AnimatiumMod extends Mod {
 	private static final String CONFIG = "org.visuals.legacy.animatium.config.AnimatiumConfig";
 
 	/** One Animatium option: its category field, its own field, and our setting. */
-	private record Link(String category, String field, Setting setting, String[] enumNames) {
+	/** One Animatium option: its category field, its own field, and our setting. The reflected fields are looked up once;
+	 * a link whose field is missing (another Animatium version) is switched off on its own and the rest carry on. */
+	private static final class Link {
+		final String category, field;
+		final Setting setting;
+		final String[] enumNames;
+		Object owner;      // the category object
+		Field target;      // its field
+		boolean dead;
+
+		Link(String category, String field, Setting setting, String[] enumNames) {
+			this.category = category;
+			this.field = field;
+			this.setting = setting;
+			this.enumNames = enumNames;
+		}
 	}
 
 	private final List<Link> links = new ArrayList<>();
-	private final Setting.Hidden resetDone = new Setting.Hidden("defaults_off", "");
 	private Object config;            // AnimatiumConfig.instance()
 	private boolean broken;           // Animatium's config could not be reached: do nothing more
+	private long lastSave;             // Animatium's config is saved at most once a second
+	private boolean unsaved;
+	/** Marker next to Animatium's own config: present once the first-run "all off" has been done, so it never repeats
+	 * (even if our own settings are lost), and never touches what a player later sets in Animatium's own screen. */
+	private static final java.nio.file.Path DEFAULTS_DONE = FabricLoader.getInstance().getConfigDir().resolve("newgen-animatium-defaults.done");
 
 	public AnimatiumMod() {
 		super("animatium", "Legacy Animations", "1.7 / 1.8 player and item animations (Animatium)");
@@ -62,7 +81,6 @@ public class AnimatiumMod extends Mod {
 		bool("movement", "deathLimbs", "death_limbs", "1.7 limbs when dying");
 		bool("movement", "oldCapeMovement", "cape", "1.7 cape movement");
 		bool("movement", "capeSneakPosition", "cape_sneak", "Cape follows sneaking");
-		settings.add(resetDone);
 	}
 
 	public static boolean available() {
@@ -82,14 +100,19 @@ public class AnimatiumMod extends Mod {
 		if (broken) return;
 		try {
 			if (config == null) config = Class.forName(CONFIG).getMethod("instance").invoke(null);
-			boolean changed = false;
-			if (resetDone.value.isEmpty()) {
-				changed = allOff();
-				resetDone.value = "yes";
-				net.newgen.client.core.Mods.save();
+			if (!java.nio.file.Files.exists(DEFAULTS_DONE)) {
+				unsaved |= allOff();
+				try {
+					java.nio.file.Files.writeString(DEFAULTS_DONE, "Newgen Client turned Animatium's options off once; delete to repeat.");
+				} catch (java.io.IOException e) {
+					// a read-only folder: the reset repeats next launch, the only cost
+				}
 			}
-			for (Link link : links) changed |= apply(link);
-			if (changed) {
+			for (Link link : links) unsaved |= apply(link);
+			long now = System.currentTimeMillis();
+			if (unsaved && now - lastSave >= 1000) {
+				lastSave = now;
+				unsaved = false;
 				Object handler = Class.forName(CONFIG).getField("HANDLER").get(null);
 				handler.getClass().getMethod("save").invoke(handler);
 			}
@@ -99,9 +122,22 @@ public class AnimatiumMod extends Mod {
 		}
 	}
 
-	private boolean apply(Link link) throws ReflectiveOperationException {
-		Object category = config.getClass().getField(link.category).get(config);
-		Field f = category.getClass().getField(link.field);
+	private boolean apply(Link link) {
+		if (link.dead) return false;
+		try {
+			if (link.target == null) {
+				link.owner = config.getClass().getField(link.category).get(config);
+				link.target = link.owner.getClass().getField(link.field);
+			}
+			return set(link, link.owner, link.target);
+		} catch (Throwable e) {
+			link.dead = true;
+			org.slf4j.LoggerFactory.getLogger("newgen_client").warn("Animatium option {}.{} is not available; skipped", link.category, link.field);
+			return false;
+		}
+	}
+
+	private boolean set(Link link, Object category, Field f) throws ReflectiveOperationException {
 		Object want;
 		if (link.setting instanceof Setting.Bool b) {
 			want = enabled && b.value;
