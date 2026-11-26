@@ -359,6 +359,22 @@ public class ModIcons {
 		System.out.println((MENU_BASE + MENU.size()) + " menu glyphs");
 	}
 
+	// ---- Wave 3 HUD 1
+	static {
+		icon("speed", p -> p.line(3, 8, 10, 8).line(2, 12, 9, 12).line(3, 16, 10, 16).path(13, 5, 20, 12, 13, 19));
+		icon("tps", p -> p.rect(3, 3, 18, 8, 1.5).rect(3, 13, 18, 8, 1.5).dot(7, 7).dot(7, 17).line(11, 7, 17, 7).line(11, 17, 17, 17));
+		icon("player_preview", p -> p.circle(12, 5, 2.5).line(12, 8, 12, 15).path(7, 12, 12, 9.5, 17, 12).path(8.5, 21, 12, 15, 15.5, 21));
+		icon("player_head", p -> p.rect(4, 4, 16, 16, 1.5).line(4, 9, 20, 9).dot(9, 13).dot(15, 13).line(10, 17, 14, 17));
+		icon("battery", p -> p.rect(2, 7, 17, 10, 2).line(21, 10.5, 21, 13.5).fill(4.5, 9.5, 8, 5, 0.5));
+		icon("facing", p -> p.circle(12, 12, 9).solid(12, 5, 14.5, 12, 9.5, 12).shape(9.5, 12, 14.5, 12, 12, 19));
+		icon("analog_clock", p -> p.clock().line(12, 12, 12, 6.5).line(12, 12, 16, 14).dot(12, 4.5).dot(19.5, 12).dot(12, 19.5).dot(4.5, 12));
+		icon("custom_text", p -> p.line(5, 5, 19, 5).line(12, 5, 12, 19).line(9, 19, 15, 19).line(5, 5, 5, 7).line(19, 5, 19, 7));
+		icon("custom_image", p -> p.rect(2, 4, 20, 16, 2).path(2, 17, 8, 11, 12, 15, 15, 12, 22, 18).dot(16, 8.5));
+		icon("shape", p -> p.rect(3, 3, 10, 10, 0).circle(16, 16, 5));
+		icon("biome", p -> p.path(2, 20, 9, 8, 13, 14, 16, 10, 22, 20, 2, 20).line(7.3, 11, 10.5, 11.5));
+		icon("block_above", p -> p.rect(5, 2, 14, 6, 0).circle(12, 18, 3.5).line(12, 13, 12, 10).head(12, 10, 0, -1));
+	}
+
 	public static void main(String[] args) throws Exception {
 		if (args.length > 0 && args[0].equals("menu")) {
 			menu();

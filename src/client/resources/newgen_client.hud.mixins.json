@@ -6,7 +6,8 @@
 		"BossHealthOverlayMixin",
 		"DebugScreenOverlayMixin",
 		"GuiMixin",
-		"PlayerTabOverlayMixin"
+		"PlayerTabOverlayMixin",
+		"ClientLevelTimeMixin"
 	],
 	"injectors": { "defaultRequire": 1 }
 }
