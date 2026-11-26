@@ -50,6 +50,47 @@ public class ChatScreenMixin {
 		cir.setReturnValue(true);
 	}
 
+	/** Where each chat tab was drawn: {x1, y1, x2, y2}, for clicking. */
+	@org.spongepowered.asm.mixin.Unique private int[][] newgen$tabRects = new int[0][];
+
+	/** Chat tabs: a row above the input; the open one lit, a dot on tabs with new lines. */
+	@Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", at = @At("TAIL"))
+	private void newgen$tabs(net.minecraft.client.gui.GuiGraphics g, int mouseX, int mouseY, float partialTick, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+		java.util.List<net.newgen.client.mods.utility.ChatTabs.Tab> tabs = ChatMod.tabList();
+		if (tabs == null) {
+			newgen$tabRects = new int[0][];
+			return;
+		}
+		var font = Minecraft.getInstance().font;
+		newgen$tabRects = new int[tabs.size()][];
+		int x = 2, y = g.guiHeight() - 27;
+		for (int i = 0; i < tabs.size(); i++) {
+			var tab = tabs.get(i);
+			String label = tab.builtIn() ? net.minecraft.client.resources.language.I18n.get(tab.label()) : tab.label();
+			int w = font.width(label) + 8;
+			boolean open = i == net.newgen.client.mods.utility.ChatTabs.active();
+			g.fill(x, y, x + w, y + 11, open ? 0xE0404858 : 0xA0000000);
+			g.drawString(font, label, x + 4, y + 2, open ? 0xFFFFFFFF : 0xFFB0B0B0, false);
+			if (net.newgen.client.mods.utility.ChatTabs.unread(tab)) g.fill(x + w - 3, y + 1, x + w - 1, y + 3, 0xFFFFD25A);
+			newgen$tabRects[i] = new int[] {x, y, x + w, y + 11};
+			x += w + 2;
+		}
+	}
+
+	@Inject(method = "mouseClicked(Lnet/minecraft/client/input/MouseButtonEvent;Z)Z", at = @At("HEAD"), cancellable = true)
+	private void newgen$tabClick(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+		if (event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return;
+		for (int i = 0; i < newgen$tabRects.length; i++) {
+			int[] r = newgen$tabRects[i];
+			if (event.x() >= r[0] && event.x() < r[2] && event.y() >= r[1] && event.y() < r[3]) {
+				net.newgen.client.mods.utility.ChatTabs.select(i);
+				((ChatMod.Lines) Minecraft.getInstance().gui.getChat()).newgen$refresh();
+				cir.setReturnValue(true);
+				return;
+			}
+		}
+	}
+
 	/** Closing the chat ends a search, so the full history is back next time. */
 	@Inject(method = "removed()V", at = @At("HEAD"))
 	private void newgen$endSearch(org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
@@ -61,7 +102,7 @@ public class ChatScreenMixin {
 	private void newgen$searchFollow(net.minecraft.client.gui.GuiGraphics g, int mouseX, int mouseY, float partialTick, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
 		if (ChatMod.query() == null) return;
 		ChatMod.search(input.getValue(), (ChatMod.Lines) Minecraft.getInstance().gui.getChat());
-		g.drawString(Minecraft.getInstance().font, Component.translatable("newgen_client.chat.searching"), 4, g.guiHeight() - 26, 0xFFFFD25A, true);
+		g.drawString(Minecraft.getInstance().font, Component.translatable("newgen_client.chat.searching"), 4, g.guiHeight() - 39, 0xFFFFD25A, true);
 	}
 
 	/** Image link preview: the link under the pointer, if it is one, shows its image beside the pointer. */

@@ -55,6 +55,30 @@ class ChatModTest {
 	}
 
 	@Test
+	void chatTabs() {
+		List<ChatTabs.Tab> tabs = ChatTabs.build("Trades=buy|sell; Broken=([; =x");
+		assertEquals(5, tabs.size(), "4 built-in + Trades (a broken regex and an empty name are skipped)");
+		ChatTabs.Tab server = tabs.get(1), whisper = tabs.get(2), mentions = tabs.get(3), trades = tabs.get(4);
+		assertTrue(ChatTabs.belongs(server, "Server restarting soon", false, false));
+		assertFalse(ChatTabs.belongs(server, "<Steve> hi", true, false));
+		assertTrue(ChatTabs.belongs(whisper, "Steve whispers to you: hi", true, false));
+		assertTrue(ChatTabs.belongs(whisper, "[Steve -> me] hi", true, false));
+		assertTrue(ChatTabs.belongs(whisper, "From Steve: hi", true, false));
+		assertFalse(ChatTabs.belongs(whisper, "<Steve> hi", true, false));
+		assertTrue(ChatTabs.belongs(mentions, "anything", true, true));
+		assertTrue(ChatTabs.belongs(trades, "<Alex> WTB diamonds, will BUY", true, false));
+	}
+
+	@Test
+	void roundedBackgroundCoversTheBoxWithCutCorners() {
+		int[][] rows = RoundedChatBackground.rows(0, 0, 100, 40, 3);
+		assertEquals(7, rows.length);
+		assertArrayEquals(new int[] {0, 3, 100, 37}, rows[0], "middle band");
+		assertTrue(rows[1][0] > 0 && rows[1][1] == 0, "top row is inset");
+		assertEquals(1, RoundedChatBackground.rows(0, 0, 100, 40, 0).length, "radius 0 = one rectangle");
+	}
+
+	@Test
 	void newMessagesSlideInFor150Ms() {
 		assertEquals(9, ChatMod.slide(0));
 		assertTrue(ChatMod.slide(75) > 0 && ChatMod.slide(75) < 9);

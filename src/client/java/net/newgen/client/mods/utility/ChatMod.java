@@ -55,6 +55,9 @@ public class ChatMod extends Mod {
 	private final Setting.Num width = num("width", "Width (pixels)", 320, 80, 640, 10);
 	private final Setting.Num focusedHeight = num("focused_height", "Height while typing (pixels)", 180, 20, 400, 10);
 	private final Setting.Num unfocusedHeight = num("unfocused_height", "Height while playing (pixels)", 90, 20, 400, 10);
+	// Tabs
+	private final Setting.Bool tabsOn = bool("tabs", "Chat tabs (All, Server, Private, Mentions)", true);
+	private final Setting.Text customTabs = text("custom_tabs", "Custom tabs (Name=regex; Trades=buy|sell)", "");
 	// Look
 	private final Setting.Bool heads = bool("heads", "Chat heads", true);
 	private final Setting.Bool headsOnRepeat = bool("heads_repeat", "Head on every message from the same player", false);
@@ -132,6 +135,10 @@ public class ChatMod extends Mod {
 		}
 		m.lastMessageAt = System.currentTimeMillis();
 		net.minecraft.client.multiplayer.PlayerInfo sender = sender(text);
+		if (m.tabsOn.value) {
+			ChatTabs.tabs(m.customTabs.value);
+			ChatTabs.arrived(text, sender != null, mentions(withoutSender(text, sender), m.mentionTerms()));
+		}
 		if (m.mentions.value && mentions(withoutSender(text, sender), m.mentionTerms())) {
 			shown = Component.literal("▌ ").withColor(m.mentionColor.value).append(shown.copy().withColor(m.mentionColor.value));
 			if (m.mentionSound.value && m.repeats == 1)
@@ -201,7 +208,19 @@ public class ChatMod extends Mod {
 
 	/** Whether a message is shown: always, unless a search is on and it does not contain the search text. */
 	public static boolean shows(net.minecraft.client.GuiMessage message) {
-		return matches(message.content().getString(), query);
+		String text = message.content().getString();
+		if (!matches(text, query)) return false;
+		ChatMod m = on();
+		ChatTabs.Tab tab = m != null && m.tabsOn.value ? ChatTabs.activeTab() : null;
+		if (tab == null || tab.id().equals("all")) return true;
+		net.minecraft.client.multiplayer.PlayerInfo sender = sender(text);
+		return ChatTabs.belongs(tab, text, sender != null, mentions(withoutSender(text, sender), m.mentionTerms()));
+	}
+
+	/** The chat tabs, or null when they are off. */
+	public static java.util.List<ChatTabs.Tab> tabList() {
+		ChatMod m = on();
+		return m != null && m.tabsOn.value ? ChatTabs.tabs(m.customTabs.value) : null;
 	}
 
 	static boolean matches(String text, String query) {

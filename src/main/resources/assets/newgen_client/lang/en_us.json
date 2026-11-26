@@ -206,5 +206,9 @@
 	"newgen_client.mod.media_player.description": "What is playing on your computer (Spotify, YouTube…), with its progress",
 	"newgen_client.media.paused": "Paused",
 	"newgen_client.chat.copied": "Message copied",
-	"newgen_client.chat.searching": "Searching chat (Ctrl+F or Enter to stop)"
+	"newgen_client.chat.searching": "Searching chat (Ctrl+F or Enter to stop)",
+	"newgen_client.chat.tab.all": "All",
+	"newgen_client.chat.tab.server": "Server",
+	"newgen_client.chat.tab.private": "Private",
+	"newgen_client.chat.tab.mentions": "Mentions"
 }

@@ -418,5 +418,14 @@
 	"newgen_client.setting.move_chat_up_pixels": "Đẩy chat lên (pixel)",
 	"newgen_client.setting.peek_key_hold_to_read_chat": "Phím xem nhanh (giữ để đọc chat)",
 	"newgen_client.setting.hide_show_chat_key": "Phím ẩn / hiện chat",
-	"newgen_client.chat.searching": "Đang tìm trong chat (Ctrl+F hoặc Enter để dừng)"
+	"newgen_client.chat.searching": "Đang tìm trong chat (Ctrl+F hoặc Enter để dừng)",
+	"newgen_client.chat.tab.all": "Tất cả",
+	"newgen_client.chat.tab.server": "Server",
+	"newgen_client.chat.tab.private": "Tin riêng",
+	"newgen_client.chat.tab.mentions": "Nhắc tên",
+	"newgen_client.setting.chat_tabs_all_server_private_mentions": "Thẻ chat (Tất cả, Server, Tin riêng, Nhắc tên)",
+	"newgen_client.setting.custom_tabs_name_regex_trades_buy_sell": "Thẻ tự tạo (Tên=regex; Trades=buy|sell)",
+	"newgen_client.setting.fade_after_seconds": "Mờ dần sau (giây)",
+	"newgen_client.setting.rounded_corners": "Bo góc",
+	"newgen_client.setting.corner_radius": "Bán kính bo góc"
 }

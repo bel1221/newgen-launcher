@@ -173,6 +173,13 @@ public abstract class ChatComponentMixin implements ChatMod.Lines {
 		return ChatMod.shows(message);
 	}
 
+	/** A new message only joins the shown lines when it passes the search and the open tab. */
+	@com.llamalad7.mixinextras.injector.WrapWithCondition(method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V",
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/ChatComponent;addMessageToDisplayQueue(Lnet/minecraft/client/GuiMessage;)V"))
+	private boolean newgen$tabFilter(ChatComponent chat, GuiMessage message) {
+		return ChatMod.shows(message);
+	}
+
 	@Override
 	public void newgen$delete(GuiMessage message) {
 		if (allMessages.remove(message)) refreshTrimmedMessages();
