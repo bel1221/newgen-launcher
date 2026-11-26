@@ -339,7 +339,7 @@ public class ModsScreen extends Screen {
 
 	/** Lower case without accents (đ as d), so "dong ho" finds "Đồng hồ". */
 	static String fold(String text) {
-		return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replaceAll("\p{M}", "")
+		return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "")
 				.replace('đ', 'd').replace('Đ', 'd').toLowerCase(java.util.Locale.ROOT);
 	}
 
