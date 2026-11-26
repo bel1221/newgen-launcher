@@ -379,7 +379,10 @@ public class ModsScreen extends Screen {
 			// The options of one mod: back, its name and its switch; its description under them.
 			int bx = contentX(), by = barY();
 			if (!themeView()) Ui.button(g, bx, by, BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mouseX, mouseY, bx, by, BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
-			int nameX = themeView() ? bx : bx + BUTTON_H + 8, toggleX = right() - PILL_W;
+			// The mod's icon leads its name in the header.
+			int iconX = themeView() ? bx : bx + BUTTON_H + 6;
+			boolean hasIcon = Ui.modIcon(g, selected.id, iconX, by - 1, Ui.TEXT);
+			int nameX = iconX + (hasIcon ? 20 : 2), toggleX = right() - PILL_W;
 			Ui.text(g, Ui.fit(modName(selected), toggleX - 8 - nameX, Ui.TITLE, false), nameX, by + 3, Ui.TEXT, Ui.TITLE);
 			if (!themeView()) Ui.toggle(g, toggleX, by + 2, selected.enabled, Ui.inside(mouseX, mouseY, toggleX - 4, by, PILL_W + 4, BUTTON_H));
 			Ui.text(g, Ui.fit(modDescription(selected), right() - bx, Ui.UI, false), bx, by + BUTTON_H + 5, Ui.DIM, Ui.UI);
@@ -421,7 +424,9 @@ public class ModsScreen extends Screen {
 		int w = cardW(), opt = y + TOP_H, status = opt + STRIP;
 		Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.CARD);
 		if (Ui.inside(mouseX, mouseY, x, y, w, TOP_H)) Ui.round(g, x, y, w, CARD_H, Ui.R_MD, Ui.HOVER);
-		Ui.glyph(g, tabIcon(mod), x + (w - 14) / 2, y + 7, 14, mod.enabled ? Ui.TEXT : Ui.DIM);
+		int ink = mod.enabled ? Ui.TEXT : Ui.DIM;
+		// The mod's own icon, 16 units so its pixels stay whole; the category glyph if it has none.
+		if (!Ui.modIcon(g, mod.id, x + (w - 16) / 2, y + 5, ink)) Ui.glyph(g, tabIcon(mod), x + (w - 14) / 2, y + 7, 14, ink);
 		Ui.centered(g, Ui.fit(modName(mod), w - 10, Ui.CAPS, false), x + w / 2, y + 26, mod.enabled ? Ui.TEXT : Ui.SOFT, Ui.CAPS);
 
 		g.fill(x, opt, x + w, status, STRIP_BG);

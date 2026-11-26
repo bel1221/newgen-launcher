@@ -229,6 +229,29 @@ public final class Ui {
 			I_SEARCH = 7, I_LAYOUT = 8, I_GLOBE = 9, I_EYE = 10, I_MOUSE = 11, I_SLIDERS = 12, I_PALETTE = 13;
 	private static final int ICON_COUNT = 14;
 
+	/** The mod icons: 16x16 white pixel icons drawn by tools/ModIcons.java, 16 a row in textures/mod_icons.png, ids in
+	 * mod_icons.txt. Drawn 16 GUI units square, so whole-number GUI scales keep every pixel sharp. */
+	private static final Identifier MOD_ICONS = Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/mod_icons.png");
+	private static java.util.Map<String, Integer> modIconIndex;
+
+	/** Draws a mod's icon; false (nothing drawn) when it has none, so the caller can fall back. */
+	public static boolean modIcon(GuiGraphics g, String id, int x, int y, int color) {
+		if (modIconIndex == null) {
+			modIconIndex = new java.util.HashMap<>();
+			try (var in = Minecraft.getInstance().getResourceManager().open(Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/mod_icons.txt"))) {
+				String[] ids = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).split("\\R");
+				for (int i = 0; i < ids.length; i++) if (!ids[i].isBlank()) modIconIndex.put(ids[i].trim(), i);
+			} catch (Exception e) {
+				// no icons: every caller falls back
+			}
+		}
+		Integer i = modIconIndex.get(id);
+		if (i == null) return false;
+		int rows = (modIconIndex.size() + 15) / 16;
+		g.blit(RenderPipelines.GUI_TEXTURED, MOD_ICONS, x, y, (i % 16) * 16, (i / 16) * 16, 16, 16, 16, 16, 256, rows * 16, color);
+		return true;
+	}
+
 	public static void glyph(GuiGraphics g, int icon, int x, int y, int size, int color) {
 		g.blit(RenderPipelines.GUI_TEXTURED, ICONS, x, y, icon * 64, 0, size, size, 64, 64, ICON_COUNT * 64, 64, color);
 	}
