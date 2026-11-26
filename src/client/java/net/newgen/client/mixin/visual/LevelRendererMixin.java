@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 public class LevelRendererMixin {
 	@ModifyVariable(method = "renderHitOutline", at = @At("HEAD"), argsOnly = true)
 	private int newgen$outlineColor(int color) {
-		return BlockOutlineMod.I.enabled ? BlockOutlineMod.I.color.value : color;
+		return BlockOutlineMod.I.enabled ? BlockOutlineMod.I.color.current() : color;
 	}
 
 	@ModifyVariable(method = "renderHitOutline", at = @At("HEAD"), argsOnly = true)

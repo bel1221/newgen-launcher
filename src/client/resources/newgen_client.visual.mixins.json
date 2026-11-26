@@ -11,8 +11,10 @@
 		"EmoteItemInHandLayerMixin",
 		"EmoteWingsLayerMixin",
 		"FogRendererMixin",
+		"FontAccessor",
 		"GameRendererMixin",
 		"GuiMixin",
+		"InventoryScreenMixin",
 		"ItemInHandRendererMixin",
 		"ItemStackMixin",
 		"LevelMixin",
@@ -20,10 +22,13 @@
 		"LightTextureMixin",
 		"LivingEntityRendererMixin",
 		"MinecraftMixin",
+		"NameTagFeatureRendererMixin",
 		"NameTagStorageMixin",
 		"OverlayTextureAccessor",
 		"ParticleEngineMixin",
-		"ScreenEffectRendererMixin"
+		"RenderTypeMixin",
+		"ScreenEffectRendererMixin",
+		"ZoomScrollMixin"
 	],
 	"injectors": { "defaultRequire": 1 }
 }

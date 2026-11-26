@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public class LevelMixin {
 	@ModifyReturnValue(method = "getDayTime", at = @At("RETURN"))
 	private long newgen$time(long original) {
-		return TimeChangerMod.I.enabled && (Object) this instanceof ClientLevel ? (long) TimeChangerMod.I.time.get() : original;
+		return TimeChangerMod.I.enabled && (Object) this instanceof ClientLevel ? TimeChangerMod.I.dayTime() : original;
 	}
 
 	@ModifyReturnValue(method = "getRainLevel", at = @At("RETURN"))

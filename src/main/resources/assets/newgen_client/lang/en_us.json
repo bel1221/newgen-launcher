@@ -259,5 +259,17 @@
 	"newgen_client.hud.key.lock": "L: lock or unlock",
 	"newgen_client.hud.key.all": "Ctrl + A: select all",
 	"newgen_client.hud.key.grid": "G: grid",
-	"newgen_client.hud.key.menu": "Right click: settings, reset, anchor, lock, hide"
+	"newgen_client.hud.key.menu": "Right click: settings, reset, anchor, lock, hide",
+	"newgen_client.choice.hold": "Hold",
+	"newgen_client.choice.toggle": "Toggle",
+	"newgen_client.choice.exponential": "Exponential",
+	"newgen_client.choice.linear": "Linear",
+	"newgen_client.choice.ease_in": "Ease in",
+	"newgen_client.choice.ease_out": "Ease out",
+	"newgen_client.choice.ease_in-out": "Ease in-out",
+	"newgen_client.choice.none": "None",
+	"newgen_client.choice.shadow": "Shadow",
+	"newgen_client.choice.solid": "Solid",
+	"newgen_client.choice.dashed": "Dashed",
+	"newgen_client.choice.dotted": "Dotted"
 }
