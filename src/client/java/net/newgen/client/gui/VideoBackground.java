@@ -53,6 +53,16 @@ public final class VideoBackground {
 	/** Clip 1's first frame, bundled as a still: shown until the first decoded frame, then faded out over FADE_MS, so the
 	 * vanilla panorama never flashes at boot. */
 	private static final Identifier POSTER = Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/poster.png");
+	/** Frame buffer sets (SLOTS x 1920x1080 ints, ~40 MB each) and textures are pooled and reused by later clips: a restart
+	 * (after a resource reload or a world) allocates nothing big, so it causes no GC pause. At most two of each exist. */
+	private static final java.util.ArrayDeque<int[][]> FRAME_POOL = new java.util.ArrayDeque<>();
+	private static final java.util.ArrayDeque<LinearTexture> TEXTURE_POOL = new java.util.ArrayDeque<>();
+	private static int textures;
+	/** The poster, read off the render thread once and kept as our own texture across resource reloads. */
+	private static final Identifier POSTER_DYN = Identifier.fromNamespaceAndPath(NewgenClient.ID, "background_poster");
+	private static volatile com.mojang.blaze3d.platform.NativeImage posterImage;
+	private static boolean posterLoading, posterReady;
+	private static long skipUploadUntil;
 	private static final int POSTER_W = 960, POSTER_H = 540, FADE_MS = 300;
 	private static long firstFrameAt = -1;
 
@@ -64,7 +74,16 @@ public final class VideoBackground {
 		for (Player p : retired) p.release(); // first, so nothing leaks once the video is turned off
 		retired.clear();
 		if (disabled) return false;
+		preparePoster();
 		try {
+			// During a resource reload (language change, F3+T, packs) the loading overlay is up: decode nothing, start
+			// nothing, keep the last picture. lastDrawn is not refreshed, so the decoders idle out and wait for the end.
+			if (Minecraft.getInstance().getOverlay() != null) {
+				if (current != null && current.shown >= 0) cover(g, current, width, height, 0xFFFFFFFF);
+				else poster(g, width, height, 0xFFFFFFFF);
+				g.fill(0, 0, width, height, SHADE);
+				return true;
+			}
 			lastDrawn = System.currentTimeMillis();
 			// A clip that failed is skipped (and counted: when every clip has failed, the caller's fallback takes over).
 			if (current != null && current.failed) {
@@ -80,7 +99,10 @@ public final class VideoBackground {
 			// A clip that stopped before its end (idle) starts again, its last picture staying on screen until the new
 			// one has a frame; one that decoded to the end keeps its last frame until the next clip has faded in.
 			if (current == null || current.stopped && !current.complete()) {
-				if (current != null && current.shown >= 0 && stale == null) stale = current;
+				if (current != null && current.shown >= 0 && stale == null) {
+					stale = current;
+					stale.freeFrames(); // only its texture is still shown; its frame set goes to the next clip
+				}
 				else if (current != null) current.close();
 				current = new Player(clip);
 			}
@@ -137,11 +159,36 @@ public final class VideoBackground {
 		current = next = stale = null;
 	}
 
+	/** Reads the poster on a background thread the first time, then registers it once (render thread, a quick upload). */
+	private static void preparePoster() {
+		if (posterReady) return;
+		if (!posterLoading) {
+			posterLoading = true;
+			Thread t = new Thread(() -> {
+				try (var in = Minecraft.getInstance().getResourceManager().open(POSTER)) {
+					posterImage = com.mojang.blaze3d.platform.NativeImage.read(in);
+				} catch (Exception e) {
+					LOGGER.warn("Background poster could not be read", e);
+				}
+			}, "Newgen background poster");
+			t.setDaemon(true);
+			t.start();
+		} else if (posterImage != null) {
+			DynamicTexture tex = new DynamicTexture(() -> "newgen background poster", posterImage);
+			Minecraft.getInstance().getTextureManager().register(POSTER_DYN, tex);
+			posterReady = true;
+		}
+	}
+
 	/** Draws the poster still over the screen, cover-fitted like the video. */
 	private static void poster(GuiGraphics g, int width, int height, int color) {
 		float scale = Math.max(width / (float) POSTER_W, height / (float) POSTER_H);
 		int w = Math.round(POSTER_W * scale), h = Math.round(POSTER_H * scale);
-		g.blit(RenderPipelines.GUI_TEXTURED, POSTER, (width - w) / 2, (height - h) / 2, 0, 0, w, h, POSTER_W, POSTER_H, POSTER_W, POSTER_H, color);
+		if (!posterReady) {
+			g.fill(0, 0, width, height, 0xFF0D0F11); // a moment at boot until the poster is read
+			return;
+		}
+		g.blit(RenderPipelines.GUI_TEXTURED, POSTER_DYN, (width - w) / 2, (height - h) / 2, 0, 0, w, h, POSTER_W, POSTER_H, POSTER_W, POSTER_H, color);
 	}
 
 	/** Draws a player's texture over the screen, scaled to cover it (cropped at the sides or top and bottom); one linear scale. */
@@ -159,7 +206,18 @@ public final class VideoBackground {
 	 */
 	private static final class Player {
 		final Identifier id;
-		final DynamicTexture texture;
+		final LinearTexture texture;
+		private final java.util.concurrent.atomic.AtomicInteger bandsAlive = new java.util.concurrent.atomic.AtomicInteger();
+		private boolean released;
+		private boolean framesFree;
+
+		/** The frames are no longer needed (a stopped clip whose texture still covers a restart). */
+		void freeFrames() {
+			synchronized (FRAME_POOL) {
+				framesFree = true;
+			}
+			giveBackFrames();
+		}
 		/** SLOTS frame buffers in the texture's memory order (ABGR ints = RGBA bytes); frame n goes to slot n % SLOTS. */
 		private volatile int[][] frames; // allocated by the loader thread
 		private final CyclicBarrier barrier;
@@ -172,9 +230,13 @@ public final class VideoBackground {
 
 		/** Registers the texture (render thread); a loader thread reads the files and allocates the buffers, then starts the bands. */
 		Player(int index) {
-			id = Identifier.fromNamespaceAndPath(NewgenClient.ID, "background_video_" + index + "_" + System.nanoTime());
-			texture = new LinearTexture();
-			Minecraft.getInstance().getTextureManager().register(id, texture);
+			LinearTexture pooled = TEXTURE_POOL.poll();
+			if (pooled == null) {
+				pooled = new LinearTexture(Identifier.fromNamespaceAndPath(NewgenClient.ID, "background_video_" + textures++));
+				Minecraft.getInstance().getTextureManager().register(pooled.id, pooled);
+			}
+			texture = pooled;
+			id = pooled.id;
 			barrier = new CyclicBarrier(PARTS, this::frameDone);
 			Thread loader = new Thread(() -> load(index), "Newgen background video loader");
 			loader.setDaemon(true);
@@ -193,7 +255,11 @@ public final class VideoBackground {
 					}
 				}
 				if (stopped) return;
-				frames = new int[SLOTS][W * H];
+				int[][] set;
+				synchronized (FRAME_POOL) {
+					set = FRAME_POOL.poll();
+				}
+				frames = set != null ? set : new int[SLOTS][W * H];
 			} catch (Throwable e) {
 				LOGGER.warn("Background clip {} could not be read", CLIPS[index], e);
 				failed = true;
@@ -201,6 +267,7 @@ public final class VideoBackground {
 				return;
 			}
 			if (stopped) return;
+			bandsAlive.set(PARTS);
 			for (int p = 0; p < PARTS; p++) {
 				final int band = p;
 				Thread thread = new Thread(() -> decode(parts[band], band), "Newgen background video " + (char) ('a' + band));
@@ -242,6 +309,16 @@ public final class VideoBackground {
 			}
 			stopped = true;
 			barrier.reset(); // wakes the other band
+			if (bandsAlive.decrementAndGet() == 0) giveBackFrames();
+		}
+
+		/** The frame set goes back to the pool once no band writes to it and the player is released. */
+		private void giveBackFrames() {
+			synchronized (FRAME_POOL) {
+				if (!(released || framesFree) || bandsAlive.get() > 0 || frames == null) return;
+				if (FRAME_POOL.size() < 2) FRAME_POOL.push(frames);
+				frames = null;
+			}
 		}
 
 		/** One band, YUV 4:2:0 (BT.709, limited range; JCodec stores samples minus 128) to opaque RGBA, rows top..top+BAND. */
@@ -271,9 +348,15 @@ public final class VideoBackground {
 			if (newest < 0) return;
 			int n = Math.min(newest, (int) ((System.nanoTime() - start) * FPS / 1_000_000_000L));
 			if (n <= shown) return;
-			MemoryUtil.memIntBuffer(texture.getPixels().getPointer(), W * H).put(frames[n % SLOTS]);
+			int[][] set = frames;
+			if (set == null || System.nanoTime() < skipUploadUntil) return;
+			long t0 = System.nanoTime();
+			MemoryUtil.memIntBuffer(texture.getPixels().getPointer(), W * H).put(set[n % SLOTS]);
 			texture.upload();
 			shown = n;
+			// A copy and upload over 5 ms (a slow machine, a busy driver) skips the next frame's, so the game keeps its pace.
+			long spent = System.nanoTime() - t0;
+			if (spent > 5_000_000L) skipUploadUntil = System.nanoTime() + spent;
 		}
 
 		boolean complete() {
@@ -287,16 +370,25 @@ public final class VideoBackground {
 			retired.add(this);
 		}
 
+		/** Back to the pools: the texture now (render thread, the frame that drew it is done), the frames once the bands stop. */
 		void release() {
-			Minecraft.getInstance().getTextureManager().release(id);
+			if (TEXTURE_POOL.size() < 2) TEXTURE_POOL.push(texture);
+			else Minecraft.getInstance().getTextureManager().release(id);
+			synchronized (FRAME_POOL) {
+				released = true;
+			}
+			giveBackFrames();
 		}
 	}
 
 	/** A dynamic texture sampled smoothly, so frames drawn larger or smaller than 1920x1080 stay smooth. */
 	private static final class LinearTexture extends DynamicTexture {
-		LinearTexture() {
+		final Identifier id;
+
+		LinearTexture(Identifier id) {
 			super(() -> "newgen background video", W, H, false);
 			sampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR);
+			this.id = id;
 		}
 	}
 }

@@ -189,20 +189,30 @@ public class ModsScreen extends Screen {
 		return translated("newgen_client.mod." + mod.id + ".description", mod.description);
 	}
 
+	/** Translated labels, cached per language (the lookups ran per row every frame); a language change clears it. */
+	private static final java.util.Map<String, String> LABELS = new java.util.HashMap<>();
+	private static String labelsLanguage;
+
 	private static String translated(String key, String fallback) {
-		return net.minecraft.client.resources.language.I18n.exists(key) ? net.minecraft.client.resources.language.I18n.get(key) : fallback;
+		String lang = net.minecraft.client.Minecraft.getInstance().getLanguageManager().getSelected();
+		if (!lang.equals(labelsLanguage)) {
+			LABELS.clear();
+			labelsLanguage = lang;
+		}
+		return LABELS.computeIfAbsent(key + "0000" + fallback, k -> net.minecraft.client.resources.language.I18n.exists(key)
+				? net.minecraft.client.resources.language.I18n.get(key) : fallback);
 	}
 
 	/** An option's label in the game's language when the lang files have it (newgen_client.setting.<label>), else as written. */
 	private static String settingLabel(String name) {
 		String key = "newgen_client.setting." + name.toLowerCase().replaceAll("[^a-z0-9]+", "_").replaceAll("^_|_$", "");
-		return net.minecraft.client.resources.language.I18n.exists(key) ? net.minecraft.client.resources.language.I18n.get(key) : name;
+		return translated(key, name);
 	}
 
 	/** A choice's value in the game's language when the lang files have it (newgen_client.choice.<value>), else as written. */
 	private static String choiceLabel(String value) {
 		String key = "newgen_client.choice." + value.toLowerCase().replace(' ', '_').replace("'", "");
-		return net.minecraft.client.resources.language.I18n.exists(key) ? net.minecraft.client.resources.language.I18n.get(key) : value;
+		return translated(key, value);
 	}
 
 	/** The game's own word for its options, so the title screen and this menu spell it the same. */
