@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Chunk Borders and Height Limit draw with the vanilla "gizmo" shapes.
+ * Chunk Borders, Height Limit, Hitboxes, Light Overlay and TNT Countdown draw with the vanilla "gizmo" shapes.
  * This is the one place per frame where vanilla collects them, so our shapes join the vanilla debug shapes.
  */
 @Mixin(DebugRenderer.class)

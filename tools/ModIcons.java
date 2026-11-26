@@ -138,6 +138,7 @@ public class ModIcons {
 		icon("scoreboard", p -> p.rect(1, 3, 14, 10).line(10, 5, 12, 5).line(10, 7, 12, 7).line(10, 9, 12, 9).line(9, 4, 9, 11));
 		icon("tab", p -> p.rect(1, 3, 14, 10).line(5, 5, 10, 5).line(5, 7, 10, 7).line(5, 9, 10, 9));
 		icon("titles", p -> p.rect(1, 3, 14, 10).fill(4, 7, 8, 2));
+		icon("tnt_countdown", p -> p.rect(1, 4, 14, 12).fill(1, 8, 14, 4).line(8, 4, 8, 2).line(8, 2, 10, 0).dot(11, 0));
 		icon("emotes", p -> p.oval(5, 0, 5, 5).line(7, 5, 7, 10).line(7, 6, 12, 2).line(7, 7, 3, 9).line(7, 10, 4, 15).line(7, 10, 10, 15));
 		icon("waypoints", p -> p.line(4, 1, 4, 15).poly(5, 1, 13, 4, 5, 7).line(2, 15, 7, 15));
 		// Visual
@@ -151,8 +152,11 @@ public class ModIcons {
 		icon("freelook", p -> p.arc(1, 4, 14, 9, 0, 180).arc(1, 3, 14, 9, 180, 180).disc(6, 6, 4, 4).arc(0, 0, 16, 16, 30, 80).line(13, 1, 14, 3));
 		icon("gui_scale", p -> p.rect(0, 0, 16, 16).rect(0, 9, 7, 7).line(8, 8, 14, 2).line(14, 2, 10, 2).line(14, 2, 14, 6));
 		icon("hit_color", p -> p.line(1, 14, 9, 6).line(9, 6, 11, 4).line(3, 9, 6, 12).line(12, 1, 12, 3).line(14, 4, 15, 4).line(13, 2, 14, 1).line(10, 1, 10, 2));
+		icon("hitbox", p -> p.line(1, 1, 3, 1).line(6, 1, 9, 1).line(12, 1, 14, 1).line(1, 14, 3, 14).line(6, 14, 9, 14).line(12, 14, 14, 14).line(1, 1, 1, 3).line(1, 6, 1, 9).line(1, 12, 1, 14).line(14, 1, 14, 3).line(14, 6, 14, 9).line(14, 12, 14, 14).fill(6, 4, 4, 4).fill(7, 8, 2, 4));
 		icon("hurt_cam", p -> p.rect(0, 4, 16, 10).rect(6, 6, 5, 5).fill(2, 2, 4, 2).line(11, 4, 9, 8).line(9, 8, 12, 10).line(12, 10, 10, 13));
 		icon("item_customizer", p -> p.line(1, 14, 9, 6).line(9, 6, 11, 4).line(3, 9, 6, 12).line(12, 8, 15, 8).line(12, 12, 15, 12).dot(13, 7).dot(13, 9).dot(14, 11).dot(14, 13));
+		icon("light_overlay", p -> p.fill(7, 6, 2, 9).disc(5, 1, 6, 6).line(1, 3, 2, 3).line(13, 3, 14, 3).line(3, 0, 4, 1).line(12, 0, 11, 1));
+		icon("lighting", p -> p.oval(3, 0, 10, 10).line(6, 10, 6, 12).line(9, 10, 9, 12).line(6, 13, 9, 13).line(7, 15, 8, 15).line(6, 4, 8, 7).line(10, 4, 8, 7));
 		icon("menu_blur", p -> { for (int y = 0; y < 16; y += 2) for (int x = (y / 2) % 2; x < 16; x += 2) p.dot(x, y); p.rect(3, 3, 10, 10); });
 		icon("nametag", p -> p.poly(3, 3, 15, 3, 15, 12, 3, 12, 0, 8).disc(3, 6, 3, 3).line(8, 6, 13, 6).line(8, 9, 12, 9));
 		icon("nick_hider", p -> p.poly(3, 3, 15, 3, 15, 12, 3, 12, 0, 8).line(7, 7, 13, 7).line(1, 15, 15, 0));
@@ -160,6 +164,7 @@ public class ModIcons {
 		icon("particle_changer", p -> p.dot(3, 2).dot(12, 3).dot(7, 6).dot(2, 9).dot(10, 10).dot(5, 13).dot(14, 13).line(8, 0, 8, 2).line(7, 1, 9, 1).line(13, 7, 13, 9).line(12, 8, 14, 8).line(4, 11, 6, 11).line(5, 10, 5, 12));
 		icon("shields", p -> p.poly(2, 1, 13, 1, 13, 8, 8, 14, 2, 8).line(8, 1, 8, 14).line(2, 6, 13, 6));
 		icon("shiny_pots", p -> p.rect(4, 1, 4, 3).poly(4, 4, 1, 9, 1, 14, 11, 14, 11, 9, 7, 4).line(13, 5, 13, 9).line(11, 7, 15, 7).dot(14, 1).dot(12, 12));
+		icon("time_changer", p -> p.arc(0, 0, 16, 16, 90, 180).line(8, 0, 8, 15).disc(9, 4, 7, 8).line(12, 0, 12, 2).line(15, 2, 14, 3));
 		icon("weather_changer", p -> p.arc(0, 2, 8, 8, 90, 180).arc(3, 0, 10, 9, 0, 180).arc(8, 3, 8, 7, -90, 180).line(3, 9, 12, 9).line(4, 12, 3, 14).line(8, 12, 7, 14).line(12, 12, 11, 14));
 		icon("zoom", p -> p.oval(0, 0, 11, 11).line(9, 9, 14, 14).line(10, 9, 15, 14).line(3, 5, 7, 5).line(5, 3, 5, 7));
 		icon("hit_color_alt", p -> {});
