@@ -20,6 +20,23 @@ public final class HudMods {
 			"Hides the locator bar, so the XP bar shows instead");
 	public static final F3DisplayMod F3_DISPLAY = new F3DisplayMod();
 	public static final PotionEffectsMod POTION_EFFECTS = new PotionEffectsMod();
+	// Wave 3 vanilla HUD
+	public static final VanillaPartMod HOTBAR = new VanillaPartMod("hotbar", "Hotbar",
+			"Hide, scale or move the hotbar", 0.5f, 1f);
+	public static final HealthPartMod HEALTH_BAR = new HealthPartMod();
+	public static final HungerPartMod HUNGER_BAR = new HungerPartMod();
+	public static final VanillaPartMod ARMOR_BAR = new VanillaPartMod("armor_bar", "Armor Bar",
+			"Hide, scale or move the armor bar", 0.5f, 1f);
+	public static final VanillaPartMod AIR_BAR = new VanillaPartMod("air_bar", "Air Bubbles",
+			"Hide, scale or move the air bubbles", 0.5f, 1f);
+	public static final VanillaPartMod XP_BAR = new VanillaPartMod("xp_bar", "XP Bar",
+			"Hide, scale or move the experience bar and level", 0.5f, 1f);
+	public static final VanillaPartMod ITEM_NAME = new VanillaPartMod("held_item_name", "Held Item Name",
+			"Hide, scale or move the item name shown above the hotbar", 0.5f, 1f);
+	public static final VanillaPartMod MOUNT_HEALTH = new VanillaPartMod("mount_health", "Mount Health",
+			"Hide, scale or move the hearts of the animal you ride", 0.5f, 1f);
+	public static final VanillaPartMod EFFECT_ICONS = new VanillaPartMod("effect_icons", "Effect Icons",
+			"Hide, scale or move the vanilla status effect icons", 1f, 0f);
 
 	private HudMods() {
 	}
@@ -59,5 +76,15 @@ public final class HudMods {
 		Mods.register(CATEGORY, new TotemCounterMod());
 		Mods.register(CATEGORY, new ViewAnglesMod());
 		Mods.register(CATEGORY, new WailaMod());
+		// Wave 3 vanilla HUD
+		Mods.register(CATEGORY, HOTBAR);
+		Mods.register(CATEGORY, HEALTH_BAR);
+		Mods.register(CATEGORY, HUNGER_BAR);
+		Mods.register(CATEGORY, ARMOR_BAR);
+		Mods.register(CATEGORY, AIR_BAR);
+		Mods.register(CATEGORY, XP_BAR);
+		Mods.register(CATEGORY, ITEM_NAME);
+		Mods.register(CATEGORY, MOUNT_HEALTH);
+		Mods.register(CATEGORY, EFFECT_ICONS);
 	}
 }
