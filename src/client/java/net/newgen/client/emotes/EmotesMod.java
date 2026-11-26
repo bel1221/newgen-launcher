@@ -133,9 +133,12 @@ public class EmotesMod extends Mod {
 		playedTicks = 0;
 		clicksArmed = !mc.options.keyAttack.isDown() && !mc.options.keyUse.isDown();
 		level = mc.level;
-		if (!FreelookMod.active && !camera.value.equals("Don't change")) {
+		// Only from first person: the view goes to third person and comes back on stop (if still the one we set).
+		// A player already in third person keeps their view, before and after.
+		CameraType view = FreelookMod.active ? null : EmoteCamera.viewFor(mc.options.getCameraType(), camera.value);
+		if (view != null) {
 			before = mc.options.getCameraType();
-			setView = camera.value.equals("Back") ? CameraType.THIRD_PERSON_BACK : CameraType.THIRD_PERSON_FRONT;
+			setView = view;
 			mc.options.setCameraType(setView);
 			cameraChanged = true;
 		}
