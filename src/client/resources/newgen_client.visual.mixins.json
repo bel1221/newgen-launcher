@@ -8,6 +8,7 @@
 		"DebugRendererMixin",
 		"EmoteCapeLayerMixin",
 		"EmoteHumanoidArmorLayerMixin",
+		"EmoteItemInHandLayerMixin",
 		"EmoteWingsLayerMixin",
 		"FogRendererMixin",
 		"GameRendererMixin",

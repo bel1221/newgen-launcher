@@ -121,6 +121,9 @@ public class EmotesMod extends Mod {
 		stop(mc);
 		PlayerAnimationController c = controller(mc.player);
 		if (c == null) return;
+		// Left-handed players get every emote mirrored (PAL's MirrorModifier swaps the left and right parts), so an
+		// emote's held-item stance lines up with the item in their main hand. Read at start: a change applies next time.
+		mirror(c, mirrored(mc.options.mainHand().get()));
 		c.triggerAnimation(emote.animation());
 		playing = emote;
 		emotingEntity = mc.player.getId();
@@ -152,12 +155,26 @@ public class EmotesMod extends Mod {
 		blending = false;
 		if (mc.player != null) {
 			PlayerAnimationController c = controller(mc.player);
-			if (c != null) c.stop();
+			if (c != null) {
+				c.stop();
+				mirror(c, false);
+			}
 		}
 		if (clip != null) mc.getSoundManager().stop(clip);
 		clip = null;
 		if (cameraChanged && mc.options.getCameraType() == setView) mc.options.setCameraType(before);
 		cameraChanged = false;
+	}
+
+	/** Emotes are written for the right hand; a player whose main hand is the left plays them mirrored. */
+	static boolean mirrored(net.minecraft.world.entity.HumanoidArm mainHand) {
+		return mainHand == net.minecraft.world.entity.HumanoidArm.LEFT;
+	}
+
+	/** Puts PAL's mirror on the controller (once) or takes it off. */
+	static void mirror(com.zigythebird.playeranimcore.animation.AnimationController c, boolean on) {
+		c.removeModifierIf(m -> m instanceof com.zigythebird.playeranimcore.animation.layered.modifier.MirrorModifier);
+		if (on) c.addModifierLast(new com.zigythebird.playeranimcore.animation.layered.modifier.MirrorModifier());
 	}
 
 	/** Whether this render state is the local player playing an emote: its cape, armor and elytra are not drawn. */
