@@ -210,5 +210,8 @@
 	"newgen_client.chat.tab.all": "All",
 	"newgen_client.chat.tab.server": "Server",
 	"newgen_client.chat.tab.private": "Private",
-	"newgen_client.chat.tab.mentions": "Mentions"
+	"newgen_client.chat.tab.mentions": "Mentions",
+	"newgen_client.chat.shot.marked": "Marked. Ctrl + right-click it again, or another message for a range",
+	"newgen_client.chat.shot.saved": "Chat image saved as %s (path copied)",
+	"newgen_client.chat.shot.failed": "Could not make the chat image"
 }

@@ -401,7 +401,7 @@
 	"newgen_client.setting.also_highlight_words_comma_separated": "Làm nổi thêm (các từ, cách nhau bằng dấu phẩy)",
 	"newgen_client.setting.mention_sound": "Âm báo khi được nhắc tên",
 	"newgen_client.setting.mention_colour": "Màu tin nhắc tên",
-	"newgen_client.setting.right_click_copies_a_message_shift_deletes": "Chuột phải để sao chép tin nhắn (Shift: xoá)",
+	"newgen_client.setting.right_click_copies_a_message_shift_deletes_ctrl_image": "Chuột phải để sao chép tin nhắn (Shift: xoá, Ctrl: ảnh)",
 	"newgen_client.setting.preview_image_links_on_hover": "Xem trước ảnh khi rê chuột vào liên kết",
 	"newgen_client.setting.underline_links": "Gạch chân liên kết",
 	"newgen_client.setting.emoji_shortcodes_heart_star": "Mã emoji (:heart: :star: …)",
@@ -427,5 +427,8 @@
 	"newgen_client.setting.custom_tabs_name_regex_trades_buy_sell": "Thẻ tự tạo (Tên=regex; Trades=buy|sell)",
 	"newgen_client.setting.fade_after_seconds": "Mờ dần sau (giây)",
 	"newgen_client.setting.rounded_corners": "Bo góc",
-	"newgen_client.setting.corner_radius": "Bán kính bo góc"
+	"newgen_client.setting.corner_radius": "Bán kính bo góc",
+	"newgen_client.chat.shot.marked": "Đã đánh dấu. Ctrl + chuột phải lần nữa, hoặc vào tin khác để chụp cả đoạn",
+	"newgen_client.chat.shot.saved": "Đã lưu ảnh chat: %s (đã sao chép đường dẫn)",
+	"newgen_client.chat.shot.failed": "Không tạo được ảnh chat"
 }

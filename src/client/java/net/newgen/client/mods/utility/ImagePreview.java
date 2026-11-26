@@ -111,8 +111,21 @@ public final class ImagePreview {
 		return out.toByteArray();
 	}
 
+	/** PNG, JPEG or GIF through ImageIO; when the runtime has no AWT (it may not), PNG through the game's own decoder. */
 	private static NativeImage decode(byte[] bytes) throws java.io.IOException {
-		BufferedImage src = ImageIO.read(new ByteArrayInputStream(bytes));
+		BufferedImage src;
+		try {
+			src = ImageIO.read(new ByteArrayInputStream(bytes));
+		} catch (LinkageError noAwt) {
+			try (NativeImage png = NativeImage.read(bytes)) {
+				int[] size = fit(png.getWidth(), png.getHeight(), MAX_SIDE);
+				NativeImage image = new NativeImage(size[0], size[1], false);
+				for (int y = 0; y < size[1]; y++)
+					for (int x = 0; x < size[0]; x++)
+						image.setPixel(x, y, png.getPixel(x * png.getWidth() / size[0], y * png.getHeight() / size[1]));
+				return image;
+			}
+		}
 		if (src == null) return null;
 		int[] size = fit(src.getWidth(), src.getHeight(), MAX_SIDE);
 		NativeImage image = new NativeImage(size[0], size[1], false);

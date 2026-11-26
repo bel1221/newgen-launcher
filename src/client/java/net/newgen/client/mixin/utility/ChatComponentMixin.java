@@ -161,6 +161,34 @@ public abstract class ChatComponentMixin implements ChatMod.Lines {
 		return null;
 	}
 
+	@Shadow
+	private int getWidth() {
+		throw new AssertionError();
+	}
+
+	@Override
+	public int[] newgen$rows(java.util.Set<Integer> addedTimes) {
+		double scale = getScale();
+		int lineHeight = (int) (9 * (minecraft.options.chatLineSpacing().get() + 1.0));
+		int bottom = (int) Math.floor((minecraft.getWindow().getGuiScaledHeight() - ChatMod.verticalOffset() - 40) / scale);
+		int top = Integer.MAX_VALUE, low = Integer.MIN_VALUE;
+		int shown = Math.min(getLinesPerPage(), trimmedMessages.size() - chatScrollbarPos);
+		for (int k = 0; k < shown; k++) {
+			int t = trimmedMessages.get(k + chatScrollbarPos).addedTime();
+			if (!addedTimes.contains(t) && !addedTimes.contains(t - ChatMod.fadeShift())) continue;
+			top = Math.min(top, bottom - (k + 1) * lineHeight);
+			low = Math.max(low, bottom - k * lineHeight);
+		}
+		if (top == Integer.MAX_VALUE) return null;
+		int right = (int) Math.ceil((Math.ceil(getWidth() / scale) + 12) * scale);
+		return new int[] {0, (int) Math.floor(top * scale), right, (int) Math.ceil(low * scale)};
+	}
+
+	@Override
+	public List<GuiMessage> newgen$messages() {
+		return allMessages;
+	}
+
 	@Override
 	public void newgen$refresh() {
 		refreshTrimmedMessages();

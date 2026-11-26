@@ -45,7 +45,7 @@ public class ChatMod extends Mod {
 	private final Setting.Bool mentionSound = bool("mention_sound", "Mention sound", true);
 	private final Setting.Color mentionColor = color("mention_color", "Mention colour", 0xFFFFD25A);
 	// Links and typing
-	private final Setting.Bool copyDelete = bool("copy_delete", "Right-click copies a message (Shift: deletes)", true);
+	private final Setting.Bool copyDelete = bool("copy_delete", "Right-click copies a message (Shift: deletes, Ctrl: image)", true);
 	private final Setting.Bool imagePreview = bool("image_preview", "Preview image links on hover", true);
 	private final Setting.Bool underlineLinks = bool("underline_links", "Underline links", true);
 	private final Setting.Bool emoji = bool("emoji", "Emoji shortcodes (:heart: :star: …)", true);
@@ -114,6 +114,12 @@ public class ChatMod extends Mod {
 		net.minecraft.client.GuiMessage newgen$messageAt(double y);
 
 		void newgen$delete(net.minecraft.client.GuiMessage message);
+
+		/** The on-screen rows of these messages (by time) in the open chat, {left, top, right, bottom} in GUI pixels, or null. */
+		int[] newgen$rows(java.util.Set<Integer> addedTimes);
+
+		/** Every message, newest first. */
+		java.util.List<net.minecraft.client.GuiMessage> newgen$messages();
 
 		/** Rebuilds the shown lines (after the search changed). */
 		void newgen$refresh();

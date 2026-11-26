@@ -79,6 +79,13 @@ class ChatModTest {
 	}
 
 	@Test
+	void chatScreenshotCropsTheRowsFromTheScreenshot() {
+		// GUI scale 2: a 640-wide GUI on a 1280-wide frame
+		assertArrayEquals(new int[] {0, 200, 600, 60}, ChatScreenshot.crop(new int[] {0, 100, 300, 130}, 1280, 720, 640));
+		assertArrayEquals(new int[] {0, 700, 1280, 20}, ChatScreenshot.crop(new int[] {0, 350, 9999, 9999}, 1280, 720, 640), "clamped to the image");
+	}
+
+	@Test
 	void newMessagesSlideInFor150Ms() {
 		assertEquals(9, ChatMod.slide(0));
 		assertTrue(ChatMod.slide(75) > 0 && ChatMod.slide(75) < 9);

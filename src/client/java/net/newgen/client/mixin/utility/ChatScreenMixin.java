@@ -128,6 +128,12 @@ public class ChatScreenMixin {
 		ChatMod.Lines chat = (ChatMod.Lines) mc.gui.getChat();
 		GuiMessage message = chat.newgen$messageAt(event.y());
 		if (message == null) return;
+		boolean ctrl = InputConstants.isKeyDown(mc.getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL) || InputConstants.isKeyDown(mc.getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL);
+		if (ctrl) {
+			net.newgen.client.mods.utility.ChatScreenshot.click(message, chat);
+			cir.setReturnValue(true);
+			return;
+		}
 		boolean shift = InputConstants.isKeyDown(mc.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(mc.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
 		if (shift) {
 			chat.newgen$delete(message);
