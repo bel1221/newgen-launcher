@@ -12,12 +12,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.zigythebird.playeranimcore.animation.Animation;
+import com.zigythebird.playeranimcore.animation.ExtraAnimationData;
 import com.zigythebird.playeranimcore.animation.AnimationData;
 import com.zigythebird.playeranimcore.animation.HumanoidAnimationController;
 import com.zigythebird.playeranimcore.bones.PlayerAnimBone;
 import com.zigythebird.playeranimcore.enums.PlayState;
 import com.zigythebird.playeranimcore.molang.MolangLoader;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -78,36 +79,53 @@ class EmoteKeyframeTest {
 		throw new IllegalStateException("no legacy section");
 	}
 
-	/**
-	 * The arm's pitch equals the file's number at every keyframe, and no bend is played (see EmoteFile.withoutBends).
-	 * Gangnam Style bends its torso: before the fix the torso bend moved the arms (and head) away from their own
-	 * numbers while the torso itself was drawn straight; now the arm keeps exactly what the file says.
-	 */
+	/** Plays an emote tick by tick; the first tick already advances it to tick 1, so step s shows tick s + 1. */
+	private static void play(byte[] bytes, int lastTick, java.util.function.BiConsumer<Integer, HumanoidAnimationController> check) throws Exception {
+		HumanoidAnimationController c = new HumanoidAnimationController((ctl, data, set) -> PlayState.CONTINUE, MolangLoader::createNewEngine);
+		c.triggerAnimation(EmoteFile.read(bytes));
+		for (int step = 0; step < lastTick; step++) {
+			AnimationData d = new AnimationData(0, 0, false);
+			c.tick(d);
+			c.setupAnim(d);
+			check.accept(step + 1, c);
+		}
+	}
+
+	@SafeVarargs
+	private static int lastTick(List<float[]>... lists) {
+		int last = 0;
+		for (List<float[]> list : lists) for (float[] f : list) last = Math.max(last, (int) f[0]);
+		return last;
+	}
+
+	/** The arm's pitch and elbow bend equal the file's numbers at every keyframe (no torso bend in these two). */
 	@ParameterizedTest
-	@ValueSource(strings = {"hello", "floss", "gangnam_style"})
-	void armPitchMatchesTheFileAndNoBendIsPlayed(String id) throws Exception {
+	@ValueSource(strings = {"hello", "floss"})
+	void armPitchAndBendMatchTheFile(String id) throws Exception {
 		byte[] bytes = Files.readAllBytes(DIR.resolve(id + ".emotecraft"));
 		Map<String, List<List<float[]>>> raw = rawKeyframes(bytes);
 		List<float[]> pitch = raw.get("rightArm").get(3), bend = raw.get("rightArm").get(7);
 		assertFalse(pitch.isEmpty() && bend.isEmpty(), id + ": the right arm moves");
-
-		Animation animation = EmoteFile.read(bytes);
-		HumanoidAnimationController c = new HumanoidAnimationController((ctl, data, set) -> PlayState.CONTINUE, MolangLoader::createNewEngine);
-		c.triggerAnimation(animation);
-		int lastTick = 0;
-		for (float[] f : pitch) lastTick = Math.max(lastTick, (int) f[0]);
-		for (float[] f : bend) lastTick = Math.max(lastTick, (int) f[0]);
-		// The first tick already advances the animation to tick 1, so loop step t shows tick t + 1.
-		for (int step = 0; step < lastTick; step++) {
-			int t = step + 1;
-			AnimationData d = new AnimationData(0, 0, false);
-			c.tick(d);
-			c.setupAnim(d);
+		play(bytes, lastTick(pitch, bend), (t, c) -> {
 			PlayerAnimBone arm = c.get3DTransform(new PlayerAnimBone("right_arm"));
 			for (float[] f : pitch) if ((int) f[0] == t) assertEquals(f[1], arm.rotX, 1e-3, id + " right arm pitch at tick " + t);
-			assertEquals(0, arm.bend, 1e-6, id + " right arm bend at tick " + t);
-			for (String part : new String[] {"torso", "right_leg", "left_leg", "left_arm"})
-				assertEquals(0, c.get3DTransform(new PlayerAnimBone(part)).bend, 1e-6, id + " " + part + " bend at tick " + t);
-		}
+			for (float[] f : bend) if ((int) f[0] == t) assertEquals(f[1], arm.bend, 1e-3, id + " right arm bend at tick " + t);
+		});
+	}
+
+	/**
+	 * A torso bend (Gangnam Style): the file's body bend reaches the torso, and the animation asks for the head and
+	 * arms to follow it, which Bendable Cuboids draws, so they stay attached to the bent torso.
+	 */
+	@Test
+	void torsoBendMatchesTheFileAndCarriesTheHeadAndArms() throws Exception {
+		byte[] bytes = Files.readAllBytes(DIR.resolve("gangnam_style.emotecraft"));
+		List<float[]> bend = rawKeyframes(bytes).get("body").get(7);
+		assertFalse(bend.isEmpty(), "Gangnam Style bends its torso");
+		assertEquals(Boolean.TRUE, EmoteFile.read(bytes).data().get(ExtraAnimationData.APPLY_BEND_TO_OTHER_BONES_KEY).orElse(null),
+				"head and arms follow the torso bend");
+		play(bytes, lastTick(bend), (t, c) -> {
+			for (float[] f : bend) if ((int) f[0] == t) assertEquals(f[1], c.get3DTransform(new PlayerAnimBone("torso")).bend, 1e-3, "torso bend at tick " + t);
+		});
 	}
 }

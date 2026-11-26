@@ -40,6 +40,9 @@ dependencies {
 	// Player Animation Library (MIT): plays the emotes on the player model; nested in the mod jar (it carries its core).
 	modImplementation "com.zigythebird.playeranim:PlayerAnimationLibFabric:1.1.12+mc.1.21.11"
 	include "com.zigythebird.playeranim:PlayerAnimationLibFabric:1.1.12+mc.1.21.11"
+	// Bendable Cuboids (MIT, by the same authors): draws the elbow, knee and waist bends PAL computes
+	modImplementation "com.zigythebird.bendable_cuboids:BendableCuboidsFabric:2.0.1+mc.1.21.11"
+	include "com.zigythebird.bendable_cuboids:BendableCuboidsFabric:2.0.1+mc.1.21.11"
 
 	testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"

@@ -21,6 +21,8 @@ credit kept. Each emote's author is also shown in the game, in Mods > Emotes > E
 | Twerk | Twerk (Dance) | SPEmotes |
 
 Animations are played with Player Animation Library (MIT, by Zigy and dima_dencep), nested in this mod's jar.
+Elbow, knee and waist bends are drawn by Bendable Cuboids 2.0.1+mc.1.21.11 (MIT, by KosmX and Zigy,
+https://github.com/PlayerAnimationLibrary/BendableCuboids), also nested in this mod's jar.
 No Emotecraft code is included. Files are imported with tools/EmoteImport.java.
 
 # Legacy animations (Animatium)
