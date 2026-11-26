@@ -24,9 +24,11 @@ import org.lwjgl.glfw.GLFW;
  * Emotes, local only: hold the wheel key, release on an emote, and your own player plays it (through Player
  * Animation Library) with its sound, if it has one. Nothing is sent to the server and nobody else sees or hears it.
  * <p>
- * The camera goes to third person (front by default) and back afterwards. An emote stops when it ends, when
- * the wheel key is pressed again, or on movement, jump, sneak, attack, use, damage, riding, swimming, gliding,
- * sleeping, death, an inventory screen, a dimension change or a disconnect.
+ * The camera goes to third person (behind, by default) and back to the player's own view afterwards. Walking,
+ * sprinting, jumping and strafing keep the emote going; standing still, the drawn body holds its yaw while the mouse
+ * turns the real one, so the camera can orbit the emote. It stops when it ends, when the wheel key is pressed again,
+ * or on attack, use, damage, sneaking, crawling or swimming, gliding, sleeping, riding, death, an inventory screen,
+ * a dimension change or a disconnect (see EmoteCancel).
  */
 public class EmotesMod extends Mod {
 	/** The animation layer on the player model. */
@@ -34,7 +36,8 @@ public class EmotesMod extends Mod {
 	public static final int SLOTS = 8;
 	/** G: B is Waypoints' "add waypoint" key, and Simple Voice Chat uses V, M, N, H and Caps Lock. */
 	private final Setting.Key key = key("key", "Wheel key", GLFW.GLFW_KEY_G);
-	private final Setting.Choice camera = choice("camera", "Camera", "Front", "Front", "Back", "Don't change");
+	/** Third person back by default (one F5 press); a new id, so configs saved with the old "Front" default move over. */
+	private final Setting.Choice camera = choice("camera_view", "Camera", "Back", "Back", "Front", "Don't change");
 	private final Setting.Bool sound = bool("sound", "Emote sound", true);
 	private final Setting.Num volume = num("volume", "Emote volume (%)", 100, 0, 100, 5);
 	/** The 8 slots as emote ids, comma separated; an empty entry is an empty slot. */
@@ -138,6 +141,8 @@ public class EmotesMod extends Mod {
 		if (playing == null) return;
 		playing = null;
 		emotingEntity = -1;
+		locked = false;
+		blending = false;
 		if (mc.player != null) {
 			PlayerAnimationController c = controller(mc.player);
 			if (c != null) c.stop();
@@ -157,13 +162,62 @@ public class EmotesMod extends Mod {
 		return PlayerAnimationAccess.getPlayerAnimationLayer(player, LAYER) instanceof PlayerAnimationController c ? c : null;
 	}
 
-	/** Anything that cancels an emote, or keeps one from starting. */
+	/** Anything that cancels an emote, or keeps one from starting (see EmoteCancel; moving does not). */
 	private static boolean interrupted(Minecraft mc) {
 		LocalPlayer p = mc.player;
 		Options o = mc.options;
-		return o.keyUp.isDown() || o.keyDown.isDown() || o.keyLeft.isDown() || o.keyRight.isDown() || o.keyJump.isDown()
-				|| o.keyShift.isDown() || o.keyAttack.isDown() || o.keyUse.isDown()
-				|| p.hurtTime > 0 || p.isPassenger() || p.isSwimming() || p.isFallFlying() || p.isSleeping() || p.isDeadOrDying()
-				|| mc.screen instanceof AbstractContainerScreen<?>;
+		return EmoteCancel.reason(new EmoteCancel.Signals(o.keyAttack.isDown(), o.keyUse.isDown(), p.hurtTime > 0,
+				o.keyShift.isDown() || p.isShiftKeyDown(), p.getPose() == net.minecraft.world.entity.Pose.SWIMMING || p.isSwimming(),
+				p.isFallFlying(), p.isSleeping(), p.isPassenger(), p.isDeadOrDying(), mc.screen instanceof AbstractContainerScreen<?>)) != null;
+	}
+
+	// ---- body yaw while standing still (render side only; the real rotation is never touched) ----
+
+	private static final long REALIGN_NANOS = 150_000_000L;
+	private static boolean locked, blending;
+	private static float lockedYaw, blendFrom;
+	private static long blendStart;
+
+	/** Whether the local player is emoting. */
+	public static boolean emoting(net.minecraft.world.entity.Entity entity) {
+		return emotingEntity != -1 && entity.getId() == emotingEntity;
+	}
+
+	/** True while the rendered body is held still (standing): the head then follows the emote, not the mouse. */
+	public static boolean bodyLocked() {
+		return locked;
+	}
+
+	/**
+	 * The body yaw to draw for the emoting local player, or NaN for the normal one. Standing still: held at the yaw it
+	 * had when the player stopped (or the emote started), while the mouse keeps turning the real yaw, so the camera
+	 * orbits the emote. Moving again: back to the real body yaw over 150 ms.
+	 */
+	public static float renderBodyYaw(LocalPlayer p, float realBodyYaw) {
+		Options o = Minecraft.getInstance().options;
+		boolean moving = o.keyUp.isDown() || o.keyDown.isDown() || o.keyLeft.isDown() || o.keyRight.isDown() || o.keyJump.isDown()
+				|| p.getDeltaMovement().horizontalDistance() > 0.01;
+		float blended = Float.NaN;
+		if (blending) {
+			float t = (System.nanoTime() - blendStart) / (float) REALIGN_NANOS;
+			if (t >= 1) blending = false;
+			else blended = net.minecraft.util.Mth.rotLerp(t * t * (3 - 2 * t), blendFrom, realBodyYaw);
+		}
+		if (!moving) {
+			if (!locked) {
+				locked = true;
+				blending = false;
+				lockedYaw = Float.isNaN(blended) ? realBodyYaw : blended;
+			}
+			return lockedYaw;
+		}
+		if (locked) {
+			locked = false;
+			blending = true;
+			blendFrom = lockedYaw;
+			blendStart = System.nanoTime();
+			return lockedYaw;
+		}
+		return blended;
 	}
 }
