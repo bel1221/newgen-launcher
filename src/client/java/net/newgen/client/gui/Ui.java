@@ -52,9 +52,83 @@ public final class Ui {
 	public static void use(String name) {
 		Palette p = PALETTES[0];
 		for (Palette q : PALETTES) if (q.name().equals(name)) p = q;
-		GLASS = p.glass();
-		DARK = p.dark();
-		ACCENT = p.accent();
+		blendTo(p.glass(), p.dark(), p.accent());
+	}
+
+	/** The Custom palette (Theme > Palette > Custom): the player's own accent, panel and button colours. */
+	public static void custom(int accent, int glass, int dark) {
+		blendTo(glass, dark, accent);
+	}
+
+	private static int toGlass, toDark, toAccent, fromGlass, fromDark, fromAccent;
+	private static long blendStart;
+
+	/** Moves the palette to new colours over 250 ms (a crossfade when the palette changes; at once with Reduce motion). */
+	private static void blendTo(int glass, int dark, int accent) {
+		if (blendStart == 0) {
+			toGlass = fromGlass = GLASS = glass;
+			toDark = fromDark = DARK = dark;
+			toAccent = fromAccent = ACCENT = accent;
+			blendStart = 1;
+			return;
+		}
+		if (glass != toGlass || dark != toDark || accent != toAccent) {
+			fromGlass = GLASS;
+			fromDark = DARK;
+			fromAccent = ACCENT;
+			toGlass = glass;
+			toDark = dark;
+			toAccent = accent;
+			blendStart = System.currentTimeMillis();
+		}
+		float k = ease(blendStart, 250);
+		GLASS = lerp(fromGlass, toGlass, k);
+		DARK = lerp(fromDark, toDark, k);
+		ACCENT = lerp(fromAccent, toAccent, k);
+	}
+
+	// ---- search ----
+
+	/** Lower case without accents (đ as d), so "dong ho" finds "Đồng hồ"; the same folding as the Mods search. */
+	public static String fold(String text) {
+		return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "")
+				.replace('đ', 'd').replace('Đ', 'd').toLowerCase(java.util.Locale.ROOT);
+	}
+
+	/**
+	 * Text with the part matching the search drawn in the accent (folded per character, so "dong" lights "Đồng").
+	 * Returns the width drawn.
+	 */
+	public static int highlighted(GuiGraphics g, String s, int x, int y, int color, int face, String query) {
+		String q = query == null ? "" : fold(query.trim());
+		int at = -1, end = -1;
+		if (!q.isEmpty()) {
+			StringBuilder folded = new StringBuilder();
+			int[] origin = new int[s.length() + 1];
+			for (int i = 0; i < s.length(); i++) {
+				String f = fold(String.valueOf(s.charAt(i)));
+				for (int k = 0; k < f.length(); k++) {
+					if (folded.length() < origin.length) origin[folded.length()] = i;
+					folded.append(f.charAt(k));
+				}
+			}
+			int hit = folded.indexOf(q);
+			if (hit >= 0 && hit + q.length() <= folded.length() && folded.length() <= s.length()) {
+				at = origin[hit];
+				end = hit + q.length() < folded.length() ? origin[hit + q.length()] : s.length();
+			}
+		}
+		if (at < 0) {
+			text(g, s, x, y, color, face);
+			return width(s, face);
+		}
+		String a = s.substring(0, at), m = s.substring(at, end), b = s.substring(end);
+		text(g, a, x, y, color, face);
+		int mx = x + width(a, face);
+		text(g, m, mx, y, ACCENT, face);
+		g.fill(mx, y + 9, mx + width(m, face), y + 10, ACCENT);
+		text(g, b, mx + width(m, face), y, color, face);
+		return width(s, face);
 	}
 	/** The track of a switch that is off. */
 	public static final int OFF = 0x40FFFFFF;
@@ -86,6 +160,11 @@ public final class Ui {
 	/** A string of this mod in the game's language (lang/en_us.json, lang/vi_vn.json): key "newgen_client.<key>". */
 	public static String tr(String key) {
 		return I18n.get("newgen_client." + key);
+	}
+
+	/** tr() with values for its %s / %d places. */
+	public static String trf(String key, Object... args) {
+		return I18n.get("newgen_client." + key, args);
 	}
 
 	// ---- text ----
@@ -226,8 +305,11 @@ public final class Ui {
 	/** The icon atlas: white line icons, 64x64 each, in one row; drawn tinted at any size. */
 	private static final Identifier ICONS = Identifier.fromNamespaceAndPath(NewgenClient.ID, "textures/icons.png");
 	public static final int I_PLAY = 0, I_USER = 1, I_USERS = 2, I_GEAR = 3, I_GRID = 4, I_CLOSE = 5, I_BACK = 6,
-			I_SEARCH = 7, I_LAYOUT = 8, I_GLOBE = 9, I_EYE = 10, I_MOUSE = 11, I_SLIDERS = 12, I_PALETTE = 13;
-	private static final int ICON_COUNT = 14;
+			I_SEARCH = 7, I_LAYOUT = 8, I_GLOBE = 9, I_EYE = 10, I_MOUSE = 11, I_SLIDERS = 12, I_PALETTE = 13,
+			// menu glyphs drawn by "java tools/ModIcons.java menu" (the same pen as the mod icons)
+			I_STAR = 14, I_STAR_ON = 15, I_RESET = 16, I_KEYBOARD = 17, I_HIDDEN = 18, I_UNDO = 19, I_COPY = 20, I_SORT = 21,
+			I_BELL = 22, I_PLUS = 23, I_MORE = 24, I_DOWNLOAD = 25, I_UPLOAD = 26, I_SOUND = 27;
+	private static final int ICON_COUNT = 28;
 
 	/** The mod icons: smooth white line icons drawn by tools/ModIcons.java on a 24 grid, 64 px tiles, 16 a row in
 	 * textures/mod_icons_<px>.png (one per on-screen pixel size), ids in mod_icons.txt; the same system as the menu glyphs. */

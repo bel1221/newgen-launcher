@@ -40,4 +40,15 @@ public class VanillaPartMod extends Mod {
 		if (pushed) g.pose().popMatrix();
 		pushed = false;
 	}
+
+	// Wave 3 vanilla HUD
+	/** Draws a part inside begin/end; skipped when hidden. For call sites that can only be wrapped, not injected. */
+	public void wrap(GuiGraphics g, Runnable draw) {
+		if (begin(g)) return;
+		try {
+			draw.run();
+		} finally {
+			end(g);
+		}
+	}
 }

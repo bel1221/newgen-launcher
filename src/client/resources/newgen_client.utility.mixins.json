@@ -4,11 +4,29 @@
 	"compatibilityLevel": "JAVA_21",
 	"client": [
 		"ChatComponentMixin",
+		"ChatScreenMixin",
 		"GuiGraphicsMixin",
 		"ItemStackMixin",
 		"ScreenBackgroundMixin",
 		"ScreenshotMixin",
-		"StringDecomposerMixin"
+		"StringDecomposerMixin",
+		"AbstractContainerScreenMixin",
+		"ContainerDimMixin",
+		"GuiHotbarMixin",
+		"HotbarScrollMixin",
+		"InventoryScaleMixin",
+		"LocalPlayerDropMixin",
+		"MultiPlayerGameModeMixin",
+		"SoundEngineVolumeMixin",
+		"FramerateLimitMixin",
+		"MinecraftConfirmQuitMixin",
+		"BetterF1HandMixin",
+		"ItemEntityRenderStateScaleMixin",
+		"ItemEntityRendererScaleMixin",
+		"EntityRendererPingMixin",
+		"LivingEntityKillSoundMixin",
+		"PackSelectionScreenMixin",
+		"PackEntryFavouriteMixin"
 	],
 	"injectors": { "defaultRequire": 1 }
 }

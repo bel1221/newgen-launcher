@@ -8,20 +8,35 @@ public final class HudMods {
 	public static final String CATEGORY = "HUD";
 
 	// Mods that change a vanilla HUD part; the mixins in mixin/hud read these.
-	public static final VanillaPartMod ACTION_BAR = new VanillaPartMod("action_bar", "Action Bar",
-			"Hide, scale or move the message above the hotbar", 0.5f, 1f);
+	public static final FadingPartMod ACTION_BAR = new FadingPartMod("action_bar", "Action Bar",
+			"Hide, scale or move the message above the hotbar", 0.5f, 1f, true);
 	public static final VanillaPartMod BOSSBAR = new VanillaPartMod("bossbar", "Bossbar",
 			"Hide, scale or move the boss bars", 0.5f, 0f);
-	public static final VanillaPartMod SCOREBOARD = new VanillaPartMod("scoreboard", "Scoreboard",
-			"Hide, scale or move the sidebar scoreboard", 1f, 0.5f);
-	public static final VanillaPartMod TAB = new VanillaPartMod("tab", "Tab",
-			"Hide, scale or move the player list", 0.5f, 0f);
-	public static final VanillaPartMod TITLES = new VanillaPartMod("titles", "Titles",
-			"Hide, scale or move the big titles", 0.5f, 0.5f);
+	public static final ScoreboardMod SCOREBOARD = new ScoreboardMod();
+	public static final TabMod TAB = new TabMod();
+	public static final FadingPartMod TITLES = new FadingPartMod("titles", "Titles",
+			"Hide, scale or move the big titles", 0.5f, 0.5f, false);
 	public static final Mod LOCATOR_BAR = new Mod("locator_bar", "Locator Bar",
 			"Hides the locator bar, so the XP bar shows instead");
 	public static final F3DisplayMod F3_DISPLAY = new F3DisplayMod();
 	public static final PotionEffectsMod POTION_EFFECTS = new PotionEffectsMod();
+	// Wave 3 vanilla HUD
+	public static final VanillaPartMod HOTBAR = new VanillaPartMod("hotbar", "Hotbar",
+			"Hide, scale or move the hotbar", 0.5f, 1f);
+	public static final HealthPartMod HEALTH_BAR = new HealthPartMod();
+	public static final HungerPartMod HUNGER_BAR = new HungerPartMod();
+	public static final VanillaPartMod ARMOR_BAR = new VanillaPartMod("armor_bar", "Armor Bar",
+			"Hide, scale or move the armor bar", 0.5f, 1f);
+	public static final VanillaPartMod AIR_BAR = new VanillaPartMod("air_bar", "Air Bubbles",
+			"Hide, scale or move the air bubbles", 0.5f, 1f);
+	public static final VanillaPartMod XP_BAR = new VanillaPartMod("xp_bar", "XP Bar",
+			"Hide, scale or move the experience bar and level", 0.5f, 1f);
+	public static final VanillaPartMod ITEM_NAME = new VanillaPartMod("held_item_name", "Held Item Name",
+			"Hide, scale or move the item name shown above the hotbar", 0.5f, 1f);
+	public static final VanillaPartMod MOUNT_HEALTH = new VanillaPartMod("mount_health", "Mount Health",
+			"Hide, scale or move the hearts of the animal you ride", 0.5f, 1f);
+	public static final VanillaPartMod EFFECT_ICONS = new VanillaPartMod("effect_icons", "Effect Icons",
+			"Hide, scale or move the vanilla status effect icons", 1f, 0f);
 
 	private HudMods() {
 	}
@@ -61,5 +76,41 @@ public final class HudMods {
 		Mods.register(CATEGORY, new TotemCounterMod());
 		Mods.register(CATEGORY, new ViewAnglesMod());
 		Mods.register(CATEGORY, new WailaMod());
+		// Wave 3 HUD 1
+		Mods.register(CATEGORY, new SpeedMod());
+		Mods.register(CATEGORY, new TpsMod());
+		Mods.register(CATEGORY, new PlayerPreviewMod());
+		Mods.register(CATEGORY, new PlayerHeadMod());
+		Mods.register(CATEGORY, new BatteryMod());
+		Mods.register(CATEGORY, new FacingMod());
+		Mods.register(CATEGORY, new AnalogClockMod());
+		Mods.register(CATEGORY, new CustomTextMod());
+		Mods.register(CATEGORY, new CustomImageMod());
+		Mods.register(CATEGORY, new ShapeMod());
+		Mods.register(CATEGORY, new BiomeMod());
+		Mods.register(CATEGORY, new BlockAboveMod());
+		// Wave 3 HUD 2
+		Mods.register(CATEGORY, new ChunkCounterMod());
+		Mods.register(CATEGORY, new EntityCounterMod());
+		Mods.register(CATEGORY, new BlockPlaceCountMod());
+		Mods.register(CATEGORY, new ItemLoreMod());
+		Mods.register(CATEGORY, new ShadersMod());
+		Mods.register(CATEGORY, new InventoryHudMod());
+		Mods.register(CATEGORY, new LightLevelMod());
+		Mods.register(CATEGORY, new SeedMod());
+		Mods.register(CATEGORY, new MouseStrokesMod());
+		Mods.register(CATEGORY, new HotbarKeysMod());
+		Mods.register(CATEGORY, new ElytraCrosshairMod());
+		Mods.register(CATEGORY, new StyledSubtitlesMod());
+		// Wave 3 vanilla HUD
+		Mods.register(CATEGORY, HOTBAR);
+		Mods.register(CATEGORY, HEALTH_BAR);
+		Mods.register(CATEGORY, HUNGER_BAR);
+		Mods.register(CATEGORY, ARMOR_BAR);
+		Mods.register(CATEGORY, AIR_BAR);
+		Mods.register(CATEGORY, XP_BAR);
+		Mods.register(CATEGORY, ITEM_NAME);
+		Mods.register(CATEGORY, MOUNT_HEALTH);
+		Mods.register(CATEGORY, EFFECT_ICONS);
 	}
 }

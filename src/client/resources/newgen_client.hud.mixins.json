@@ -5,8 +5,13 @@
 	"client": [
 		"BossHealthOverlayMixin",
 		"DebugScreenOverlayMixin",
+		"ExperienceBarRendererMixin",
 		"GuiMixin",
-		"PlayerTabOverlayMixin"
+		"PlayerTabOverlayMixin",
+		"ClientLevelTimeMixin",
+		"BlockItemPlaceMixin",
+		"GameRendererFovInvoker",
+		"SubtitleOverlayMixin"
 	],
 	"injectors": { "defaultRequire": 1 }
 }

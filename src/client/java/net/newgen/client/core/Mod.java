@@ -92,4 +92,58 @@ public class Mod {
 		settings.add(s);
 		return s;
 	}
+
+	protected Setting.Num numBox(String id, String name, double value, double min, double max, double step) {
+		Setting.Num s = num(id, name, value, min, max, step);
+		s.box = true;
+		return s;
+	}
+
+	protected Setting.Choice radio(String id, String name, String value, String... options) {
+		Setting.Choice s = choice(id, name, value, options);
+		s.radio = true;
+		return s;
+	}
+
+	protected Setting.Range range(String id, String name, double lo, double hi, double min, double max, double step) {
+		Setting.Range s = new Setting.Range(id, name, lo, hi, min, max, step);
+		settings.add(s);
+		return s;
+	}
+
+	protected Setting.Multi multi(String id, String name, String[] options, String... selected) {
+		Setting.Multi s = new Setting.Multi(id, name, options, selected);
+		settings.add(s);
+		return s;
+	}
+
+	protected Setting.Order order(String id, String name, String... items) {
+		Setting.Order s = new Setting.Order(id, name, items);
+		settings.add(s);
+		return s;
+	}
+
+	protected Setting.Pick item(String id, String name, String value) {
+		Setting.Pick s = new Setting.Pick(id, name, Setting.Pick.Kind.ITEM, value);
+		settings.add(s);
+		return s;
+	}
+
+	protected Setting.Pick effect(String id, String name, String value) {
+		Setting.Pick s = new Setting.Pick(id, name, Setting.Pick.Kind.EFFECT, value);
+		settings.add(s);
+		return s;
+	}
+
+	protected Setting.FilePath file(String id, String name, String value, String... extensions) {
+		Setting.FilePath s = new Setting.FilePath(id, name, value, extensions);
+		settings.add(s);
+		return s;
+	}
+
+	protected Setting.Action action(String id, String name, String label, Runnable run) {
+		Setting.Action s = new Setting.Action(id, name, label, run);
+		settings.add(s);
+		return s;
+	}
 }

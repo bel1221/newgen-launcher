@@ -45,8 +45,14 @@ public class NewgenTitleScreen extends Screen {
 		logoY = Math.max(CORNER + EDGE, (height - logoH - stack) / 2);
 		int x = (width - w) / 2, y = logoY + logoH, half = (w - GAP) / 2;
 
-		addRenderableWidget(new Ui.Btn(x, y, w, BUTTON_H, Ui.tr("title.play"), Ui.I_PLAY, Ui.PRIMARY, Ui.CAPS, () -> ConnectScreen.startConnecting(
-				this, minecraft, ServerAddress.parseString(SERVER), new ServerData("NewGen", SERVER, ServerData.Type.OTHER), false, null)));
+		// After a click Play says "Connecting..." and takes no second click (the join screen follows).
+		Ui.Btn[] play = new Ui.Btn[1];
+		play[0] = addRenderableWidget(new Ui.Btn(x, y, w, BUTTON_H, Ui.tr("title.play"), Ui.I_PLAY, Ui.PRIMARY, Ui.CAPS, () -> {
+			if (!play[0].active) return;
+			play[0].active = false;
+			play[0].setMessage(Component.literal(Ui.tr("title.connecting")));
+			ConnectScreen.startConnecting(this, minecraft, ServerAddress.parseString(SERVER), new ServerData("NewGen", SERVER, ServerData.Type.OTHER), false, null);
+		}));
 		addRenderableWidget(new Ui.Btn(x, y + step, w, BUTTON_H, I18n.get("menu.singleplayer"), Ui.I_USER, Ui.DARK, Ui.CAPS,
 				() -> minecraft.setScreen(new SelectWorldScreen(this))));
 		addRenderableWidget(new Ui.Btn(x, y + step * 2, w, BUTTON_H, I18n.get("menu.multiplayer"), Ui.I_USERS, Ui.DARK, Ui.CAPS,

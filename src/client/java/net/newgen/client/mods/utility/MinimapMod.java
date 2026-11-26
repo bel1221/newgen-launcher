@@ -1,7 +1,15 @@
 package net.newgen.client.mods.utility;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import org.slf4j.LoggerFactory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -22,6 +30,7 @@ public class MinimapMod extends HudMod {
 	private final Setting.Bool waypoints = bool("waypoints", "Show waypoints", true);
 	private final Setting.Color waypointColor = color("waypoint_color", "Waypoint marker colour", 0xFFFFD75E);
 	private final Setting.Bool coordinates = bool("coordinates", "Show coordinates", true);
+	private final Setting.Action export = action("export", "Export map as PNG", "newgen_client.minimap.export", this::exportPng);
 
 	private final int[] colors = new int[GRID * GRID];
 	private ClientLevel mappedLevel;
@@ -118,6 +127,30 @@ public class MinimapMod extends HudMod {
 				}
 				colors[gz * GRID + gx] = color;
 			}
+		}
+	}
+
+	/** Saves the map as it is now (4 pixels per cell) to screenshots/minimap_<time>.png and says so in chat. */
+	private void exportPng() {
+		Minecraft mc = Minecraft.getInstance();
+		if (mappedLevel == null || mc.player == null) return;
+		int px = 4;
+		String name = "minimap_" + new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss").format(new Date()) + ".png";
+		Path file = mc.gameDirectory.toPath().resolve("screenshots").resolve(name);
+		try (NativeImage image = new NativeImage(GRID * px, GRID * px, true)) {
+			for (int z = 0; z < GRID * px; z++) {
+				for (int x = 0; x < GRID * px; x++) image.setPixel(x, z, colors[(z / px) * GRID + x / px]);
+			}
+			// Player in the middle, in the marker colour.
+			int c = HALF * px;
+			for (int z = c - 3; z < c + 3; z++) for (int x = c - 3; x < c + 3; x++) image.setPixel(x, z, playerColor.value | 0xFF000000);
+			Files.createDirectories(file.getParent());
+			image.writeToFile(file);
+			mc.player.displayClientMessage(Component.translatable("newgen_client.minimap.exported", Component.literal(name)
+					.withStyle(s -> s.withUnderlined(true).withClickEvent(new ClickEvent.OpenFile(file.toFile())))), false);
+		} catch (Exception e) {
+			LoggerFactory.getLogger("newgen_client").error("Could not export the minimap to {}", file, e);
+			mc.player.displayClientMessage(Component.translatable("newgen_client.minimap.export_failed"), false);
 		}
 	}
 }

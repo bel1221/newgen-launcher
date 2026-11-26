@@ -49,10 +49,14 @@ public class WaypointsMod extends Mod {
 	private final Setting.Bool labelBackground = bool("label_background", "Label background", true);
 	private final Setting.Num labelScale = num("label_scale", "Label scale", 1.0, 0.5, 3.0, 0.1);
 	private final Setting.Num maxDistance = num("max_distance", "Hide beyond (blocks, 0 = never)", 0, 0, 5000, 100);
+	private final Setting.Bool beam = bool("beam", "Beacon beam", true);
+	private final Setting.Num beamWidth = num("beam_width", "Beam width", 3, 1, 8, 1);
+	private final Setting.Choice marker = choice("marker", "Marker shape", "Diamond", "None", "Diamond", "Square", "Circle", "Arrow");
+	private final Setting.Key menuKey = key("menu_key", "Open waypoint list", -1);
 
 	/** Key: server address or world name, then "|", then the dimension id. */
 	private Map<String, List<Waypoint>> all = new HashMap<>();
-	private final KeyPoll addPoll = new KeyPoll(), removePoll = new KeyPoll();
+	private final KeyPoll addPoll = new KeyPoll(), removePoll = new KeyPoll(), menuPoll = new KeyPoll();
 	private boolean wasDead;
 
 	public WaypointsMod() {
@@ -77,8 +81,9 @@ public class WaypointsMod extends Mod {
 
 	private void tick(Minecraft mc) {
 		// Poll every tick, even when off, so a key held while switching the mod on does not fire.
-		boolean add = addPoll.clicked(mc, addKey), remove = removePoll.clicked(mc, removeKey);
+		boolean add = addPoll.clicked(mc, addKey), remove = removePoll.clicked(mc, removeKey), menu = menuPoll.clicked(mc, menuKey);
 		if (!enabled || mc.player == null || mc.level == null) return;
+		if (menu) mc.setScreen(new WaypointListScreen(this));
 
 		boolean dead = mc.player.isDeadOrDying();
 		if (dead && !wasDead && deathWaypoint.value) add(mc, "Death");
@@ -121,6 +126,7 @@ public class WaypointsMod extends Mod {
 			Vec3 pos = new Vec3(w.x, w.y + 1, w.z);
 			Vec3 d = pos.subtract(cam);
 			if (maxDistance.get() > 0 && d.length() > maxDistance.get()) continue;
+			if (beam.value) drawBeam(g, mc, w, cam, forward);
 			if (d.x * forward.x() + d.y * forward.y() + d.z * forward.z() <= 0) continue; // behind the camera
 			// shortcut: the game's own projection ignores view bobbing, so labels sway slightly while walking.
 			Vec3 ndc = mc.gameRenderer.projectPointToScreen(pos);
@@ -133,9 +139,80 @@ public class WaypointsMod extends Mod {
 			g.pose().translate(sx, sy);
 			g.pose().scale(s, s);
 			if (labelBackground.value) g.fill(-tw / 2 - 2, -6, tw / 2 + 2, 5, 0x80000000);
-			g.drawString(mc.font, label, -tw / 2, -4, labelColor.value, true);
+			int color = labelColor.current();
+			g.drawString(mc.font, label, -tw / 2, -4, color, true);
+			drawMarker(g, marker.value, 0, -12, color);
 			g.pose().popMatrix();
 		}
+	}
+
+	// A light column straight up from the waypoint, like a beacon. Drawn on the HUD from projected points of the
+	// world column, so it shows through blocks like the labels do.
+	private void drawBeam(GuiGraphics g, Minecraft mc, Waypoint w, Vec3 cam, Vector3fc forward) {
+		int color = labelColor.current();
+		int glow = (color & 0x00FFFFFF) | 0x50000000, core = (color & 0x00FFFFFF) | 0xA0000000;
+		int half = (int) beamWidth.get();
+		double prevX = Double.NaN, prevY = 0;
+		for (int i = 0; i <= 32; i++) {
+			Vec3 p = new Vec3(w.x, w.y + i * 10, w.z);
+			Vec3 d = p.subtract(cam);
+			double x = Double.NaN, y = 0;
+			if (d.x * forward.x() + d.y * forward.y() + d.z * forward.z() > 0.5) {
+				Vec3 ndc = mc.gameRenderer.projectPointToScreen(p);
+				if (Math.abs(ndc.x) < 3 && Math.abs(ndc.y) < 3) {
+					x = (ndc.x + 1) / 2 * g.guiWidth();
+					y = (1 - ndc.y) / 2 * g.guiHeight();
+				}
+			}
+			if (!Double.isNaN(x) && !Double.isNaN(prevX)) {
+				int cx = (int) Math.round((x + prevX) / 2);
+				int top = (int) Math.floor(Math.min(y, prevY)), bottom = (int) Math.ceil(Math.max(y, prevY));
+				g.fill(cx - half, top, cx + half + 1, bottom, glow);
+				g.fill(cx - Math.max(0, half / 3), top, cx + Math.max(0, half / 3) + 1, bottom, core);
+			}
+			prevX = x;
+			prevY = y;
+		}
+	}
+
+	/** A small marker centred on x, y; shape is one of the "Marker shape" options. */
+	static void drawMarker(GuiGraphics g, String shape, int x, int y, int color) {
+		for (int pass = 0; pass < 2; pass++) {
+			int c = pass == 0 ? 0xC0000000 : color, o = pass == 0 ? 1 : 0; // shadow first
+			switch (shape) {
+				case "Diamond" -> {
+					for (int i = -3; i <= 3; i++) {
+						int h = 3 - Math.abs(i);
+						g.fill(x - h + o, y + i + o, x + h + 1 + o, y + i + 1 + o, c);
+					}
+				}
+				case "Square" -> g.fill(x - 3 + o, y - 3 + o, x + 4 + o, y + 4 + o, c);
+				case "Circle" -> {
+					for (int i = -3; i <= 3; i++) {
+						int h = (int) Math.round(Math.sqrt(12.25 - i * i));
+						g.fill(x - h + o, y + i + o, x + h + 1 + o, y + i + 1 + o, c);
+					}
+				}
+				case "Arrow" -> {
+					for (int i = 0; i <= 3; i++) {
+						int h = 3 - i;
+						g.fill(x - h + o, y - 1 + i + o, x + h + 1 + o, y + i + o, c);
+					}
+				}
+				default -> {
+					return;
+				}
+			}
+		}
+	}
+
+	/** Every waypoint of the current world and dimension, for the list screen; changes must be followed by changed(). */
+	List<Waypoint> editable(Minecraft mc) {
+		return all.computeIfAbsent(worldKey(mc), k -> new ArrayList<>());
+	}
+
+	void changed() {
+		save();
 	}
 
 	private void load() {
