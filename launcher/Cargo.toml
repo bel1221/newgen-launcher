@@ -67,3 +67,26 @@ lto = "fat"
 opt-level = 3
 panic = "abort"
 strip = true
+
+# Windows installer (README "Build the installer"): `cargo packager --release` in launcher\,
+# the way OneLauncher ships. The videos and the bundled mods are installed next to the .exe,
+# where paths.rs looks first.
+[package.metadata.packager]
+product-name = "Newgen Launcher"
+identifier = "net.newgenmc.launcher"
+category = "Game"
+publisher = "NewgenMC"
+homepage = "https://www.newgenmc.net/"
+formats = ["nsis"]
+out-dir = "../dist"
+before-packaging-command = "cargo build --release"
+binaries = [{ path = "newgen_launcher", main = true }]
+icons = ["assets/newgen/icon.png"]
+resources = [
+  { src = "videos", target = "videos" },
+  { src = "../mods", target = "mods" },
+]
+
+[package.metadata.packager.nsis]
+# Per-user install under %LOCALAPPDATA%: no administrator prompt
+installer-mode = "currentUser"

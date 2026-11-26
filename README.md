@@ -15,6 +15,18 @@ cargo build --release  # release build: launcher/target/release/newgen_launcher.
 
 When you ship the release `.exe`, put the `videos\` and `mods\` folders next to it. A development build reads them from `launcher\videos\` and `mods\` in this repository instead.
 
+## Build the installer
+
+The Windows installer is made with [cargo-packager](https://github.com/crabnebula-dev/cargo-packager) (NSIS), the way OneLauncher ships. It builds the release `.exe` and puts `launcher\videos\` and the repository's `mods\` (whatever jars are there) next to it.
+
+```
+cargo install cargo-packager --locked   # once
+cd launcher
+cargo packager --release
+```
+
+The installer lands in `dist\` (not committed), renamed to `Newgen Launcher Setup <version>.exe`. cargo-packager downloads NSIS into its own cache on the first run. It installs per user under `%LOCALAPPDATA%` (no administrator prompt), with a Start menu entry, a desktop shortcut and an uninstaller.
+
 ## What is where
 
 | Path | What it is |

@@ -21,3 +21,10 @@ Polyfrost's branding (logos, background art) is **not** used or included.
 
 ## Client mod content
 The `newgen-client` mod bundles Player Animation Library (MIT) and JCodec (BSD), and emote files by their credited authors (see `CREDITS.md` in the mod's resources).
+
+## Bundled mods (unmodified jars in `mods/`)
+- **Animatium** 4.4.1+1.21.11 by Mixces and lowercasebtw (contributors Tellinq, MicrocontrollersDev, Wyvest).
+  - <https://modrinth.com/mod/vidalia>, source <https://github.com/Legacy-Visuals-Project/Vidalia>.
+  - The released jar declares GPL-3.0-with-linking-exception; the current source branch is PolyForm Shield 1.0.0.
+  - We ship the official file unchanged and do not copy its code. Newgen Client only sets its public config fields at runtime.
+- **YetAnotherConfigLib (YACL)** 3.8.2+1.21.11 by isXander (LGPL-3.0), Animatium's required config library: <https://modrinth.com/mod/yacl>.
