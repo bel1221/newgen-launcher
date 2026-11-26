@@ -396,8 +396,8 @@ public class ModsScreen extends Screen {
 			if (!themeView()) Ui.button(g, bx, by, BUTTON_H, BUTTON_H, "", Ui.I_BACK, Ui.inside(mouseX, mouseY, bx, by, BUTTON_H, BUTTON_H) ? 1f : 0f, Ui.DARK, Ui.CAPS);
 			// The mod's icon leads its name in the header.
 			int iconX = themeView() ? bx : bx + BUTTON_H + 6;
-			boolean hasIcon = Ui.modIcon(g, selected.id, iconX, by - 1, Ui.TEXT);
-			int nameX = iconX + (hasIcon ? 20 : 2), toggleX = right() - PILL_W;
+			boolean hasIcon = Ui.modIcon(g, selected.id, iconX, by, 14, Ui.TEXT);
+			int nameX = iconX + (hasIcon ? 18 : 2), toggleX = right() - PILL_W;
 			Ui.text(g, Ui.fit(modName(selected), toggleX - 8 - nameX, Ui.TITLE, false), nameX, by + 3, Ui.TEXT, Ui.TITLE);
 			if (!themeView()) Ui.toggle(g, toggleX, by + 2, selected.enabled, Ui.inside(mouseX, mouseY, toggleX - 4, by, PILL_W + 4, BUTTON_H));
 			Ui.text(g, Ui.fit(modDescription(selected), right() - bx, Ui.UI, false), bx, by + BUTTON_H + 5, Ui.DIM, Ui.UI);
