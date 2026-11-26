@@ -414,6 +414,19 @@ public class ModIcons {
 		icon("enchant_labels", p -> p.sword(4, 20, 17, 7).tag("V"));
 	}
 
+	// Wave 3 utility 2
+	static {
+		icon("sound_volumes", p -> p.path(3, 9, 7, 9, 11, 5, 11, 19, 7, 15, 3, 15, 3, 9).line(16, 4, 16, 20).disc(16, 14, 2).line(20.5, 4, 20.5, 20).disc(20.5, 8, 2));
+		icon("pack_organizer", p -> p.rect(2, 6, 11, 14, 2).path(5, 6, 5, 3, 16, 3, 16, 8).circle(16.5, 14.5, 4).line(19.5, 17.5, 22, 20));
+		icon("screenshot_manager", p -> p.rect(2, 4, 20, 16, 2).path(5, 17, 10, 11, 13, 14, 15, 12, 19, 17).dot(16, 8));
+		icon("unfocused_limits", p -> p.rect(2, 5, 20, 14, 2).arc(10, 12, 4, 60, 240).text(15, 9, 3.5, 5, 1.5, "Z"));
+		icon("better_f1", p -> p.key("F1"));
+		icon("confirm_quit", p -> p.rect(3, 3, 10, 18, 1).dot(10.5, 12).text(16, 6, 4, 7, 1.6, "?"));
+		icon("uhc_overlay", p -> p.circle(12, 14, 7).line(12, 7, 12, 3).path(13, 5, 16, 3, 18, 4));
+		icon("ping_nametags", p -> p.rect(2, 3, 20, 8, 2).line(8, 21, 8, 18).line(12, 21, 12, 16).line(16, 21, 16, 14));
+		icon("kill_sounds", p -> p.sword(3, 21, 13, 11).arc(14, 10, 4, 5, 80).arc(14, 10, 7.5, 5, 80));
+	}
+
 	public static void main(String[] args) throws Exception {
 		if (args.length > 0 && args[0].equals("menu")) {
 			menu();

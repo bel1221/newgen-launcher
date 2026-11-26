@@ -16,7 +16,17 @@
 		"HotbarScrollMixin",
 		"InventoryScaleMixin",
 		"LocalPlayerDropMixin",
-		"MultiPlayerGameModeMixin"
+		"MultiPlayerGameModeMixin",
+		"SoundEngineVolumeMixin",
+		"FramerateLimitMixin",
+		"MinecraftConfirmQuitMixin",
+		"BetterF1HandMixin",
+		"ItemEntityRenderStateScaleMixin",
+		"ItemEntityRendererScaleMixin",
+		"EntityRendererPingMixin",
+		"LivingEntityKillSoundMixin",
+		"PackSelectionScreenMixin",
+		"PackEntryFavouriteMixin"
 	],
 	"injectors": { "defaultRequire": 1 }
 }
