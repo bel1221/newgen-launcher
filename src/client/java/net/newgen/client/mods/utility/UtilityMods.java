@@ -19,5 +19,15 @@ public final class UtilityMods {
 		Mods.register(CATEGORY, new HorseStatsMod());
 		Mods.register(CATEGORY, new WaypointsMod());
 		Mods.register(CATEGORY, new MinimapMod());
+		// Wave 3 utility 2
+		Mods.register(CATEGORY, new SoundVolumesMod());
+		Mods.register(CATEGORY, new PackOrganizerMod());
+		Mods.register(CATEGORY, new ScreenshotManagerMod());
+		Mods.register(CATEGORY, new UnfocusedLimitsMod());
+		Mods.register(CATEGORY, new BetterF1Mod());
+		Mods.register(CATEGORY, new ConfirmQuitMod());
+		Mods.register(CATEGORY, new UhcOverlayMod());
+		Mods.register(CATEGORY, new PingNametagsMod());
+		Mods.register(CATEGORY, new KillSoundsMod());
 	}
 }
