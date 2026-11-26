@@ -59,5 +59,18 @@ public final class HudMods {
 		Mods.register(CATEGORY, new TotemCounterMod());
 		Mods.register(CATEGORY, new ViewAnglesMod());
 		Mods.register(CATEGORY, new WailaMod());
+		// Wave 3 HUD 2
+		Mods.register(CATEGORY, new ChunkCounterMod());
+		Mods.register(CATEGORY, new EntityCounterMod());
+		Mods.register(CATEGORY, new BlockPlaceCountMod());
+		Mods.register(CATEGORY, new ItemLoreMod());
+		Mods.register(CATEGORY, new ShadersMod());
+		Mods.register(CATEGORY, new InventoryHudMod());
+		Mods.register(CATEGORY, new LightLevelMod());
+		Mods.register(CATEGORY, new SeedMod());
+		Mods.register(CATEGORY, new MouseStrokesMod());
+		Mods.register(CATEGORY, new HotbarKeysMod());
+		Mods.register(CATEGORY, new ElytraCrosshairMod());
+		Mods.register(CATEGORY, new StyledSubtitlesMod());
 	}
 }

@@ -6,7 +6,10 @@
 		"BossHealthOverlayMixin",
 		"DebugScreenOverlayMixin",
 		"GuiMixin",
-		"PlayerTabOverlayMixin"
+		"PlayerTabOverlayMixin",
+		"BlockItemPlaceMixin",
+		"GameRendererFovInvoker",
+		"SubtitleOverlayMixin"
 	],
 	"injectors": { "defaultRequire": 1 }
 }
