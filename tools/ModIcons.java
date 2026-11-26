@@ -373,6 +373,20 @@ public class ModIcons {
 		icon("shape", p -> p.rect(3, 3, 10, 10, 0).circle(16, 16, 5));
 		icon("biome", p -> p.path(2, 20, 9, 8, 13, 14, 16, 10, 22, 20, 2, 20).line(7.3, 11, 10.5, 11.5));
 		icon("block_above", p -> p.rect(5, 2, 14, 6, 0).circle(12, 18, 3.5).line(12, 13, 12, 10).head(12, 10, 0, -1));
+	static {
+		// ---- Wave 3 HUD 2
+		icon("chunk_counter", p -> p.rect(3, 3, 18, 18, 0).line(9, 3, 9, 21).line(15, 3, 15, 21).line(3, 9, 21, 9).line(3, 15, 21, 15).fill(9, 9, 6, 6, 0));
+		icon("entity_counter", p -> p.circle(8, 6, 3).path(3, 20, 3, 15, 8, 11, 13, 15, 13, 20).badge().circle(17, 8, 2.5).path(15, 13, 17, 12, 21, 14));
+		icon("block_place_count", p -> p.rect(3, 9, 12, 12, 0).path(9, 9, 9, 3).head(9, 3, 0, -1).tag("1"));
+		icon("item_lore", p -> p.rect(3, 3, 18, 18, 2).line(7, 8, 17, 8).line(7, 12, 17, 12).line(7, 16, 13, 16));
+		icon("shaders", p -> p.circle(12, 12, 8).arc(12, 12, 4.5, 90, 90).line(4, 12, 20, 12).dot(17, 16));
+		icon("inventory_hud", p -> p.rect(2, 5, 20, 14, 1).line(8.7, 5, 8.7, 19).line(15.3, 5, 15.3, 19).line(2, 12, 22, 12));
+		icon("light_level", p -> p.circle(12, 10, 5).line(12, 2, 12, 3).line(4, 10, 5, 10).line(19, 10, 20, 10).line(6.3, 4.3, 7, 5).line(17.7, 4.3, 17, 5).line(7, 20, 17, 20));
+		icon("seed", p -> p.path(12, 21, 12, 12).path(12, 15, 8, 12, 5, 8, 6, 5, 9, 6, 12, 10, 12, 12).path(12, 13, 15, 9, 19, 8, 19, 11, 16, 14, 12, 15));
+		icon("mouse_strokes", p -> p.rect(7, 4, 10, 16, 5).line(12, 4, 12, 9).path(2, 22, 4, 18, 3, 14).dot(3, 14));
+		icon("hotbar_keys", p -> p.rect(2, 12, 20, 8, 1).line(8.7, 12, 8.7, 20).line(15.3, 12, 15.3, 20).text(4, 3, 3, 5, 1.4, "1").text(10.5, 3, 3, 5, 1.4, "2").text(17, 3, 3, 5, 1.4, "3"));
+		icon("elytra_crosshair", p -> p.circle(12, 12, 5).line(12, 2, 12, 5).line(12, 19, 12, 22).line(2, 12, 5, 12).line(19, 12, 22, 12).dot(12, 12));
+		icon("styled_subtitles", p -> p.screen().fill(9, 13, 11, 4, 1).line(5, 10, 9, 10));
 	}
 
 	public static void main(String[] args) throws Exception {
