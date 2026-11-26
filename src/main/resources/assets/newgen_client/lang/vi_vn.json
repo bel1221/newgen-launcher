@@ -417,5 +417,6 @@
 	"newgen_client.setting.slide_new_messages_in": "Tin nhắn mới trượt vào",
 	"newgen_client.setting.move_chat_up_pixels": "Đẩy chat lên (pixel)",
 	"newgen_client.setting.peek_key_hold_to_read_chat": "Phím xem nhanh (giữ để đọc chat)",
-	"newgen_client.setting.hide_show_chat_key": "Phím ẩn / hiện chat"
+	"newgen_client.setting.hide_show_chat_key": "Phím ẩn / hiện chat",
+	"newgen_client.chat.searching": "Đang tìm trong chat (Ctrl+F hoặc Enter để dừng)"
 }

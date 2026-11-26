@@ -17,9 +17,51 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** Chat mod: shortcuts and :emoji: on what is sent; right-click a message to copy it, Shift + right-click to delete it. */
 @Mixin(ChatScreen.class)
 public class ChatScreenMixin {
+	@org.spongepowered.asm.mixin.Shadow protected net.minecraft.client.gui.components.EditBox input;
+	/** While searching: what was typed before Ctrl+F, put back when the search ends. */
+	@org.spongepowered.asm.mixin.Unique private String newgen$draft;
+
+	/** Enter while searching only ends the search; nothing is sent. */
+	@Inject(method = "handleChatInput(Ljava/lang/String;Z)V", at = @At("HEAD"), cancellable = true)
+	private void newgen$searchEnter(String typed, boolean addToHistory, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+		if (ChatMod.query() == null) return;
+		ChatMod.search(null, (ChatMod.Lines) Minecraft.getInstance().gui.getChat());
+		ci.cancel();
+	}
+
 	@ModifyVariable(method = "handleChatInput(Ljava/lang/String;Z)V", at = @At("HEAD"), argsOnly = true)
 	private String newgen$outgoing(String typed) {
 		return ChatMod.outgoing(typed);
+	}
+
+	/** Ctrl+F starts or ends searching the chat; the input field then holds the search text. */
+	@Inject(method = "keyPressed(Lnet/minecraft/client/input/KeyEvent;)Z", at = @At("HEAD"), cancellable = true)
+	private void newgen$searchKey(net.minecraft.client.input.KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+		if (event.key() != GLFW.GLFW_KEY_F || !event.hasControlDown() || !ChatMod.searchable()) return;
+		ChatMod.Lines chat = (ChatMod.Lines) Minecraft.getInstance().gui.getChat();
+		if (ChatMod.query() == null) {
+			newgen$draft = input.getValue();
+			input.setValue("");
+			ChatMod.search("", chat);
+		} else {
+			ChatMod.search(null, chat);
+			input.setValue(newgen$draft == null ? "" : newgen$draft);
+		}
+		cir.setReturnValue(true);
+	}
+
+	/** Closing the chat ends a search, so the full history is back next time. */
+	@Inject(method = "removed()V", at = @At("HEAD"))
+	private void newgen$endSearch(org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+		if (ChatMod.query() != null) ChatMod.search(null, (ChatMod.Lines) Minecraft.getInstance().gui.getChat());
+	}
+
+	/** While searching: the list follows what is typed, and a line above the input says so. */
+	@Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", at = @At("HEAD"))
+	private void newgen$searchFollow(net.minecraft.client.gui.GuiGraphics g, int mouseX, int mouseY, float partialTick, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+		if (ChatMod.query() == null) return;
+		ChatMod.search(input.getValue(), (ChatMod.Lines) Minecraft.getInstance().gui.getChat());
+		g.drawString(Minecraft.getInstance().font, Component.translatable("newgen_client.chat.searching"), 4, g.guiHeight() - 26, 0xFFFFD25A, true);
 	}
 
 	/** Image link preview: the link under the pointer, if it is one, shows its image beside the pointer. */

@@ -108,6 +108,9 @@ public class ChatMod extends Mod {
 		net.minecraft.client.GuiMessage newgen$messageAt(double y);
 
 		void newgen$delete(net.minecraft.client.GuiMessage message);
+
+		/** Rebuilds the shown lines (after the search changed). */
+		void newgen$refresh();
 	}
 
 	/** The message as it will be shown: stacked, mentions highlighted, links underlined, timestamped. */
@@ -169,6 +172,37 @@ public class ChatMod extends Mod {
 		if (sender == null) return text;
 		int i = wordIndex(text, sender.getProfile().name());
 		return i < 0 ? text : text.substring(0, i) + text.substring(i + sender.getProfile().name().length());
+	}
+
+	// ---- search (Ctrl+F in the open chat) ----
+
+	private static String query;
+
+	/** Whether Ctrl+F search is available (the Chat mod is on). */
+	public static boolean searchable() {
+		return on() != null;
+	}
+
+	/** The search text while searching, else null. */
+	public static String query() {
+		return query;
+	}
+
+	/** Starts or ends searching; with null the full history is shown again. */
+	public static void search(String text, Lines lines) {
+		String next = text == null ? null : text.strip().toLowerCase(Locale.ROOT);
+		if (java.util.Objects.equals(next, query)) return;
+		query = next;
+		lines.newgen$refresh();
+	}
+
+	/** Whether a message is shown: always, unless a search is on and it does not contain the search text. */
+	public static boolean shows(net.minecraft.client.GuiMessage message) {
+		return matches(message.content().getString(), query);
+	}
+
+	static boolean matches(String text, String query) {
+		return query == null || query.isEmpty() || text.toLowerCase(Locale.ROOT).contains(query);
 	}
 
 	// ---- look ----

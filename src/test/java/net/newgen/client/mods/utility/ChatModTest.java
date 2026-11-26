@@ -47,6 +47,14 @@ class ChatModTest {
 	}
 
 	@Test
+	void searchMatchesIgnoringCase() {
+		assertTrue(ChatMod.matches("Welcome to NewGen", "newgen"));
+		assertTrue(ChatMod.matches("anything", null), "no search");
+		assertTrue(ChatMod.matches("anything", ""), "empty search");
+		assertFalse(ChatMod.matches("hello", "bye"));
+	}
+
+	@Test
 	void newMessagesSlideInFor150Ms() {
 		assertEquals(9, ChatMod.slide(0));
 		assertTrue(ChatMod.slide(75) > 0 && ChatMod.slide(75) < 9);

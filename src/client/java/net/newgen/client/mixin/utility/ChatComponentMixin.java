@@ -139,6 +139,18 @@ public abstract class ChatComponentMixin implements ChatMod.Lines {
 	}
 
 	@Override
+	public void newgen$refresh() {
+		refreshTrimmedMessages();
+	}
+
+	/** Chat search: while searching only the matching messages are listed. */
+	@com.llamalad7.mixinextras.injector.WrapWithCondition(method = "refreshTrimmedMessages()V",
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/ChatComponent;addMessageToDisplayQueue(Lnet/minecraft/client/GuiMessage;)V"))
+	private boolean newgen$searchFilter(ChatComponent chat, GuiMessage message) {
+		return ChatMod.shows(message);
+	}
+
+	@Override
 	public void newgen$delete(GuiMessage message) {
 		if (allMessages.remove(message)) refreshTrimmedMessages();
 	}
